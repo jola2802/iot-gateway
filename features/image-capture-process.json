@@ -1,0 +1,110 @@
+[
+    {
+        "id": "255db2bf9f0b32f3",
+        "type": "group",
+        "z": "273ea6c3a24cc6ae",
+        "name": "OPC-Image-Capture",
+        "style": {
+            "fill": "#d1d1d1",
+            "label": true,
+            "label-position": "n",
+            "color": "#000000"
+        },
+        "nodes": [
+            "f2a27096c58fc934",
+            "082a5e893bd6603f",
+            "3d72a4e072ff83e3",
+            "ac5717615a9d234d"
+        ],
+        "x": 94,
+        "y": 79,
+        "w": 1152,
+        "h": 82
+    },
+    {
+        "id": "f2a27096c58fc934",
+        "type": "function",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "OPC-Image-Capture-Process",
+        "func": "// ------------------------------------------------------\n// \"Image Capture Process\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Env Vars (Endpoint, NodeIds, Pfade, etc.)\n//    Fallback: msg -> env -> default\nconst endpoint    = msg.endpoint       || env.get(\"OPCUA_ENDPOINT\")       || \"opc.tcp://127.0.0.1:4840\";\nconst objectId    = msg.objectId       || env.get(\"METHOD_OBJECTID\")      || \"ns=3;s=Demo.Method\";\nconst methodId    = msg.methodId       || env.get(\"METHOD_ID\")            || \"ns=3;s=Demo.Method.DoSomethingAfter10s\";\nconst checkNodeId = msg.checkNodeId    || env.get(\"CHECK_NODEID\")         || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst imageNodeId = msg.imageNodeId    || env.get(\"IMAGE_NODEID\")         || \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\";\nconst ackNodeId   = msg.ackNodeId      || env.get(\"ACK_NODEID\")           || \"ns=3;s=Demo.Static.Scalar.Boolean\";\nconst basePath    = msg.basePath       || env.get(\"BASE_PATH\")            || \"/files/\";\nconst device      = msg.device         || env.get(\"DEVICE\")               || \"local-1\";\nconst enableUpload= (msg.enableUpload  || env.get(\"ENABLE_UPLOAD\")        || \"false\").toLowerCase();\nconst uploadUrl   = msg.uploadUrl      || env.get(\"UPLOAD_URL\")           || \"\";\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar   = (msg.securityModeVar    || env.get(\"OPCUA_SECURITY_MODE\")   || \"NONE\").toUpperCase();\nconst securityPolicyVar = (msg.securityPolicyVar  || env.get(\"OPCUA_SECURITY_POLICY\") || \"NONE\").toUpperCase();\nconst username          = msg.username            || env.get(\"OPCUA_USER\")            || \"\";\nconst password          = msg.password            || env.get(\"OPCUA_PASSWORD\")        || \"\";\n// const certificateFile   = env.get(\"OPCUA_CERTFILE\")  || \"\";\n// const privateKeyFile    = env.get(\"OPCUA_KEYFILE\")   || \"\";\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\n//    (Sicherstellen, dass wir bspw. \"NONE\" -> opcua.MessageSecurityMode.None usw.)\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n\n    // 4) OPC-UA Client erstellen, inkl. Security-Einstellungen\n    const client = opcua.OPCUAClient.create({\n        applicationName: \"MyNodeRedOpcUaClient\",\n        endpoint_must_exist: false,\n        \n        // Security Mode\n        securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n\n        // Security Policy\n        securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n\n        // Optional: connectionStrategy\n        connectionStrategy: {\n            initialDelay: 1000,\n            maxRetry: 5\n        }\n    });\n\n    // 5) OPC-UA-Server verbinden\n    node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n    await client.connect(endpoint);\n    node.log(\"[DEBUG] Successfully connected to OPC UA Server.\");\n\n    // 6) Session aufbauen:\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n\n    let userIdentity = null;\n    if (username && password) {\n        userIdentity = { userName: username, password };\n    } else {\n\n    }\n    const session = await client.createSession(userIdentity);\n\n    // 7) Methode aufrufen (z. B. Start Bildaufnahme)\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Call Method...\" });\n    await callMethod(session, objectId, methodId);\n\n    // 8) Warten, bis checkNodeId = true\n    node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for boolean...\" });\n    await waitForBooleanTrue(session, checkNodeId, 20000); // 20s Timeout\n\n    // 9) Bild-String auslesen\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Reading image...\" });\n    const base64String = await readImageString(session, imageNodeId);\n    // node.warn(\"[DEBUG] Image read successfully. (Base64 String: \" + (base64String || \"\") + \")\");\n\n    // 10) Lokales Speichern\n    node.status({ fill: \"blue\", shape: \"ring\", text: \"Saving file...\" });\n    const savedFilePath = await saveImage(base64String, basePath, device);\n    node.log(`[DEBUG] Image saved at: ${savedFilePath}`);\n\n    // 11) Ack Node = true\n    node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n    await writeBoolean(session, ackNodeId, true);\n    // node.log(\"[DEBUG] Ack node written successfully.\");\n\n    // 12) Optionaler Upload\n    if (enableUpload === \"true\" && uploadUrl) {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Uploading...\" });\n        await uploadFile(savedFilePath, uploadUrl);\n        node.log(\"[DEBUG] Upload done.\");\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Upload done\" });\n    } else {\n        node.warn(\"[DEBUG] No upload requested (enableUpload=false or missing URL).\");\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n    }\n\n    // 13) Session und Client schließen\n    await session.close();\n    await client.disconnect();\n\n    // 14) msg.payload für den Flow\n    msg.payload = {\n        success: true,\n        endpoint,\n        securityMode: securityModeVar,\n        securityPolicy: securityPolicyVar,\n        username: username || \"Anonymous\",\n        savedFilePath,\n        uploaded: (enableUpload === \"true\")\n    };\n\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktionen (mit Debug-Ausgaben)\n// ------------------------------------------------------\n\nasync function callMethod(session, objectId, methodId) {\n    const methodToCall = {\n        objectId,\n        methodId,\n        inputArguments: []\n    };\n    const result = await session.call(methodToCall);\n    if (result.statusCode.name !== \"Good\") {\n        throw new Error(\"Method call failed: \" + result.statusCode.description);\n    }\n    return result;\n}\n\nasync function waitForBooleanTrue(session, nodeId, timeoutMs) {\n    const start = Date.now();\n    while (true) {\n        const dataValue = await session.readVariableValue(nodeId);\n        if (dataValue.statusCode.name === \"Good\" && dataValue.value.value === true) {\n            return;\n        }\n        if (Date.now() - start > timeoutMs) {\n            throw new Error(`Timeout: ${nodeId} did not become true within ${timeoutMs} ms`);\n        }\n        await delay(1000); // 1 Sekunde Pause\n    }\n}\n\nasync function readImageString(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(\"Cannot read image: \" + dataValue.statusCode.description);\n    }\n    // Zurück kommt ein Base64-String (oder ASCII) je nach OPC UA Server\n    return dataValue.value.value;\n}\n\nasync function saveImage(base64String, basePath, device) {\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n    const fileName = `${device}_${timestamp}.png`;\n    const fullPath = `${basePath}/${device}/${fileName}`;\n\n    await fs.ensureDir(`${basePath}/${device}`);\n\n    const buffer = Buffer.from(base64String, \"base64\");\n    await fs.writeFile(fullPath, buffer);\n\n    return fullPath;\n}\n\nasync function writeBoolean(session, nodeId, value) {\n    const opcuaDataType = opcua.DataType.Boolean;\n    const writeValue = {\n        nodeId,\n        attributeId: opcua.AttributeIds.Value,\n        value: {\n            value: {\n                dataType: opcuaDataType,\n                value\n            }\n        }\n    };\n    const statusCode = await session.write(writeValue);\n    if (statusCode.name !== \"Good\") {\n        throw new Error(\"Failed to write boolean: \" + statusCode.description);\n    }\n}\n\nasync function uploadFile(filePath, url) {\n    const fileData = await fs.readFile(filePath);\n    const response = await axios.post(url, fileData, {\n        headers: {\n            \"Content-Type\": \"application/octet-stream\"\n        }\n    });\n    if (response.status < 200 || response.status > 299) {\n        throw new Error(`Upload failed: HTTP ${response.status}`);\n    }\n    return response.data;\n}\n\nfunction delay(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Done\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "// Hier holen wir uns die Daten aus dem Request Body (JSON)\n// und übergeben sie in msg.* Variablen, damit unsere\n// eigentliche OPC-Funktion diese nutzen kann.\n\nlet reqBody = msg.req.body || {};\n\n// Beispiel: Übertrage Felder aus dem Request in msg\nmsg.endpoint = reqBody.endpoint;\nmsg.objectId = reqBody.objectId;\nmsg.methodId = reqBody.methodId;\nmsg.checkNodeId = reqBody.checkNodeId;\nmsg.imageNodeId = reqBody.imageNodeId;\nmsg.ackNodeId = reqBody.ackNodeId;\nmsg.basePath = reqBody.basePath;\nmsg.device = reqBody.device;\nmsg.enableUpload = reqBody.enableUpload;    // \"true\"/\"false\"\nmsg.uploadUrl = reqBody.uploadUrl;\n\n// Optional: Security / Login\nmsg.securityModeVar = reqBody.securityModeVar;\nmsg.securityPolicyVar = reqBody.securityPolicyVar;\nmsg.username = reqBody.username;\nmsg.password = reqBody.password;\n\n// msg kann natürlich noch weitere Felder enthalten, die du brauchst.\n\nreturn msg;",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 850,
+        "y": 120,
+        "wires": [
+            [
+                "3d72a4e072ff83e3"
+            ]
+        ],
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "082a5e893bd6603f",
+        "type": "http in",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "HTTP POST /opc-image",
+        "url": "/opc-image",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 230,
+        "y": 120,
+        "wires": [
+            [
+                "ac5717615a9d234d"
+            ]
+        ]
+    },
+    {
+        "id": "3d72a4e072ff83e3",
+        "type": "http response",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "HTTP Response",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1140,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "ac5717615a9d234d",
+        "type": "function",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "Get HTTP-Daten",
+        "func": "// Hier holen wir uns die Daten aus dem Request Body (JSON)\n// und übergeben sie in msg.* Variablen, damit unsere\n// eigentliche OPC-Funktion diese nutzen kann.\n\nlet reqBody = msg.req.body || {};\n\n// Beispiel: Übertrage Felder aus dem Request in msg\nmsg.endpoint = reqBody.endpoint;\nmsg.objectId = reqBody.objectId;\nmsg.methodId = reqBody.methodId;\nmsg.checkNodeId = reqBody.checkNodeId;\nmsg.imageNodeId = reqBody.imageNodeId;\nmsg.ackNodeId = reqBody.ackNodeId;\nmsg.basePath = reqBody.basePath;\nmsg.device = reqBody.device;\nmsg.enableUpload = reqBody.enableUpload;    // \"true\"/\"false\"\nmsg.uploadUrl = reqBody.uploadUrl;\n\n// Optional: Security / Login\nmsg.securityModeVar = reqBody.securityModeVar;\nmsg.securityPolicyVar = reqBody.securityPolicyVar;\nmsg.username = reqBody.username;\nmsg.password = reqBody.password;\n\n// msg kann natürlich noch weitere Felder enthalten, die du brauchst.\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 120,
+        "wires": [
+            [
+                "f2a27096c58fc934"
+            ]
+        ]
+    }
+]

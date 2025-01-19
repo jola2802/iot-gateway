@@ -1,0 +1,45 @@
+{
+  "listeners": [
+    {
+      "id": "localtcp",
+      "address": ":50000",
+      "type": "tcp"
+    },
+    {
+      "id": "localWS",
+      "address": ":5001",
+      "type": "websocket"
+    },
+    {
+      "id": "webuiWS",
+      "address": ":5100",
+      "type": "websocket",
+      "tls": true
+    },
+    {
+      "id": "publicWS",
+      "address": ":5101",
+      "type": "websocket",
+      "tls": true
+    },
+    {
+      "id": "publicTCP",
+      "address": ":5102",
+      "type": "tcp",
+      "tls": true
+    },
+    {
+      "id": "stats",
+      "address": ":9090",
+      "type": "http",
+      "tls": true
+    }
+  ],
+  "webui": {
+    "http_port": "8088",
+    "https_port": "8443",
+    "use_https": true,
+    "tls_cert": "server.crt",
+    "tls_key": "server.key"
+  }
+}

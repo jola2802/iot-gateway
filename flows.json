@@ -1,0 +1,1834 @@
+[
+    {
+        "id": "273ea6c3a24cc6ae",
+        "type": "tab",
+        "label": "Image-Capture-Process",
+        "disabled": true,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "7bb9022af9f34799",
+        "type": "tab",
+        "label": "Data Forwarding",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "bad8de81d1f246b2",
+        "type": "tab",
+        "label": "OLD-Image-Capture-Process",
+        "disabled": true,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "f574be6253a55c30",
+        "type": "tab",
+        "label": "OPC-Image-Capture",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "b17eaae12a463971",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "name": "Image Capture Process",
+        "style": {
+            "stroke": "#777777",
+            "fill": "#777777",
+            "label": true,
+            "label-position": "n",
+            "color": "#ffffff"
+        },
+        "nodes": [
+            "217b594ab21f50df",
+            "d7907fd339fe3ed2",
+            "24741cbf5cec55ed",
+            "1694a3099cb0df77",
+            "6faeb199be548585",
+            "5eec52149608f8aa",
+            "bde5ecdf96d5b664",
+            "1ab8fda0ef4a5ad3",
+            "856dd5fa126f14aa"
+        ],
+        "x": 988,
+        "y": 353,
+        "w": 1298,
+        "h": 634
+    },
+    {
+        "id": "255db2bf9f0b32f3",
+        "type": "group",
+        "z": "273ea6c3a24cc6ae",
+        "name": "OPC-Image-Capture",
+        "style": {
+            "fill": "#d1d1d1",
+            "label": true,
+            "label-position": "n",
+            "color": "#000000"
+        },
+        "nodes": [
+            "f2a27096c58fc934",
+            "082a5e893bd6603f",
+            "3d72a4e072ff83e3",
+            "ac5717615a9d234d",
+            "uiTemplate",
+            "c7922c30e733e478",
+            "660f671dc91e7b92",
+            "a52a4264fe5613de"
+        ],
+        "x": 214,
+        "y": 79,
+        "w": 1192,
+        "h": 282
+    },
+    {
+        "id": "8fa47f46804b14e3",
+        "type": "group",
+        "z": "273ea6c3a24cc6ae",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "0408170d316801ca",
+            "a778632fde151958",
+            "3a9070aaca0e9270",
+            "84c020dc2b2d2bb1",
+            "73cdd2f51c428d65",
+            "679193e54f974300"
+        ],
+        "x": 214,
+        "y": 419,
+        "w": 952,
+        "h": 262
+    },
+    {
+        "id": "af1fba23f9643925",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "name": "Image Capture Processes",
+        "style": {
+            "label": true,
+            "label-position": "n",
+            "color": "#000000"
+        },
+        "nodes": [
+            "f7a6fed32d1cf714",
+            "1231f29bba25f355",
+            "ce4e215dabf5ab12"
+        ],
+        "x": 108,
+        "y": 73,
+        "w": 564,
+        "h": 454
+    },
+    {
+        "id": "bf4e365d489a05a7",
+        "type": "group",
+        "z": "f574be6253a55c30",
+        "name": "OPC-Image-Capture",
+        "style": {
+            "fill": "#d1d1d1",
+            "label": true,
+            "label-position": "n",
+            "color": "#000000"
+        },
+        "nodes": [
+            "6ef3288e75ac9646",
+            "5a10bf065e1fc660",
+            "fa6e0506824c40f4",
+            "71ded5a8250bd1cd"
+        ],
+        "x": 154,
+        "y": 139,
+        "w": 932,
+        "h": 82
+    },
+    {
+        "id": "217b594ab21f50df",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "7cb3922799df6434",
+            "4d634a1860888af4"
+        ],
+        "x": 1014,
+        "y": 379,
+        "w": 672,
+        "h": 82
+    },
+    {
+        "id": "d7907fd339fe3ed2",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "23abb2c1c5146949",
+            "20dd88beb2594d84",
+            "88dd5e118ce1ba72"
+        ],
+        "x": 1014,
+        "y": 471.5,
+        "w": 912,
+        "h": 97
+    },
+    {
+        "id": "24741cbf5cec55ed",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "d92779dee0c02abc",
+            "fd4250442051210f",
+            "b7518fd7b651a115"
+        ],
+        "x": 1014,
+        "y": 679,
+        "w": 832,
+        "h": 82
+    },
+    {
+        "id": "1694a3099cb0df77",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "b03fd98175ca4867",
+            "a2359c93db798bb4",
+            "68e516cc8143f2ed"
+        ],
+        "x": 1014,
+        "y": 771.5,
+        "w": 952,
+        "h": 97
+    },
+    {
+        "id": "6faeb199be548585",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "313a54f859253b8a",
+            "d3a031eaddacdb4b"
+        ],
+        "x": 1014,
+        "y": 879,
+        "w": 632,
+        "h": 82
+    },
+    {
+        "id": "5eec52149608f8aa",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "524f1be75f3f7009",
+            "dfb841cee023414d",
+            "958294e5a2cf1e95"
+        ],
+        "x": 1014,
+        "y": 576.5,
+        "w": 912,
+        "h": 97
+    },
+    {
+        "id": "f7a6fed32d1cf714",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "af1fba23f9643925",
+        "name": "Device: local-1",
+        "style": {
+            "label": true,
+            "fill": "#d1d1d1",
+            "label-position": "n",
+            "color": "#ffffff"
+        },
+        "nodes": [
+            "a4ef7e11c8e4119a",
+            "0aaaa7f6452a49da",
+            "db41d0fdc6d43578",
+            "2570a4cd55b4cf0f"
+        ],
+        "x": 134,
+        "y": 99,
+        "w": 512,
+        "h": 122
+    },
+    {
+        "id": "1231f29bba25f355",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "af1fba23f9643925",
+        "name": "Device: local-1",
+        "style": {
+            "label": true,
+            "fill": "#d1d1d1",
+            "label-position": "n",
+            "color": "#ffffff"
+        },
+        "nodes": [
+            "01ed396b08ac0e78",
+            "919815c42a366d7b",
+            "aee8ea49fecddde5",
+            "63e332a1334ca6ae"
+        ],
+        "x": 134,
+        "y": 239,
+        "w": 512,
+        "h": 122
+    },
+    {
+        "id": "ce4e215dabf5ab12",
+        "type": "group",
+        "z": "bad8de81d1f246b2",
+        "g": "af1fba23f9643925",
+        "name": "Device: local-1",
+        "style": {
+            "label": true,
+            "fill": "#d1d1d1",
+            "label-position": "n",
+            "color": "#ffffff"
+        },
+        "nodes": [
+            "d30512460941efa8",
+            "540c798e67f0567d",
+            "bf92735a7c96a451",
+            "396ce876d6d426b4"
+        ],
+        "x": 134,
+        "y": 379,
+        "w": 512,
+        "h": 122
+    },
+    {
+        "id": "b6494780d71961f6",
+        "type": "OpcUa-Endpoint",
+        "endpoint": "opc.tcp://localhost:48010",
+        "secpol": "None",
+        "secmode": "None",
+        "none": true,
+        "login": false,
+        "usercert": false,
+        "usercertificate": "",
+        "userprivatekey": ""
+    },
+    {
+        "id": "9c9396ebd9b2f50c",
+        "type": "global-config",
+        "name": "global-config",
+        "env": []
+    },
+    {
+        "id": "f56fe8afb6423d9d",
+        "type": "ui_tab",
+        "name": "Image Capture Process",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "2726547ab0093baa",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD.MM.YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "2ec2df0b3ed1d36c",
+        "type": "ui_group",
+        "name": "Images",
+        "tab": "f56fe8afb6423d9d",
+        "order": 1,
+        "disp": false,
+        "width": "15",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "69afd7c3f94b8324",
+        "type": "mqtt-broker",
+        "name": "local",
+        "broker": "127.0.0.1",
+        "port": "50000",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "f2a27096c58fc934",
+        "type": "function",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "OPC-Image-Capture-Process",
+        "func": "// ------------------------------------------------------\n// \"Image Capture Process\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Env Vars (Endpoint, NodeIds, Pfade, etc.)\n//    Fallback: msg -> env -> default\nconst endpoint    = msg.endpoint       || env.get(\"OPCUA_ENDPOINT\")       || \"opc.tcp://127.0.0.1:4840\";\nconst objectId    = msg.objectId       || env.get(\"METHOD_OBJECTID\")      || \"ns=3;s=Demo.Method\";\nconst methodId    = msg.methodId       || env.get(\"METHOD_ID\")            || \"ns=3;s=Demo.Method.DoSomethingAfter10s\";\nconst checkNodeId = msg.checkNodeId    || env.get(\"CHECK_NODEID\")         || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst imageNodeId = msg.imageNodeId    || env.get(\"IMAGE_NODEID\")         || \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\";\nconst ackNodeId   = msg.ackNodeId      || env.get(\"ACK_NODEID\")           || \"ns=3;s=Demo.Static.Scalar.Boolean\";\nconst basePath    = msg.basePath       || env.get(\"BASE_PATH\")            || \"/files/\";\nconst device      = msg.device         || env.get(\"DEVICE\")               || \"local-1\";\nconst enableUpload= (msg.enableUpload  || env.get(\"ENABLE_UPLOAD\")        || \"false\").toLowerCase();\nconst uploadUrl   = msg.uploadUrl      || env.get(\"UPLOAD_URL\")           || \"\";\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar   = (msg.securityModeVar    || env.get(\"OPCUA_SECURITY_MODE\")   || \"NONE\").toUpperCase();\nconst securityPolicyVar = (msg.securityPolicyVar  || env.get(\"OPCUA_SECURITY_POLICY\") || \"NONE\").toUpperCase();\nconst username          = msg.username            || env.get(\"OPCUA_USER\")            || \"\";\nconst password          = msg.password            || env.get(\"OPCUA_PASSWORD\")        || \"\";\n// const certificateFile   = env.get(\"OPCUA_CERTFILE\")  || \"\";\n// const privateKeyFile    = env.get(\"OPCUA_KEYFILE\")   || \"\";\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\n//    (Sicherstellen, dass wir bspw. \"NONE\" -> opcua.MessageSecurityMode.None usw.)\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n\n    // 4) OPC-UA Client erstellen, inkl. Security-Einstellungen\n    const client = opcua.OPCUAClient.create({\n        applicationName: \"MyNodeRedOpcUaClient\",\n        endpoint_must_exist: false,\n        \n        // Security Mode\n        securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n\n        // Security Policy\n        securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n\n        // Optional: connectionStrategy\n        connectionStrategy: {\n            initialDelay: 1000,\n            maxRetry: 5\n        }\n    });\n\n    // 5) OPC-UA-Server verbinden\n    node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n    await client.connect(endpoint);\n    node.log(\"[DEBUG] Successfully connected to OPC UA Server.\");\n\n    // 6) Session aufbauen:\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n\n    let userIdentity = null;\n    if (username && password) {\n        userIdentity = { userName: username, password };\n    } else {\n\n    }\n    const session = await client.createSession(userIdentity);\n\n    // 7) Methode aufrufen (z. B. Start Bildaufnahme)\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Call Method...\" });\n    await callMethod(session, objectId, methodId);\n\n    // 8) Warten, bis checkNodeId = true\n    node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for boolean...\" });\n    await waitForBooleanTrue(session, checkNodeId, 20000); // 20s Timeout\n\n    // 9) Bild-String auslesen\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Reading image...\" });\n    const base64String = await readImageString(session, imageNodeId);\n    // node.warn(\"[DEBUG] Image read successfully. (Base64 String: \" + (base64String || \"\") + \")\");\n\n    // 10) Lokales Speichern\n    node.status({ fill: \"blue\", shape: \"ring\", text: \"Saving file...\" });\n    const savedFilePath = await saveImage(base64String, basePath, device);\n    node.log(`[DEBUG] Image saved at: ${savedFilePath}`);\n\n    // 11) Ack Node = true\n    node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n    await writeBoolean(session, ackNodeId, true);\n    // node.log(\"[DEBUG] Ack node written successfully.\");\n\n    // 12) Optionaler Upload\n    if (enableUpload === \"true\" && uploadUrl) {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Uploading...\" });\n        await uploadFile(savedFilePath, uploadUrl);\n        node.log(\"[DEBUG] Upload done.\");\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Upload done\" });\n    } else {\n        node.warn(\"[DEBUG] No upload requested (enableUpload=false or missing URL).\");\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n    }\n\n    // 13) Session und Client schließen\n    await session.close();\n    await client.disconnect();\n\n    // 14) msg.payload für den Flow\n    msg.payload = {\n        success: true,\n        endpoint,\n        securityMode: securityModeVar,\n        securityPolicy: securityPolicyVar,\n        username: username || \"Anonymous\",\n        savedFilePath,\n        uploaded: (enableUpload === \"true\")\n    };\n\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktionen (mit Debug-Ausgaben)\n// ------------------------------------------------------\n\nasync function callMethod(session, objectId, methodId) {\n    const methodToCall = {\n        objectId,\n        methodId,\n        inputArguments: []\n    };\n    const result = await session.call(methodToCall);\n    if (result.statusCode.name !== \"Good\") {\n        throw new Error(\"Method call failed: \" + result.statusCode.description);\n    }\n    return result;\n}\n\nasync function waitForBooleanTrue(session, nodeId, timeoutMs) {\n    const start = Date.now();\n    while (true) {\n        const dataValue = await session.readVariableValue(nodeId);\n        if (dataValue.statusCode.name === \"Good\" && dataValue.value.value === true) {\n            return;\n        }\n        if (Date.now() - start > timeoutMs) {\n            throw new Error(`Timeout: ${nodeId} did not become true within ${timeoutMs} ms`);\n        }\n        await delay(1000); // 1 Sekunde Pause\n    }\n}\n\nasync function readImageString(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(\"Cannot read image: \" + dataValue.statusCode.description);\n    }\n    // Zurück kommt ein Base64-String (oder ASCII) je nach OPC UA Server\n    return dataValue.value.value;\n}\n\nasync function saveImage(base64String, basePath, device) {\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n    const fileName = `${device}_${timestamp}.png`;\n    const fullPath = `${basePath}/${device}/${fileName}`;\n\n    await fs.ensureDir(`${basePath}/${device}`);\n\n    const buffer = Buffer.from(base64String, \"base64\");\n    await fs.writeFile(fullPath, buffer);\n\n    return fullPath;\n}\n\nasync function writeBoolean(session, nodeId, value) {\n    const opcuaDataType = opcua.DataType.Boolean;\n    const writeValue = {\n        nodeId,\n        attributeId: opcua.AttributeIds.Value,\n        value: {\n            value: {\n                dataType: opcuaDataType,\n                value\n            }\n        }\n    };\n    const statusCode = await session.write(writeValue);\n    if (statusCode.name !== \"Good\") {\n        throw new Error(\"Failed to write boolean: \" + statusCode.description);\n    }\n}\n\nasync function uploadFile(filePath, url) {\n    const fileData = await fs.readFile(filePath);\n    const response = await axios.post(url, fileData, {\n        headers: {\n            \"Content-Type\": \"application/octet-stream\"\n        }\n    });\n    if (response.status < 200 || response.status > 299) {\n        throw new Error(`Upload failed: HTTP ${response.status}`);\n    }\n    return response.data;\n}\n\nfunction delay(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Done\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 370,
+        "y": 240,
+        "wires": [
+            [
+                "3d72a4e072ff83e3",
+                "a52a4264fe5613de"
+            ]
+        ],
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "082a5e893bd6603f",
+        "type": "http in",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "HTTP POST /opc-image",
+        "url": "/opc-image",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 350,
+        "y": 120,
+        "wires": [
+            [
+                "ac5717615a9d234d"
+            ]
+        ]
+    },
+    {
+        "id": "0408170d316801ca",
+        "type": "http in",
+        "z": "273ea6c3a24cc6ae",
+        "g": "8fa47f46804b14e3",
+        "name": "HTTP POST /opc-upload",
+        "url": "/opc-upload",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 350,
+        "y": 520,
+        "wires": [
+            [
+                "73cdd2f51c428d65"
+            ]
+        ]
+    },
+    {
+        "id": "3d72a4e072ff83e3",
+        "type": "http response",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "HTTP Response",
+        "statusCode": "200",
+        "headers": {},
+        "x": 400,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "a778632fde151958",
+        "type": "image",
+        "z": "273ea6c3a24cc6ae",
+        "g": "8fa47f46804b14e3",
+        "name": "",
+        "width": 160,
+        "data": "payload",
+        "dataType": "msg",
+        "thumbnail": false,
+        "active": true,
+        "pass": true,
+        "outputs": 1,
+        "x": 780,
+        "y": 520,
+        "wires": [
+            [
+                "3a9070aaca0e9270",
+                "84c020dc2b2d2bb1"
+            ]
+        ]
+    },
+    {
+        "id": "3a9070aaca0e9270",
+        "type": "http response",
+        "z": "273ea6c3a24cc6ae",
+        "g": "8fa47f46804b14e3",
+        "name": "HTTP Response",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1000,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "84c020dc2b2d2bb1",
+        "type": "debug",
+        "z": "273ea6c3a24cc6ae",
+        "g": "8fa47f46804b14e3",
+        "name": "debug 6",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1060,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "73cdd2f51c428d65",
+        "type": "function",
+        "z": "273ea6c3a24cc6ae",
+        "g": "8fa47f46804b14e3",
+        "name": "toBase64",
+        "func": "msg.payload = msg.payload.toString(\"base64\")\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 520,
+        "wires": [
+            [
+                "a778632fde151958"
+            ]
+        ]
+    },
+    {
+        "id": "ac5717615a9d234d",
+        "type": "function",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "Get HTTP-Daten",
+        "func": "// Hier holen wir uns die Daten aus dem Request Body (JSON)\n// und übergeben sie in msg.* Variablen, damit unsere\n// eigentliche OPC-Funktion diese nutzen kann.\n\nlet reqBody = msg.req.body || {};\n\n// Beispiel: Übertrage Felder aus dem Request in msg\nmsg.endpoint = reqBody.endpoint;\nmsg.objectId = reqBody.objectId;\nmsg.methodId = reqBody.methodId;\nmsg.checkNodeId = reqBody.checkNodeId;\nmsg.imageNodeId = reqBody.imageNodeId;\nmsg.ackNodeId = reqBody.ackNodeId;\nmsg.basePath = reqBody.basePath;\nmsg.device = reqBody.device;\nmsg.enableUpload = reqBody.enableUpload;    // \"true\"/\"false\"\nmsg.uploadUrl = reqBody.uploadUrl;\n\n// Optional: Security / Login\nmsg.securityModeVar = reqBody.securityModeVar;\nmsg.securityPolicyVar = reqBody.securityPolicyVar;\nmsg.username = reqBody.username;\nmsg.password = reqBody.password;\n\n// msg kann natürlich noch weitere Felder enthalten, die du brauchst.\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 180,
+        "wires": [
+            [
+                "f2a27096c58fc934"
+            ]
+        ]
+    },
+    {
+        "id": "679193e54f974300",
+        "type": "comment",
+        "z": "273ea6c3a24cc6ae",
+        "g": "8fa47f46804b14e3",
+        "name": "for debugging",
+        "info": "",
+        "x": 710,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "uiTemplate",
+        "type": "ui_template",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "group": "2ec2df0b3ed1d36c",
+        "name": "Show last images",
+        "order": 1,
+        "width": "15",
+        "height": "15",
+        "format": "<div style=\"font-family: sans-serif; padding: 1px;\">\n    <h3 style=\"text-align: center; margin-bottom: 20px;\">Last Image for each device</h3>\n\n    <!-- Flex-Container für die Geräte-Boxen -->\n    <div style=\"display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start;\">\n        <!-- Wiederholt eine Box pro Gerät -->\n        <div ng-repeat=\"(deviceName, imageList) in msg.payload\" style=\"border: 3px solid #aaa; padding: 10px; border-radius: 4px; background: #f9f9f9;\n                max-width: 300px; flex: 1;\">\n\n            <h4 style=\"margin-top: 0; color: #666; text-align: center;\">\n                Device: {{deviceName}}\n            </h4>\n\n            <!-- Flex-Container für bis zu 1 Bilder nebeneinander -->\n            <div style=\"display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;\">\n                <!-- limitTo:2 zeigt nur das erste Elemente von imageList -->\n                <div ng-repeat=\"img in imageList | limitTo:1\" style=\"text-align: center;\">\n                    <div style=\"display: inline-block;\">\n                        <img ng-src=\"data:image/png;base64,{{img.base64}}\"\n                 style=\"display: block; width: 100px; border: 1px solid #999;\" />\n                        <p style=\"margin: 5px 0 0; font-size: 14px; text-align: center; width: 100px;\">\n                            {{img.filename}}\n                        </p>\n                    </div>\n                </div>\n            </div>\n\n        </div>\n    </div>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 1290,
+        "y": 260,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c7922c30e733e478",
+        "type": "function",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "get png file",
+        "func": "// Funktion zum Einlesen einer Datei als Base64\nasync function readFileAsBase64(filePath) {\n    const buffer = await fs.readFile(filePath);\n    return buffer.toString(\"base64\");\n}\n\nasync function main() {\n    const savedFilePath = msg.payload?.savedFilePath;  // z.B. \"/files/camera1/camera1_2025-01-02T12-00-00.png\"\n    if (!savedFilePath) {\n        node.warn(\"No savedFilePath found in msg.payload\");\n        return msg;\n    }\n\n    // Datei -> Base64\n    const base64Data = await readFileAsBase64(savedFilePath);\n\n    // Device ermitteln (optional)\n    // Beispiel: device als Ordnername\n    const splitPath = savedFilePath.split(\"/\");\n    const device = splitPath[splitPath.length - 2];     // Vorletztes Element ist der Ordnername\n    const fileName = splitPath[splitPath.length - 1];   // Letztes Element ist der eigentliche Dateiname\n\n    // Rückgabe\n    msg.payload = {\n        device: device,\n        filename: fileName,\n        fullpath: savedFilePath,\n        fileDataBase64: base64Data\n    };\n\n    return msg;\n}\n\nreturn main().then(\n    finalMsg => finalMsg,\n    err => {\n        node.error(err.message, msg);\n        return null;\n    }\n);\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 770,
+        "y": 260,
+        "wires": [
+            [
+                "660f671dc91e7b92"
+            ]
+        ]
+    },
+    {
+        "id": "660f671dc91e7b92",
+        "type": "function",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "Update images in Flow Context",
+        "func": "// Hole eine Map { gerätename: [listeVonBildern] } aus dem Flow-Kontext\nlet imagesByDevice = flow.get(\"imagesByDevice\") || {};\n\n// msg.payload enthält z.B. { device, filename, fileDataBase64 }\nconst deviceName = msg.payload.device || \"unknown\";\nconst entry = {\n    filename: msg.payload.filename,\n    base64:   msg.payload.fileDataBase64,\n    time:     new Date().toLocaleString()\n};\n\n// Falls für dieses Gerät noch keine Liste existiert, lege eine an\nif (!imagesByDevice[deviceName]) {\n    imagesByDevice[deviceName] = [];\n}\n\n// Hänge den neuen Eintrag vorne an\nimagesByDevice[deviceName].unshift(entry);\n\n// Begrenze optional auf die letzten 5\nif (imagesByDevice[deviceName].length > 5) {\n    imagesByDevice[deviceName].pop();\n}\n\n// Speichere zurück in den Flow-Kontext\nflow.set(\"imagesByDevice\", imagesByDevice);\n\n// Für das nächste Node oder die UI:\nmsg.payload = imagesByDevice;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 1030,
+        "y": 260,
+        "wires": [
+            [
+                "uiTemplate"
+            ]
+        ]
+    },
+    {
+        "id": "a52a4264fe5613de",
+        "type": "switch",
+        "z": "273ea6c3a24cc6ae",
+        "g": "255db2bf9f0b32f3",
+        "name": "",
+        "property": "success",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "true",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 610,
+        "y": 240,
+        "wires": [
+            [
+                "c7922c30e733e478"
+            ]
+        ]
+    },
+    {
+        "id": "a4ceec65ebecd79e",
+        "type": "mqtt in",
+        "z": "7bb9022af9f34799",
+        "d": true,
+        "name": "",
+        "topic": "data/opcua/local-opc-2/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "69afd7c3f94b8324",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 330,
+        "y": 140,
+        "wires": [
+            [
+                "4ad991d4a19fc60a"
+            ]
+        ]
+    },
+    {
+        "id": "4ad991d4a19fc60a",
+        "type": "debug",
+        "z": "7bb9022af9f34799",
+        "name": "debug 7",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "748f2843e1771d47",
+        "type": "mqtt in",
+        "z": "7bb9022af9f34799",
+        "d": true,
+        "name": "",
+        "topic": "data/opcua/local-opc-3/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "69afd7c3f94b8324",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 330,
+        "y": 240,
+        "wires": [
+            [
+                "c20738108860bf76"
+            ]
+        ]
+    },
+    {
+        "id": "c20738108860bf76",
+        "type": "debug",
+        "z": "7bb9022af9f34799",
+        "name": "debug 8",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "da61fb8c3762b587",
+        "type": "http in",
+        "z": "7bb9022af9f34799",
+        "name": "HTTP POST /forward-data",
+        "url": "/forward-data",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 400,
+        "wires": [
+            [
+                "81f90f6073e217fc"
+            ]
+        ]
+    },
+    {
+        "id": "81f90f6073e217fc",
+        "type": "switch",
+        "z": "7bb9022af9f34799",
+        "name": "Decide Forwarding Method",
+        "property": "payload.method",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "mqtt",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "rest",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "file",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 3,
+        "x": 470,
+        "y": 400,
+        "wires": [
+            [
+                "ad58907759d0969a"
+            ],
+            [
+                "bdbe62935c0e4297"
+            ],
+            [
+                "aaf889d80b6e909b"
+            ]
+        ]
+    },
+    {
+        "id": "ad58907759d0969a",
+        "type": "function",
+        "z": "7bb9022af9f34799",
+        "name": "Publish to MQTT",
+        "func": "// Extract data from request\nconst inputData = msg.payload;\nconst brokerUrl = inputData.brokerUrl;\nconst username = inputData.username;\nconst password = inputData.password;\nconst topic = inputData.topic;\nconst message = JSON.stringify(inputData.body || {});\n\n// Validate input\nif (!brokerUrl || !username || !password || !topic) {\n    msg.res = {\n        statusCode: 400,\n        payload: { error: \"Missing required fields: 'brokerUrl', 'username', 'password', or 'topic'.\" }\n    };\n    return null;\n}\n\n// MQTT connection options\nconst options = {\n    username: username,\n    password: password\n};\n\n// Create MQTT client\nconst client = mqtt.connect(brokerUrl, options);\n\nclient.on('connect', () => {\n    client.publish(topic, message, (err) => {\n        if (err) {\n            msg.res = {\n                statusCode: 500,\n                payload: { error: \"Failed to publish message.\", details: err.message }\n            };\n        } else {\n            msg.res = {\n                statusCode: 200,\n                payload: { message: \"Message published successfully.\", topic: topic, broker: brokerUrl }\n            };\n        }\n        client.end();\n    });\n});\n\nclient.on('error', (err) => {\n    msg.res = {\n        statusCode: 500,\n        payload: { error: \"MQTT connection error.\", details: err.message }\n    };\n    client.end();\n});\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "mqtt",
+                "module": "mqtt"
+            }
+        ],
+        "x": 740,
+        "y": 340,
+        "wires": [
+            [
+                "e2ec0b12e6af0cdb"
+            ]
+        ]
+    },
+    {
+        "id": "bdbe62935c0e4297",
+        "type": "function",
+        "z": "7bb9022af9f34799",
+        "name": "Process and Forward REST",
+        "func": "// Get input data\nconst inputData = msg.payload;\n\n// Validate input\nif (!inputData.address) {\n    msg.res = {\n        statusCode: 400,\n        payload: { error: \"Missing 'address' in request body.\" }\n    };\n    return null;\n}\n\n// Extract data\nconst address = inputData.address;\nconst headers = inputData.headers || {};\nconst body = inputData.body || {};\n\n// Configure request options\nconst options = {\n    url: address,\n    method: \"POST\",\n    headers: headers,\n    json: true,\n    body: body\n};\n\n// Perform HTTP request\nconst request = require('request');\nrequest(options, (error, response, responseBody) => {\n    if (error) {\n        msg.res = {\n            statusCode: 500,\n            payload: { error: error.message }\n        };\n    } else if (response.statusCode >= 200 && response.statusCode < 300) {\n        msg.res = {\n            statusCode: 200,\n            payload: { message: \"Request forwarded successfully.\", responseBody: responseBody }\n        };\n    } else {\n        msg.res = {\n            statusCode: response.statusCode,\n            payload: { error: \"Request failed.\", responseBody: responseBody }\n        };\n    }\n    node.send(msg);\n});\n\nreturn null;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 400,
+        "wires": [
+            [
+                "e2ec0b12e6af0cdb"
+            ]
+        ]
+    },
+    {
+        "id": "aaf889d80b6e909b",
+        "type": "function",
+        "z": "7bb9022af9f34799",
+        "name": "Prepare File Data",
+        "func": "// Get input data\nconst inputData = msg.payload;\n\n// Validate input\nif (!inputData.filename) {\n    msg.res = {\n        statusCode: 400,\n        payload: { error: \"Missing 'filename' in input data.\" }\n    };\n    return null;\n}\n\n// Prepare the file data\nmsg.filename = inputData.filename; // The filename to save the data\nmsg.payload = JSON.stringify(inputData.body, null, 2); // JSON payload to write\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 460,
+        "wires": [
+            [
+                "e2f31c2ceb87fe19",
+                "e2ec0b12e6af0cdb"
+            ]
+        ]
+    },
+    {
+        "id": "e2f31c2ceb87fe19",
+        "type": "file",
+        "z": "7bb9022af9f34799",
+        "name": "Save to File",
+        "filename": "filename",
+        "filenameType": "msg",
+        "appendNewline": true,
+        "createDir": true,
+        "overwriteFile": "false",
+        "x": 1000,
+        "y": 460,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e2ec0b12e6af0cdb",
+        "type": "http response",
+        "z": "7bb9022af9f34799",
+        "name": "HTTP Response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1100,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "7cb3922799df6434",
+        "type": "OpcUa-Method",
+        "z": "bad8de81d1f246b2",
+        "g": "217b594ab21f50df",
+        "endpoint": "b6494780d71961f6",
+        "objectId": "ns=3;s=Demo.Method",
+        "methodId": "ns=3;s=Demo.Method.DoSomethingAfter10s",
+        "name": "CALL OPC METHOD",
+        "inputArguments": [],
+        "outputArguments": [],
+        "arg0name": "",
+        "arg0type": "",
+        "arg0typeid": "",
+        "arg0value": "",
+        "arg1name": "",
+        "arg1type": "",
+        "arg1typeid": "",
+        "arg1value": "",
+        "arg2name": "",
+        "arg2type": "",
+        "arg2typeid": "",
+        "arg2value": "",
+        "out0name": "",
+        "out0type": "",
+        "out0typeid": "",
+        "out0value": "",
+        "x": 1560,
+        "y": 420,
+        "wires": [
+            [
+                "23abb2c1c5146949"
+            ]
+        ]
+    },
+    {
+        "id": "4d634a1860888af4",
+        "type": "comment",
+        "z": "bad8de81d1f246b2",
+        "g": "217b594ab21f50df",
+        "name": "1. Call OPC METHOD",
+        "info": "",
+        "x": 1140,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "23abb2c1c5146949",
+        "type": "OpcUa-Item",
+        "z": "bad8de81d1f246b2",
+        "g": "d7907fd339fe3ed2",
+        "item": "ns=3;s=Demo.Dynamic.Scalar.Boolean",
+        "datatype": "Boolean",
+        "value": "true",
+        "name": "READ - IMAGE VALID",
+        "x": 1560,
+        "y": 520,
+        "wires": [
+            [
+                "20dd88beb2594d84"
+            ]
+        ]
+    },
+    {
+        "id": "20dd88beb2594d84",
+        "type": "OpcUa-Client",
+        "z": "bad8de81d1f246b2",
+        "g": "d7907fd339fe3ed2",
+        "endpoint": "b6494780d71961f6",
+        "action": "read",
+        "deadbandtype": "a",
+        "deadbandvalue": 1,
+        "time": 10,
+        "timeUnit": "s",
+        "certificate": "n",
+        "localfile": "",
+        "localkeyfile": "",
+        "securitymode": "None",
+        "securitypolicy": "None",
+        "useTransport": false,
+        "maxChunkCount": 1,
+        "maxMessageSize": 8192,
+        "receiveBufferSize": 8192,
+        "sendBufferSize": 8192,
+        "setstatusandtime": false,
+        "keepsessionalive": false,
+        "name": "",
+        "x": 1820,
+        "y": 520,
+        "wires": [
+            [
+                "1ab8fda0ef4a5ad3"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "88dd5e118ce1ba72",
+        "type": "comment",
+        "z": "bad8de81d1f246b2",
+        "g": "d7907fd339fe3ed2",
+        "name": "2. Check if Image Capture completed and valid",
+        "info": "",
+        "x": 1220,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "d92779dee0c02abc",
+        "type": "function",
+        "z": "bad8de81d1f246b2",
+        "g": "24741cbf5cec55ed",
+        "name": "toBase64",
+        "func": "msg.payload = msg.payload.toString(\"base64\")\n\nvar basepath = msg.basepath;\n\nvar device = msg.device;\n\n// Erstellen eines ISO-Zeitstempels ohne Doppelpunkt und Punkt, damit er im Dateinamen verwendbar ist:\nvar timestamp = new Date().toISOString().replace(/[:\\.]/g, \"-\");\n// z.B. \"2024-12-19T13-45-30-123Z\" => als Dateiname akzeptable Zeichen\n\n// Erstellen des finalen Dateinamens:\nvar filename = basepath + \"/\" + device + \"/\" + device + \"_\" + timestamp + \".png\";\n\n// Den Dateinamen in msg.filename ablegen, damit der File-Node ihn nutzen kann:\nmsg.path = filename;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1520,
+        "y": 720,
+        "wires": [
+            [
+                "fd4250442051210f"
+            ]
+        ]
+    },
+    {
+        "id": "fd4250442051210f",
+        "type": "file",
+        "z": "bad8de81d1f246b2",
+        "g": "24741cbf5cec55ed",
+        "name": "",
+        "filename": "path",
+        "filenameType": "msg",
+        "appendNewline": true,
+        "createDir": true,
+        "overwriteFile": "false",
+        "encoding": "base64",
+        "x": 1760,
+        "y": 720,
+        "wires": [
+            [
+                "b03fd98175ca4867",
+                "bde5ecdf96d5b664"
+            ]
+        ]
+    },
+    {
+        "id": "b7518fd7b651a115",
+        "type": "comment",
+        "z": "bad8de81d1f246b2",
+        "g": "24741cbf5cec55ed",
+        "name": "4. Convert String to png and Save it locally",
+        "info": "",
+        "x": 1200,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "b03fd98175ca4867",
+        "type": "OpcUa-Item",
+        "z": "bad8de81d1f246b2",
+        "g": "1694a3099cb0df77",
+        "item": "ns=3;s=Demo.Static.Scalar.Boolean",
+        "datatype": "Boolean",
+        "value": "true",
+        "name": "WRITE IMAGE CAPTURE NODE",
+        "x": 1600,
+        "y": 820,
+        "wires": [
+            [
+                "a2359c93db798bb4"
+            ]
+        ]
+    },
+    {
+        "id": "a2359c93db798bb4",
+        "type": "OpcUa-Client",
+        "z": "bad8de81d1f246b2",
+        "g": "1694a3099cb0df77",
+        "endpoint": "b6494780d71961f6",
+        "action": "write",
+        "deadbandtype": "a",
+        "deadbandvalue": 1,
+        "time": 10,
+        "timeUnit": "s",
+        "certificate": "n",
+        "localfile": "",
+        "localkeyfile": "",
+        "securitymode": "None",
+        "securitypolicy": "None",
+        "useTransport": false,
+        "maxChunkCount": 1,
+        "maxMessageSize": 8192,
+        "receiveBufferSize": 8192,
+        "sendBufferSize": 8192,
+        "setstatusandtime": false,
+        "keepsessionalive": false,
+        "name": "",
+        "x": 1860,
+        "y": 820,
+        "wires": [
+            [
+                "d3a031eaddacdb4b"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "68e516cc8143f2ed",
+        "type": "comment",
+        "z": "bad8de81d1f246b2",
+        "g": "1694a3099cb0df77",
+        "name": "5. Confirm Image read and saved",
+        "info": "",
+        "x": 1170,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "313a54f859253b8a",
+        "type": "comment",
+        "z": "bad8de81d1f246b2",
+        "g": "6faeb199be548585",
+        "name": "6. Upload Image",
+        "info": "",
+        "x": 1120,
+        "y": 920,
+        "wires": []
+    },
+    {
+        "id": "d3a031eaddacdb4b",
+        "type": "http request",
+        "z": "bad8de81d1f246b2",
+        "g": "6faeb199be548585",
+        "name": "Upload Image",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "READ_BLOBLTIMESTAMP",
+                "valueType": "other",
+                "valueValue": ""
+            },
+            {
+                "keyType": "other",
+                "keyValue": "READ_BLOB_DATAPOINT_ID",
+                "valueType": "other",
+                "valueValue": "88888"
+            }
+        ],
+        "x": 1540,
+        "y": 920,
+        "wires": [
+            [
+                "64cb41febbba1235"
+            ]
+        ]
+    },
+    {
+        "id": "524f1be75f3f7009",
+        "type": "OpcUa-Item",
+        "z": "bad8de81d1f246b2",
+        "g": "5eec52149608f8aa",
+        "item": "ns=3;s=Demo.Dynamic.Scalar.ImageGIF",
+        "datatype": "String",
+        "value": "",
+        "name": "READ - IMAGE STRING",
+        "x": 1570,
+        "y": 620,
+        "wires": [
+            [
+                "958294e5a2cf1e95"
+            ]
+        ]
+    },
+    {
+        "id": "dfb841cee023414d",
+        "type": "comment",
+        "z": "bad8de81d1f246b2",
+        "g": "5eec52149608f8aa",
+        "name": "3. Read Image String",
+        "info": "",
+        "x": 1140,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "958294e5a2cf1e95",
+        "type": "OpcUa-Client",
+        "z": "bad8de81d1f246b2",
+        "g": "5eec52149608f8aa",
+        "endpoint": "b6494780d71961f6",
+        "action": "read",
+        "deadbandtype": "a",
+        "deadbandvalue": 1,
+        "time": 10,
+        "timeUnit": "s",
+        "certificate": "n",
+        "localfile": "",
+        "localkeyfile": "",
+        "securitymode": "None",
+        "securitypolicy": "None",
+        "useTransport": false,
+        "maxChunkCount": 1,
+        "maxMessageSize": 8192,
+        "receiveBufferSize": 8192,
+        "sendBufferSize": 8192,
+        "setstatusandtime": false,
+        "keepsessionalive": false,
+        "name": "",
+        "x": 1820,
+        "y": 625,
+        "wires": [
+            [
+                "856dd5fa126f14aa"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "bde5ecdf96d5b664",
+        "type": "image",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "name": "",
+        "width": 160,
+        "data": "payload",
+        "dataType": "msg",
+        "thumbnail": false,
+        "active": true,
+        "pass": false,
+        "outputs": 0,
+        "x": 2160,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "1ab8fda0ef4a5ad3",
+        "type": "function",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "name": "Wait till true",
+        "func": "// Node-RED Function Node:\n// Zwei Ausgänge. Der erste wird bei msg.payload = true angesprochen,\n// der zweite bei msg.payload = false.\n\nif (msg.payload === true) {\n    // 1. Ausgang\n    return [msg, null];\n} else if (msg.payload === false) {\n    // 2. Ausgang\n    return [null, msg];\n} else {\n    // Falls msg.payload weder true noch false ist, wird nichts weitergegeben\n    return [null, null];\n}\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2050,
+        "y": 520,
+        "wires": [
+            [
+                "23abb2c1c5146949"
+            ],
+            [
+                "524f1be75f3f7009"
+            ]
+        ]
+    },
+    {
+        "id": "63ba012953dc0ccc",
+        "type": "link in",
+        "z": "bad8de81d1f246b2",
+        "name": "ImageCaptureProcess",
+        "links": [
+            "2570a4cd55b4cf0f",
+            "63e332a1334ca6ae",
+            "396ce876d6d426b4"
+        ],
+        "x": 1155,
+        "y": 300,
+        "wires": [
+            [
+                "7cb3922799df6434"
+            ]
+        ]
+    },
+    {
+        "id": "64cb41febbba1235",
+        "type": "link out",
+        "z": "bad8de81d1f246b2",
+        "name": "link out 1",
+        "mode": "link",
+        "links": [
+            "0aaaa7f6452a49da",
+            "919815c42a366d7b",
+            "540c798e67f0567d"
+        ],
+        "x": 1775,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "856dd5fa126f14aa",
+        "type": "change",
+        "z": "bad8de81d1f246b2",
+        "g": "b17eaae12a463971",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "basepath",
+                "pt": "msg",
+                "to": "C:/Users/jonas/Documents/iot-gateway2/files",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "device",
+                "pt": "msg",
+                "to": "local-1",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 2090,
+        "y": 640,
+        "wires": [
+            [
+                "d92779dee0c02abc"
+            ]
+        ]
+    },
+    {
+        "id": "a4ef7e11c8e4119a",
+        "type": "inject",
+        "z": "bad8de81d1f246b2",
+        "g": "f7a6fed32d1cf714",
+        "name": "START",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "basepath",
+                "v": "C:/Users/jonas/Documents/iot-gateway2/files",
+                "vt": "str"
+            },
+            {
+                "p": "device",
+                "v": "test-1",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "1",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0aaaa7f6452a49da",
+        "type": "link in",
+        "z": "bad8de81d1f246b2",
+        "g": "f7a6fed32d1cf714",
+        "name": "ImageCaptureProcess",
+        "links": [
+            "64cb41febbba1235"
+        ],
+        "x": 385,
+        "y": 180,
+        "wires": [
+            [
+                "db41d0fdc6d43578"
+            ]
+        ]
+    },
+    {
+        "id": "db41d0fdc6d43578",
+        "type": "debug",
+        "z": "bad8de81d1f246b2",
+        "g": "f7a6fed32d1cf714",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "2570a4cd55b4cf0f",
+        "type": "link out",
+        "z": "bad8de81d1f246b2",
+        "g": "f7a6fed32d1cf714",
+        "name": "ImageCaptureProcess",
+        "mode": "link",
+        "links": [
+            "63ba012953dc0ccc"
+        ],
+        "x": 385,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "01ed396b08ac0e78",
+        "type": "inject",
+        "z": "bad8de81d1f246b2",
+        "g": "1231f29bba25f355",
+        "name": "START",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "basepath",
+                "v": "C:/Users/jonas/Documents/iot-gateway2/files",
+                "vt": "str"
+            },
+            {
+                "p": "device",
+                "v": "test-1",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "1",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 280,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "919815c42a366d7b",
+        "type": "link in",
+        "z": "bad8de81d1f246b2",
+        "g": "1231f29bba25f355",
+        "name": "ImageCaptureProcess",
+        "links": [
+            "64cb41febbba1235"
+        ],
+        "x": 385,
+        "y": 320,
+        "wires": [
+            [
+                "aee8ea49fecddde5"
+            ]
+        ]
+    },
+    {
+        "id": "aee8ea49fecddde5",
+        "type": "debug",
+        "z": "bad8de81d1f246b2",
+        "g": "1231f29bba25f355",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "63e332a1334ca6ae",
+        "type": "link out",
+        "z": "bad8de81d1f246b2",
+        "g": "1231f29bba25f355",
+        "name": "ImageCaptureProcess",
+        "mode": "link",
+        "links": [
+            "63ba012953dc0ccc"
+        ],
+        "x": 385,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "d30512460941efa8",
+        "type": "inject",
+        "z": "bad8de81d1f246b2",
+        "g": "ce4e215dabf5ab12",
+        "name": "START",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "basepath",
+                "v": "C:/Users/jonas/Documents/iot-gateway2/files",
+                "vt": "str"
+            },
+            {
+                "p": "device",
+                "v": "test-1",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "1",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "540c798e67f0567d",
+        "type": "link in",
+        "z": "bad8de81d1f246b2",
+        "g": "ce4e215dabf5ab12",
+        "name": "ImageCaptureProcess",
+        "links": [
+            "64cb41febbba1235"
+        ],
+        "x": 385,
+        "y": 460,
+        "wires": [
+            [
+                "bf92735a7c96a451"
+            ]
+        ]
+    },
+    {
+        "id": "bf92735a7c96a451",
+        "type": "debug",
+        "z": "bad8de81d1f246b2",
+        "g": "ce4e215dabf5ab12",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "396ce876d6d426b4",
+        "type": "link out",
+        "z": "bad8de81d1f246b2",
+        "g": "ce4e215dabf5ab12",
+        "name": "ImageCaptureProcess",
+        "mode": "link",
+        "links": [
+            "63ba012953dc0ccc"
+        ],
+        "x": 385,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "6ef3288e75ac9646",
+        "type": "function",
+        "z": "f574be6253a55c30",
+        "g": "bf4e365d489a05a7",
+        "name": "OPC-Image-Capture-Process",
+        "func": "// ------------------------------------------------------\n// \"Image Capture Process\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Env Vars (Endpoint, NodeIds, Pfade, etc.)\n//    Fallback: msg -> env -> default\nconst endpoint    = msg.endpoint       || env.get(\"OPCUA_ENDPOINT\")       || \"opc.tcp://127.0.0.1:4840\";\nconst objectId    = msg.objectId       || env.get(\"METHOD_OBJECTID\")      || \"ns=3;s=Demo.Method\";\nconst methodId    = msg.methodId       || env.get(\"METHOD_ID\")            || \"ns=3;s=Demo.Method.DoSomethingAfter10s\";\nconst checkNodeId = msg.checkNodeId    || env.get(\"CHECK_NODEID\")         || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst imageNodeId = msg.imageNodeId    || env.get(\"IMAGE_NODEID\")         || \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\";\nconst ackNodeId   = msg.ackNodeId      || env.get(\"ACK_NODEID\")           || \"ns=3;s=Demo.Static.Scalar.Boolean\";\nconst basePath    = msg.basePath       || env.get(\"BASE_PATH\")            || \"/files/\";\nconst device      = msg.device         || env.get(\"DEVICE\")               || \"local-1\";\nconst enableUpload= (msg.enableUpload  || env.get(\"ENABLE_UPLOAD\")        || \"false\").toLowerCase();\nconst uploadUrl   = msg.uploadUrl      || env.get(\"UPLOAD_URL\")           || \"\";\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar   = (msg.securityModeVar    || env.get(\"OPCUA_SECURITY_MODE\")   || \"NONE\").toUpperCase();\nconst securityPolicyVar = (msg.securityPolicyVar  || env.get(\"OPCUA_SECURITY_POLICY\") || \"NONE\").toUpperCase();\nconst username          = msg.username            || env.get(\"OPCUA_USER\")            || \"\";\nconst password          = msg.password            || env.get(\"OPCUA_PASSWORD\")        || \"\";\n// const certificateFile   = env.get(\"OPCUA_CERTFILE\")  || \"\";\n// const privateKeyFile    = env.get(\"OPCUA_KEYFILE\")   || \"\";\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\n//    (Sicherstellen, dass wir bspw. \"NONE\" -> opcua.MessageSecurityMode.None usw.)\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n\n    // 4) OPC-UA Client erstellen, inkl. Security-Einstellungen\n    const client = opcua.OPCUAClient.create({\n        applicationName: \"MyNodeRedOpcUaClient\",\n        endpoint_must_exist: false,\n        \n        // Security Mode\n        securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n\n        // Security Policy\n        securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n\n        // Optional: connectionStrategy\n        connectionStrategy: {\n            initialDelay: 1000,\n            maxRetry: 5\n        }\n    });\n\n    // 5) OPC-UA-Server verbinden\n    node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n    await client.connect(endpoint);\n    node.log(\"[DEBUG] Successfully connected to OPC UA Server.\");\n\n    // 6) Session aufbauen:\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n\n    let userIdentity = null;\n    if (username && password) {\n        userIdentity = { userName: username, password };\n    } else {\n\n    }\n    const session = await client.createSession(userIdentity);\n\n    // 7) Methode aufrufen (z. B. Start Bildaufnahme)\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Call Method...\" });\n    await callMethod(session, objectId, methodId);\n\n    // 8) Warten, bis checkNodeId = true\n    node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for boolean...\" });\n    await waitForBooleanTrue(session, checkNodeId, 20000); // 20s Timeout\n\n    // 9) Bild-String auslesen\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Reading image...\" });\n    const base64String = await readImageString(session, imageNodeId);\n    // node.warn(\"[DEBUG] Image read successfully. (Base64 String: \" + (base64String || \"\") + \")\");\n\n    // 10) Lokales Speichern\n    node.status({ fill: \"blue\", shape: \"ring\", text: \"Saving file...\" });\n    const savedFilePath = await saveImage(base64String, basePath, device);\n    node.log(`[DEBUG] Image saved at: ${savedFilePath}`);\n\n    // 11) Ack Node = true\n    node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n    await writeBoolean(session, ackNodeId, true);\n    // node.log(\"[DEBUG] Ack node written successfully.\");\n\n    // 12) Optionaler Upload\n    if (enableUpload === \"true\" && uploadUrl) {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Uploading...\" });\n        await uploadFile(savedFilePath, uploadUrl);\n        node.log(\"[DEBUG] Upload done.\");\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Upload done\" });\n    } else {\n        node.warn(\"[DEBUG] No upload requested (enableUpload=false or missing URL).\");\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n    }\n\n    // 13) Session und Client schließen\n    await session.close();\n    await client.disconnect();\n\n    // 14) msg.payload für den Flow\n    msg.payload = {\n        success: true,\n        endpoint,\n        securityMode: securityModeVar,\n        securityPolicy: securityPolicyVar,\n        username: username || \"Anonymous\",\n        savedFilePath,\n        uploaded: (enableUpload === \"true\")\n    };\n\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktionen (mit Debug-Ausgaben)\n// ------------------------------------------------------\n\nasync function callMethod(session, objectId, methodId) {\n    const methodToCall = {\n        objectId,\n        methodId,\n        inputArguments: []\n    };\n    const result = await session.call(methodToCall);\n    if (result.statusCode.name !== \"Good\") {\n        throw new Error(\"Method call failed: \" + result.statusCode.description);\n    }\n    return result;\n}\n\nasync function waitForBooleanTrue(session, nodeId, timeoutMs) {\n    const start = Date.now();\n    while (true) {\n        const dataValue = await session.readVariableValue(nodeId);\n        if (dataValue.statusCode.name === \"Good\" && dataValue.value.value === true) {\n            return;\n        }\n        if (Date.now() - start > timeoutMs) {\n            throw new Error(`Timeout: ${nodeId} did not become true within ${timeoutMs} ms`);\n        }\n        await delay(1000); // 1 Sekunde Pause\n    }\n}\n\nasync function readImageString(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(\"Cannot read image: \" + dataValue.statusCode.description);\n    }\n    // Zurück kommt ein Base64-String (oder ASCII) je nach OPC UA Server\n    return dataValue.value.value;\n}\n\nasync function saveImage(base64String, basePath, device) {\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n    const fileName = `${device}_${timestamp}.png`;\n    const fullPath = `${basePath}/${device}/${fileName}`;\n\n    await fs.ensureDir(`${basePath}/${device}`);\n\n    const buffer = Buffer.from(base64String, \"base64\");\n    await fs.writeFile(fullPath, buffer);\n\n    return fullPath;\n}\n\nasync function writeBoolean(session, nodeId, value) {\n    const opcuaDataType = opcua.DataType.Boolean;\n    const writeValue = {\n        nodeId,\n        attributeId: opcua.AttributeIds.Value,\n        value: {\n            value: {\n                dataType: opcuaDataType,\n                value\n            }\n        }\n    };\n    const statusCode = await session.write(writeValue);\n    if (statusCode.name !== \"Good\") {\n        throw new Error(\"Failed to write boolean: \" + statusCode.description);\n    }\n}\n\nasync function uploadFile(filePath, url) {\n    const fileData = await fs.readFile(filePath);\n    const response = await axios.post(url, fileData, {\n        headers: {\n            \"Content-Type\": \"application/octet-stream\"\n        }\n    });\n    if (response.status < 200 || response.status > 299) {\n        throw new Error(`Upload failed: HTTP ${response.status}`);\n    }\n    return response.data;\n}\n\nfunction delay(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Done\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 750,
+        "y": 180,
+        "wires": [
+            [
+                "fa6e0506824c40f4"
+            ]
+        ],
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "5a10bf065e1fc660",
+        "type": "http in",
+        "z": "f574be6253a55c30",
+        "g": "bf4e365d489a05a7",
+        "name": "HTTP POST /opc-image",
+        "url": "/opc-image",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 290,
+        "y": 180,
+        "wires": [
+            [
+                "71ded5a8250bd1cd"
+            ]
+        ]
+    },
+    {
+        "id": "fa6e0506824c40f4",
+        "type": "http response",
+        "z": "f574be6253a55c30",
+        "g": "bf4e365d489a05a7",
+        "name": "HTTP Response",
+        "statusCode": "200",
+        "headers": {},
+        "x": 980,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "71ded5a8250bd1cd",
+        "type": "function",
+        "z": "f574be6253a55c30",
+        "g": "bf4e365d489a05a7",
+        "name": "Get HTTP-Daten",
+        "func": "// Hier holen wir uns die Daten aus dem Request Body (JSON)\n// und übergeben sie in msg.* Variablen, damit unsere\n// eigentliche OPC-Funktion diese nutzen kann.\n\nlet reqBody = msg.req.body || {};\n\n// Beispiel: Übertrage Felder aus dem Request in msg\nmsg.endpoint = reqBody.endpoint;\nmsg.objectId = reqBody.objectId;\nmsg.methodId = reqBody.methodId;\nmsg.checkNodeId = reqBody.checkNodeId;\nmsg.imageNodeId = reqBody.imageNodeId;\nmsg.ackNodeId = reqBody.ackNodeId;\nmsg.basePath = reqBody.basePath;\nmsg.device = reqBody.device;\nmsg.enableUpload = reqBody.enableUpload;    // \"true\"/\"false\"\nmsg.uploadUrl = reqBody.uploadUrl;\n\n// Optional: Security / Login\nmsg.securityModeVar = reqBody.securityModeVar;\nmsg.securityPolicyVar = reqBody.securityPolicyVar;\nmsg.username = reqBody.username;\nmsg.password = reqBody.password;\n\n// msg kann natürlich noch weitere Felder enthalten, die du brauchst.\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 180,
+        "wires": [
+            [
+                "6ef3288e75ac9646"
+            ]
+        ]
+    }
+]

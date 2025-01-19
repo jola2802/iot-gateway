@@ -1,0 +1,5 @@
+package dataforwarding
+
+func forwardToMqtt() {
+
+}

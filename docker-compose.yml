@@ -6,21 +6,28 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"   # Go HTTP Server Port
-      - "8443:8443"   # Go HTTPS Server Port
-      - "50000:50000" # Local MQTT
-      - "5001:5001"   # Custom Port
-      - "5101:5101"   # Custom Port
-      - "5100:5100"   # Custom Port
-      - "7777:1880"   # Node-RED Port
+      - "8443:8443"
+      - "50000:50000"
+      - "5001:5001"
+      - "5101:5101"
+      - "5100:5100"
     volumes:
-      - ./data-forwarding:/app/data-forwarding
-      - ./driver:/app/driver
-      - ./features:/app/features
-      - ./files:/app/files
-      - ./mqtt_broker:/app/mqtt_broker
-      - ./webui:/app/webui
+      - ./iot_gateway.db:/app/iot_gateway.db
+      - ./webui/templates:/app/webui/templates
+      - ./webui/assets:/app/webui/assets
+      - ./server.crt:/data/server.crt
+      - ./server.key:/data/server.key
+    restart: unless-stopped
+
+  node-red:
+    image: nodered/node-red:latest
+    ports:
+      - "7777:1880"
+    volumes:
       - ./flows.json:/data/flows.json
+      - ./node-red-data:/data
+      - ./server.crt:/data/server.crt
+      - ./server.key:/data/server.key
     environment:
-      - NODE_RED_ENABLE_PROJECTS=true
+      - NODE_RED_FLOW_NAME=flows.json
     restart: unless-stopped

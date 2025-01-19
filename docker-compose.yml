@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  iot-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"   # Go HTTP Server Port
+      - "8443:8443"   # Go HTTPS Server Port
+      - "50000:50000" # Local MQTT
+      - "5001:5001"   # Custom Port
+      - "5101:5101"   # Custom Port
+      - "5100:5100"   # Custom Port
+      - "7777:1880"   # Node-RED Port
+    volumes:
+      - ./data-forwarding:/app/data-forwarding
+      - ./driver:/app/driver
+      - ./features:/app/features
+      - ./files:/app/files
+      - ./mqtt_broker:/app/mqtt_broker
+      - ./webui:/app/webui
+      - ./flows.json:/data/flows.json
+    environment:
+      - NODE_RED_ENABLE_PROJECTS=true
+    restart: unless-stopped

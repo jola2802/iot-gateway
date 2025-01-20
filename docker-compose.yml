@@ -17,6 +17,8 @@ services:
       - ./webui/assets:/app/webui/assets
       - ./server.crt:/data/server.crt
       - ./server.key:/data/server.key
+    networks:
+      - app-network
     restart: unless-stopped
 
   node-red:
@@ -30,4 +32,31 @@ services:
       - ./server.key:/data/server.key
     environment:
       - NODE_RED_FLOW_NAME=flows.json
+    networks:
+      - app-network
     restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=abc+1247
+      - DOCKER_INFLUXDB_INIT_ORG=idpm
+      - DOCKER_INFLUXDB_INIT_BUCKET=iot-gateway
+    
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  influxdb-data:

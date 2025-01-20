@@ -12,11 +12,11 @@ import (
 )
 
 var (
-	topicUserMqttListener     = "iot-gateway/commands/user/#"
-	topicCommandsMqttListener = "iot-gateway/driver/states/#"
-	dbPath                    = "./iot_gateway.db"
-	cacheDuration             = 5 * time.Minute
-	nodeRedURL                = ""
+	// topicUserMqttListener     = "iot-gateway/commands/user/#"
+	// topicCommandsMqttListener = "iot-gateway/driver/states/#"
+	dbPath = "./iot_gateway.db"
+	// cacheDuration             = 5 * time.Minute
+	nodeRedURL = ""
 )
 
 func main() {
@@ -28,17 +28,6 @@ func main() {
 		return
 	}
 	defer db.Close()
-
-	// go func() {
-	// nodeRedURL, err = features.StartNodeRed()
-	// if err != nil {
-	// 	logrus.Error("MAIN: Error starting Node-RED")
-	// 	log.Fatalf("MAIN: Error starting Node-RED: %v\n", err)
-	// 	return
-	// }
-	// logrus.Infof("MAIN: Node-RED started at %s", nodeRedURL)
-	// defer features.StopNodeRed()
-	// }()
 
 	nodeRedURL = "http://localhost:7777"
 

@@ -8,37 +8,50 @@ RUN apt-get update && apt-get install -y ca-certificates
 WORKDIR /app
 
 # Copy Go modules and install dependencies
-COPY go.mod go.sum ./
+COPY go.mod go.sum ./ 
 RUN go mod download
 
 # Copy the source code
 COPY . .
-
 # Build the Go application
 RUN go build -o iot-gateway main.go
 
 # Stage 2: Set up the runtime environment
 FROM debian:bookworm
 
-# Install CA certificates and Node.js with npm
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
-    curl && \
+    curl \
+    wget \
+    tar \
+    gzip && \
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-#Install Node-RED globally
+# Install Node-RED globally
 RUN npm install -g --unsafe-perm node-red
 
-# Install additionally Node-RED nodes
+# Install additional Node-RED nodes
 RUN npm install -g \
     node-red-dashboard \
     node-red-node-sqlite \
     node-red-contrib-opcua \
     node-red-contrib-s7 \
     node-red-contrib-modbus \
-    node-red-contrib-image-output
+    node-red-contrib-image-output \
+    node-red-contrib-influxdb
+
+# Install InfluxDB (v2)
+RUN wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.0-linux-amd64.tar.gz && \
+    tar xvzf influxdb2-2.7.0-linux-amd64.tar.gz && \
+    mv influxdb2_linux_amd64 /usr/local/influxdb && \
+    rm influxdb2-2.7.0-linux-amd64.tar.gz
+
+# Add InfluxDB binaries to PATH
+ENV PATH="/usr/local/influxdb/usr/bin:${PATH}"
 
 # Set up working directory
 WORKDIR /app
@@ -57,7 +70,7 @@ COPY iot_gateway.db /app/iot_gateway.db
 COPY flows.json /data/flows.json
 
 # Expose necessary ports
-EXPOSE 8443 50000 5001 5101 5100 7777 1880
+EXPOSE 8443 50000 5001 5101 5100 7777 1880 8086
 
-# Command to run both the Go application and Node-RED
-CMD ["/bin/sh", "-c", "/app/iot-gateway --tls-keyfile /data/server.key --tls-certfile /data/server.crt --listen 0.0.0.0:8443 & node-red -u /data --tls-keyfile /data/server.key --tls-certfile /data/server.crt --listen 0.0.0.0:7777"]
+# Command to run Go application, Node-RED, and InfluxDB
+CMD ["/bin/sh", "-c", "/usr/local/influxdb/influxd --bolt-path /app/influxd.bolt --engine-path /app/engine & /app/iot-gateway --tls-keyfile /data/server.key --tls-certfile /data/server.crt --listen 0.0.0.0:8443 & node-red -u /data --tls-keyfile /data/server.key --tls-certfile /data/server.crt --listen 0.0.0.0:7777"]

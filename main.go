@@ -14,7 +14,8 @@ import (
 var (
 	// topicUserMqttListener     = "iot-gateway/commands/user/#"
 	// topicCommandsMqttListener = "iot-gateway/driver/states/#"
-	dbPath = "./iot_gateway.db"
+	dbPath      = "./iot_gateway.db"
+	influxDBURL = "http://localhost:8086"
 	// cacheDuration             = 5 * time.Minute
 	nodeRedURL = ""
 )
@@ -52,6 +53,8 @@ func main() {
 	go webui.Main(db, nodeRedURL)
 	// defer webui.Stop()
 	logrus.Info("MAIN: Web-UI-server started.")
+
+	// Starten der Treiber
 
 	// time.Sleep(500 * time.Millisecond)
 

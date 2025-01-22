@@ -223,26 +223,29 @@ function initializeEditDeviceModal(device_id) {
     // Funktion, um Gerätedetails basierend auf der device_id abzurufen
     async function fetchDeviceDetails(device_id) {
         try {
-            const response = await fetch(`${BASE_PATH}/getDevice/${device_id}`);
+            // const response = await fetch(`${BASE_PATH}/getDevice/${device_id}`);
+            const response = await fetch(`/api/getDevice/${device_id}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch device details: ${response.status}`);
             }
-            const deviceData = await response.json();
+            const deviceDataArr = await response.json();
+
+            const deviceData = deviceDataArr.device; 
 
             console.log('Device Data:', deviceData);
 
             // Gerätedaten in das Modal einfügen
-            document.getElementById('device-name-1').value = deviceData.name || '';
-            selectDeviceType.value = deviceData.type || 'opc-ua';
+            document.getElementById('device-name-1').value = deviceData.deviceName || '';
+            selectDeviceType.value = deviceData.deviceType || 'opc-ua';
             //Disbale the device type dropdown
             selectDeviceType.disabled = true;
-            showConfig(deviceData.type);
+            showConfig(deviceData.deviceType);
 
-            if (deviceData.type === 'opc-ua') {
+            if (deviceData.deviceType === 'opc-ua') {
                 document.getElementById('address-1').value = deviceData.address || '';
-                document.getElementById('select-security-policy-1').value = deviceData.securityPolicy || 'none';
+                document.getElementById('select-security-policy-1').value = deviceData.securityPolicy.String || 'none';
                 document.getElementById('select-authentication-settings-1').value = deviceData.authentication || 'anonymous';
-                document.getElementById('select-security-mode-1').value = deviceData.securityMode || 'None';
+                document.getElementById('select-security-mode-1').value = deviceData.securityMode.String || 'None';
 
                 if (deviceData.authentication === 'user-pw') {
                     // Create Username- and password-groups
@@ -259,8 +262,8 @@ function initializeEditDeviceModal(device_id) {
                         const passwordInput = document.getElementById('password');
 
                         if (usernameInput && passwordInput) {
-                            usernameInput.value = deviceData.username || '';
-                            passwordInput.value = deviceData.password || '';
+                            usernameInput.value = deviceData.username.String || '';
+                            passwordInput.value = deviceData.password.String || '';
                         } else {
                             console.error('Username or Password input not found in DOM');
                         }
@@ -268,26 +271,27 @@ function initializeEditDeviceModal(device_id) {
                         console.error('Username group or Password group not found in DOM');
                     }
                 }
+                document.getElementById('acquisition-time-opc-ua-1').value = deviceData.acquisitionTime;
                 
-            } else if (deviceData.type === 's7') {
+            } else if (deviceData.deviceType === 's7') {
                 document.querySelector('#s7-config-1 [placeholder="192.168.2.100:102"]').value = deviceData.address || '';
-                document.querySelector('#s7-config-1 [placeholder="0"]').value = deviceData.rack || '';
-                document.querySelector('#s7-config-1 [placeholder="1"]').value = deviceData.slot || '';
-                document.getElementById('aquisition-time-2').value = deviceData.acquisitionTime || 100;
-            } else if (deviceData.type === 'mqtt') {
-                document.querySelector('#mqtt-config-1 [placeholder="Type in password"]').value = deviceData.password || '';
+                document.querySelector('#s7-config-1 [placeholder="0"]').value = deviceData.rack.String || '';
+                document.querySelector('#s7-config-1 [placeholder="1"]').value = deviceData.slot.String || '';
+                document.getElementById('acquisition-time-2').value = deviceData.acquisitionTime;
+            } else if (deviceData.deviceType === 'mqtt') {
+                document.querySelector('#mqtt-config-1 [placeholder="Type in password"]').value = deviceData.password.String || '';
             }
 
-            if (deviceData.datapoints) {
+            if (deviceData.datapoint) {
                 // Tabelle für Datenpunkte
                 const datapointsTableBody = document.querySelector('#ipi-table tbody');
                 datapointsTableBody.innerHTML = '';
 
-                deviceData.datapoints.forEach(datapoint => {
+                deviceData.datapoint.forEach(datapoint => {
                     const row = document.createElement('tr');
 
                     const idCell = document.createElement('td');
-                    idCell.textContent = datapoint.id;
+                    idCell.textContent = datapoint.datapointId;
                     idCell.style.color = 'rgb(121, 121, 121)';
                     row.appendChild(idCell);
 

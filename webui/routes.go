@@ -1,7 +1,9 @@
 package webui
 
 import (
+	"io"
 	"net/http"
+	"strings"
 	"text/template"
 
 	"github.com/gin-gonic/gin"
@@ -40,26 +42,33 @@ func setupRoutes(r *gin.Engine) {
 	{
 		/// #############
 		// NEUE ROUTEN HIER
-
 		authorized.GET("/api/getBrokerUsers", getBrokerUsers)
 		authorized.GET("/api/getBrokerUser/:username", getBrokerUser)
 		authorized.GET("/api/getBrokerLogin", getBrokerLogin)
 		authorized.GET("/api/profile", getProfile)
 		authorized.POST("/api/changePassword", changePassword)
-
+		authorized.GET("/api/getDevices", getDevices)
+		authorized.GET("/api/getDevice/:device_id", getDevice)
+		authorized.GET("/api/influxdb", getInfluxDB)
 		/// #############
-
+		// Show the pages
 		authorized.GET("/", showDashboard)
-
 		authorized.GET("/home", showHomeContent)
+		authorized.GET("/devices", showDevicesPage) // show devices page
+		authorized.GET("/historical-data", showHistoricalDataPage)
+		authorized.GET("/data-forwarding", showRoutingPage)
+		authorized.GET("/broker", showBrokerPage)
+		authorized.GET("/node-red", showNodeRedPage)
+		authorized.GET("/profile", showProfilePage)
+		authorized.GET("/settings", showSettingsPage)
+		// ############
+
 		authorized.GET("/ws/broker/status", brokerStatusWebSocket)
 		authorized.POST("/restart", restartGatewayHandler)
 
-		authorized.GET("/profile", showProfilePage)
 		authorized.POST("/profile", updateProfile)
 
 		// Data Routes
-		authorized.GET("/data-forwarding", showRoutingPage)
 		authorized.GET("/routes", getRoutes)
 		authorized.GET("/routes/:routeId", getRoutesById)
 		authorized.DELETE("/routes/:routeId", deleteRoute)
@@ -67,11 +76,8 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/saveRouteConfig", SaveRouteConfig)
 
 		//node-red
-		authorized.GET("/node-red", showNodeRedPage)
-		authorized.GET("/broker", showBrokerPage)
 
 		// Device routes with RESTful methods
-		authorized.GET("/devices", showDevicesPage)                      // show devices page
 		authorized.GET("/devices/:deviceName", getDeviceStatus)          // Get a single device status
 		authorized.PUT("/devices/:deviceName", updateDevice)             // Update a single device
 		authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
@@ -84,7 +90,6 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/ws/deviceData", deviceDataWebSocket)
 
 		// Broker routes
-		authorized.GET("/settings", showSettingsPage)
 		authorized.POST("/settings", updateBrokerSettings)
 		authorized.POST("/updateUser", updateBrokerUser)
 		authorized.DELETE("/users/:username", deleteUserHandler)
@@ -127,4 +132,26 @@ func showNodeRedPage(c *gin.Context) {
 
 func showBrokerPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "broker.html", nil)
+}
+
+func getInfluxDB(c *gin.Context) {
+	resp, err := http.Get("http://127.0.0.1:8086")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch InfluxDB UI"})
+		return
+	}
+	defer resp.Body.Close()
+
+	// HTML-Inhalt aus der Antwort lesen
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response from InfluxDB"})
+		return
+	}
+
+	// Manipuliere das <base href> im HTML
+	modifiedBody := strings.ReplaceAll(string(body), `<base href="/">`, `<base href="/api/influxdb/">`)
+
+	// Geänderten HTML-Inhalt zurückgeben
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(modifiedBody))
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 )
 
 type Device struct {
+	ID              int            `json:"id"`
 	DeviceType      string         `json:"deviceType"`
 	DeviceName      string         `json:"deviceName"`
 	Status          string         `json:"status"`
@@ -28,17 +30,13 @@ type Device struct {
 	DataPoint       []struct {
 		DatapointId string `json:"datapointId"`
 		Name        string `json:"name"`
-		Datatype    string `json:"datatype"`
+		Datatype    string `json:"datatype,omitempty"`
 		Address     string `json:"address"`
 	} `json:"datapoint,omitempty"`
-	DataNodes []struct {
-		DatapointId    string `json:"datapointId"`
-		Name           string `json:"name"`
-		NodeIdentifier string `json:"nodeIdentifier"`
-	} `json:"dataNodes,omitempty"`
 	Rack     sql.NullString `json:"rack,omitempty"`
 	Slot     sql.NullString `json:"slot,omitempty"`
-	Password string         `json:"password,omitempty"`
+	Username sql.NullString `json:"username,omitempty"`
+	Password sql.NullString `json:"password,omitempty"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -60,6 +58,113 @@ func showDevicesPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "devices.html", nil)
 }
 
+// getDevices returns a list of devices
+func getDevices(c *gin.Context) {
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var devices []Device
+	rows, err := db.Query("SELECT id, name, type, address, status FROM devices")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var device Device
+		err := rows.Scan(&device.ID, &device.DeviceName, &device.DeviceType, &device.Address, &device.Status)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Add the device to the list
+		devices = append(devices, device)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"devices": devices})
+}
+
+func getDevice(c *gin.Context) {
+	device_id := c.Param("device_id")
+
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var device Device
+	device.ID, err = strconv.Atoi(device_id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+	query := `SELECT name, type, address, acquisition_time, rack, slot, security_mode, security_policy, username, password FROM devices WHERE id = ?`
+	err = db.QueryRow(query, device.ID).Scan(&device.DeviceName, &device.DeviceType, &device.Address, &device.AcquisitionTime, &device.Rack, &device.Slot, &device.SecurityMode, &device.SecurityPolicy, &device.Username, &device.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logrus.Info(err)
+		return
+	}
+
+	// Fetch datapoints for the device
+	if device.DeviceType == "opc-ua" {
+		query = `SELECT id, name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
+	} else if device.DeviceType == "s7" {
+		query = `SELECT id, name, datatype, address FROM s7_datapoints WHERE device_id = ?`
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported device type"})
+		return
+	}
+
+	rows, err := db.Query(query, device.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching data points"})
+		logrus.Error("Error querying data points:", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if device.DeviceType == "opc-ua" {
+			var node struct {
+				DatapointId string `json:"datapointId"`
+				Name        string `json:"name"`
+				Datatype    string `json:"datatype,omitempty"`
+				Address     string `json:"address"`
+			}
+			if err := rows.Scan(&node.DatapointId, &node.Name, &node.Address); err != nil {
+				logrus.Error("Error scanning OPC-UA node:", err)
+				continue
+			}
+			device.DataPoint = append(device.DataPoint, node)
+		} else if device.DeviceType == "s7" {
+			var point struct {
+				DatapointId string `json:"datapointId"`
+				Name        string `json:"name"`
+				Datatype    string `json:"datatype,omitempty"`
+				Address     string `json:"address"`
+			}
+			if err := rows.Scan(&point.DatapointId, &point.Name, &point.Datatype, &point.Address); err != nil {
+				logrus.Error("Error scanning S7 point:", err)
+				continue
+			}
+			device.DataPoint = append(device.DataPoint, point)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"device": device})
+}
+
+// ######################################################################################
+// #                                                                                    #
+//
+// # #
 func listDevices(c *gin.Context) {
 	db, err := getDBConnection(c)
 	if err != nil {
@@ -287,7 +392,7 @@ func getDeviceStatus(c *gin.Context) {
 	// Gerätedaten aus der Datenbank abrufen
 	var device Device
 	query := `
-		SELECT name, type, address, aquisition_time, security_mode, security_policy, rack, slot
+		SELECT name, type, address, acquisition_time, security_mode, security_policy, rack, slot
 		FROM devices WHERE name = ?
 	`
 	err := db.(*sql.DB).QueryRow(query, deviceName).Scan(
@@ -315,23 +420,23 @@ func getDeviceStatus(c *gin.Context) {
 		defer rows.Close()
 
 		// Füge die OPC-UA-Knoten zur Geräteliste hinzu
-		for rows.Next() {
-			var datapointId, name, nodeIdentifier sql.NullString
-			if err := rows.Scan(&datapointId, &name, &nodeIdentifier); err != nil {
-				logrus.Println("Error scanning OPC-UA node data:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error scanning OPC-UA node data"})
-				return
-			}
-			device.DataNodes = append(device.DataNodes, struct {
-				DatapointId    string `json:"datapointId"`
-				Name           string `json:"name"`
-				NodeIdentifier string `json:"nodeIdentifier"`
-			}{
-				DatapointId:    datapointId.String,    // Setze hier den DatapointId-Wert falls vorhanden
-				Name:           name.String,           // Setze hier den Namen falls vorhanden
-				NodeIdentifier: nodeIdentifier.String, // Verwende den String-Wert von nodeIdentifier
-			})
-		}
+		// for rows.Next() {
+		// 	var datapointId, name, nodeIdentifier sql.NullString
+		// 	if err := rows.Scan(&datapointId, &name, &nodeIdentifier); err != nil {
+		// 		logrus.Println("Error scanning OPC-UA node data:", err)
+		// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error scanning OPC-UA node data"})
+		// 		return
+		// 	}
+		// 	device.DataNodes = append(device.DataNodes, struct {
+		// 		DatapointId string `json:"datapointId"`
+		// 		Name        string `json:"name"`
+		// 		Address     string `json:"address"`
+		// 	}{
+		// 		DatapointId: datapointId.String,    // Setze hier den DatapointId-Wert falls vorhanden
+		// 		Name:        name.String,           // Setze hier den Namen falls vorhanden
+		// 		Address:     nodeIdentifier.String, // Verwende den String-Wert von nodeIdentifier
+		// 	})
+		// }
 	} else if device.DeviceType == "s7" {
 		// S7-Datenpunkte abrufen
 		datapointQuery := `SELECT datapointId, name, datatype, address FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE name = ?)`
@@ -352,30 +457,36 @@ func getDeviceStatus(c *gin.Context) {
 				return
 			}
 
-			// Füge die Datenpunkte zur Geräteliste hinzu
-			device.DataPoint = append(device.DataPoint, struct {
-				DatapointId string `json:"datapointId"`
-				Name        string `json:"name"`
-				Datatype    string `json:"datatype"`
-				Address     string `json:"address"`
-			}{
-				DatapointId: dpDatapointId.String,
-				Name:        dpName.String,
-				Datatype:    dpDatatype.String,
-				Address:     dpAddress.String,
-			})
+			// // Füge die Datenpunkte zur Geräteliste hinzu
+			// device.DataPoint = append(device.DataPoint, struct {
+			// 	DatapointId string `json:"datapointId"`
+			// 	Name        string `json:"name"`
+			// 	Datatype    string `json:"datatype"`
+			// 	Address     string `json:"address"`
+			// }{
+			// 	DatapointId: dpDatapointId.String,
+			// 	Name:        dpName.String,
+			// 	Datatype:    dpDatatype.String,
+			// 	Address:     dpAddress.String,
+			// })
 		}
 	} else if device.DeviceType == "mqtt" {
 		// aus der Datenbank Tabelle auth das password des jeweiligen gerätes durch den namen holen und zurückgeben
 		query := `SELECT password FROM auth WHERE username = ?`
-		var mqttPassword string
+		var mqttPassword sql.NullString
 		err := db.(*sql.DB).QueryRow(query, deviceName).Scan(&mqttPassword)
 		if err != nil {
 			logrus.Println("Error querying MQTT password from database:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error querying MQTT password"})
 			return
 		}
-		device.Password = mqttPassword
+		// sql.NullString sicher in string konvertieren
+		if mqttPassword.Valid {
+			device.Password = mqttPassword
+		} else {
+			logrus.Println("MQTT password is NULL for device:", deviceName)
+			device.Password.String = "" // Setze einen Standardwert
+		}
 	}
 
 	// Formatiere die Daten für die Rückgabe
@@ -387,10 +498,10 @@ func getDeviceStatus(c *gin.Context) {
 		"securityMode":    device.SecurityMode,
 		"securityPolicy":  device.SecurityPolicy,
 		"datapoints":      device.DataPoint,
-		"dataNodes":       device.DataNodes,
-		"rack":            device.Rack,
-		"slot":            device.Slot,
-		"password":        device.Password,
+		// "dataNodes":       device.DataNodes,
+		"rack":     device.Rack,
+		"slot":     device.Slot,
+		"password": device.Password.String,
 	})
 }
 
@@ -488,7 +599,7 @@ func addDevice(c *gin.Context) {
 
 	// Füge das Gerät direkt in die 'devices'-Tabelle ein
 	query := `
-		INSERT INTO devices (type, name, address, aquisition_time, security_mode, security_policy, rack, slot)
+		INSERT INTO devices (type, name, address, acquisition_time, security_mode, security_policy, rack, slot)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	_, err = db.(*sql.DB).Exec(query, deviceData.DeviceType, deviceData.DeviceName, deviceData.Address,
@@ -641,7 +752,7 @@ func updateDevice(c *gin.Context) {
 	}
 
 	// Aktualisiere die allgemeinen Gerätedaten
-	query := `UPDATE devices SET address = ?, aquisition_time = ? WHERE name = ?`
+	query := `UPDATE devices SET address = ?, acquisition_time = ? WHERE name = ?`
 	_, err := db.(*sql.DB).Exec(query, updatedDevice.Address, updatedDevice.AcquisitionTime, deviceName)
 	if err != nil {
 		logrus.Println("Error updating device data:", err)

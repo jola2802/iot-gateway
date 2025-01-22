@@ -55,7 +55,8 @@ const (
 			type VARCHAR(50) NOT NULL,
 			name VARCHAR(100) NOT NULL,
 			address TEXT NOT NULL,
-			aquisition_time INT NOT NULL,
+			acquisition_time INT NOT NULL,
+			status TEXT NOT NULL,
 			rack INT,					 -- Optional
 			slot INT,				     -- Optional
 			security_mode TEXT,          -- Optional

@@ -5,7 +5,7 @@ function initWebSocket(WS_PATH) {
     wsDevices = new WebSocket(`${WS_PATH}/deviceData`);
 
     wsDevices.onopen = () => {
-        // console.log('WebSocket-Verbindung hergestellt');
+        console.log('WebSocket-Verbindung hergestellt');
     };
 
     wsDevices.onmessage = (event) => {
@@ -111,6 +111,6 @@ async function saveDevice() {
     }
 }
 
-document.querySelector('.modal-footer .btn-primary').addEventListener('click', async function () {
+document.getElementById('btn-add-new-device').addEventListener('click', async function () {
     await saveDevice();
 });

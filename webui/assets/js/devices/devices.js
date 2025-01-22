@@ -52,15 +52,20 @@ function updateDeviceTables(devices) {
 // Funktion zum Abrufen und Befüllen der Devices beim Laden der Seite
 async function fetchAndPopulateDevices() {
     try {
-        // API-Aufruf an Node-RED-Endpunkt
-        const response = await fetch(`${BASE_PATH}/getDevices`);
+        // API-Aufruf
+        // const response = await fetch(`${BASE_PATH}/getDevices`);
+        const response = await fetch(`/api/getDevices`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
         // JSON-Daten abrufen
-        const devices = await response.json();
+        const devicesArr = await response.json();
+
+        const devices = devicesArr.devices; 
+
+        console.log('Devices fetched successfully:', devices);
 
         // Tabelle referenzieren
         const tableBody = document.querySelector('#table-devices tbody');
@@ -78,17 +83,17 @@ async function fetchAndPopulateDevices() {
 
             // Device ID
             const idCell = document.createElement('td');
-            idCell.textContent = device.device_id;
+            idCell.textContent = device.id;
             row.appendChild(idCell);
 
             // Device Name
             const deviceCell = document.createElement('td');
-            deviceCell.textContent = device.device;
+            deviceCell.textContent = device.deviceName;
             row.appendChild(deviceCell);
             
             // **Type** (Neue Spalte hinzufügen)
             const typeCell = document.createElement('td');
-            typeCell.textContent = device.type; // Stellen Sie sicher, dass 'type' im Gerätedatenobjekt vorhanden ist
+            typeCell.textContent = device.deviceType; // Stellen Sie sicher, dass 'type' im Gerätedatenobjekt vorhanden ist
             row.appendChild(typeCell);
 
             // Address
@@ -134,7 +139,7 @@ async function fetchAndPopulateDevices() {
 
             // Event-Listener für das Öffnen des Bearbeiten-Modals
             editButton.addEventListener('click', () => {
-                initializeEditDeviceModal(device.device_id); // Übergibt die aktuelle `device_id`
+                initializeEditDeviceModal(device.id); // Übergibt die aktuelle `device_id`
             }); 
 
             actionsCell.appendChild(editButton);
@@ -151,18 +156,18 @@ async function fetchAndPopulateDevices() {
             tableBody.appendChild(row);
 
             // **Accordion-Struktur**
-            if (!document.querySelector(`#device-${device.device_id}`)) {
+            if (!document.querySelector(`#device-${device.id}`)) {
                 const accordionItem = document.createElement('div');
                 accordionItem.className = 'accordion-item';
-                accordionItem.id = `device-${device.device_id}`;
+                accordionItem.id = `device-${device.id}`;
 
                 accordionItem.innerHTML = `
                     <h2 class="accordion-header" role="tab">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#device-${device.device_id}-body" aria-expanded="false" aria-controls="device-${device.device_id}-body">
-                            ${device.device}
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#device-${device.id}-body" aria-expanded="false" aria-controls="device-${device.id}-body">
+                            ${device.deviceName}
                         </button>
                     </h2>
-                    <div id="device-${device.device_id}-body" class="accordion-collapse collapse" role="tabpanel" data-bs-parent="#accordion-data">
+                    <div id="device-${device.id}-body" class="accordion-collapse collapse" role="tabpanel" data-bs-parent="#accordion-data">
                         <div class="accordion-body">
                             <div class="table-responsive">
                                 <table class="table">
@@ -174,7 +179,7 @@ async function fetchAndPopulateDevices() {
                                             <th>Chart</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="device-${device.device_id}-table">
+                                    <tbody id="device-${device.id}-table">
                                         <!-- Dynamische Datenpunkte -->
                                     </tbody>
                                 </table>

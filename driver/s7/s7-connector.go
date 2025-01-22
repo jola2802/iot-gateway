@@ -536,7 +536,7 @@ func GetConfigByName(db *sql.DB, name string) (*DeviceConfig, error) {
 
 	// SQL-Abfrage, um das Gerät mit dem Namen aus der Tabelle devices zu holen
 	deviceQuery := `
-		SELECT id, type, name, address,  aquisition_time, rack, slot
+		SELECT id, type, name, address,  acquisition_time, rack, slot
 		FROM devices
 		WHERE name = ?
 		LIMIT 1

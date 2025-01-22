@@ -39,7 +39,7 @@ func StartAllDrivers(db *sql.DB) {
 	logrus.Info("DM: Starting all drivers...")
 
 	// Lade die Gerätedaten aus der Datenbank
-	query := `SELECT id, type, name, address, aquisition_time FROM devices`
+	query := `SELECT id, type, name, address, acquisition_time FROM devices`
 	rows, err := db.Query(query)
 	if err != nil {
 		logrus.Fatalf("DM: Error querying devices from database: %v", err)
@@ -116,7 +116,7 @@ func StartOPCUADriver(db *sql.DB, deviceName string) {
 	var acquisitionTime int
 
 	// Lade die Gerätedaten inklusive Sicherheitsdaten aus der `devices`-Tabelle
-	deviceQuery := `SELECT id, name, address, aquisition_time, security_mode, security_policy, certificate, key, username, password FROM devices WHERE name = ?`
+	deviceQuery := `SELECT id, name, address, acquisition_time, security_mode, security_policy, certificate, key, username, password FROM devices WHERE name = ?`
 	err := db.QueryRow(deviceQuery, deviceName).Scan(&deviceID, &deviceName, &deviceAddress, &acquisitionTime, &securityMode, &securityPolicy, &certificate, &key, &username, &password)
 	if err != nil {
 		state.status = Error
@@ -257,7 +257,7 @@ func StartS7Driver(db *sql.DB, deviceName string) {
 	var s7Config opcua.DeviceConfig
 	var deviceID int
 	var rack, slot string
-	deviceQuery := `SELECT id, name, address, rack, slot, aquisition_time FROM devices WHERE name = ?`
+	deviceQuery := `SELECT id, name, address, rack, slot, acquisition_time FROM devices WHERE name = ?`
 	err := db.QueryRow(deviceQuery, deviceName).Scan(&deviceID, &s7Config.Name, &s7Config.Address, &rack, &slot, &s7Config.AcquisitionTime)
 	s7Config.Rack, err = strconv.Atoi(rack)
 	s7Config.Slot, err = strconv.Atoi(slot)

@@ -114,9 +114,9 @@ func getDevice(c *gin.Context) {
 
 	// Fetch datapoints for the device
 	if device.DeviceType == "opc-ua" {
-		query = `SELECT id, name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
+		query = `SELECT datapointId, name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
 	} else if device.DeviceType == "s7" {
-		query = `SELECT id, name, datatype, address FROM s7_datapoints WHERE device_id = ?`
+		query = `SELECT datapointId, name, datatype, address FROM s7_datapoints WHERE device_id = ?`
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported device type"})
 		return
@@ -549,16 +549,17 @@ func subscribeToDeviceDataPoints(client mqtt.Client, topic string, deviceDataPoi
 
 func addDevice(c *gin.Context) {
 	type Device struct {
-		DeviceType      string `json:"deviceType"`
-		DeviceName      string `json:"deviceName"`
-		Status          string `json:"status"`
-		Value           string `json:"value"`
-		Connected       bool   `json:"connected"`
+		DeviceType string `json:"deviceType"`
+		DeviceName string `json:"deviceName"`
+		Status     string `json:"status"`
+		// Value           string `json:"value"`
+		// Connected       bool   `json:"connected"`
 		Address         string `json:"address,omitempty"`
 		AcquisitionTime int    `json:"acquisitionTime,omitempty"`
-		SecurityMode    string `json:"securityMode,omitempty"`
-		SecurityPolicy  string `json:"securityPolicy,omitempty"`
-		DataPoints      []struct {
+		// Authentication  string `json:"authentication,omitempty"`
+		SecurityMode   string `json:"securityMode,omitempty"`
+		SecurityPolicy string `json:"securityPolicy,omitempty"`
+		DataPoints     []struct {
 			Name     string `json:"name"`
 			Datatype string `json:"datatype"`
 			Address  string `json:"address"`
@@ -566,6 +567,7 @@ func addDevice(c *gin.Context) {
 		DataNodes []string `json:"dataNodes,omitempty"`
 		Rack      string   `json:"rack,omitempty"`
 		Slot      string   `json:"slot,omitempty"`
+		Username  string   `json:"username"`
 		Password  string   `json:"password"`
 	}
 	var deviceData Device
@@ -599,11 +601,11 @@ func addDevice(c *gin.Context) {
 
 	// Füge das Gerät direkt in die 'devices'-Tabelle ein
 	query := `
-		INSERT INTO devices (type, name, address, acquisition_time, security_mode, security_policy, rack, slot)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO devices (type, name, address, acquisition_time, security_mode, security_policy, rack, slot, username, password, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	_, err = db.(*sql.DB).Exec(query, deviceData.DeviceType, deviceData.DeviceName, deviceData.Address,
-		deviceData.AcquisitionTime, deviceData.SecurityMode, deviceData.SecurityPolicy, deviceData.Rack, deviceData.Slot)
+		deviceData.AcquisitionTime, deviceData.SecurityMode, deviceData.SecurityPolicy, deviceData.Rack, deviceData.Slot, deviceData.Username, deviceData.Password, "running")
 	if err != nil {
 		logrus.Println("Error inserting device data into the database:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting device data"})
@@ -706,7 +708,7 @@ func updateDeviceStatus(c *gin.Context) {
 }
 
 func updateDevice(c *gin.Context) {
-	deviceName := c.Param("deviceName")
+	device_id := c.Param("device_id")
 
 	type Device struct {
 		DeviceType      string `json:"deviceType"`
@@ -724,11 +726,6 @@ func updateDevice(c *gin.Context) {
 			Datatype    string `json:"datatype"`
 			Address     string `json:"address"`
 		} `json:"datapoints,omitempty"`
-		DataNodes []struct {
-			DatapointId    string `json:"datapointId"`    // DatapointId für OPC UA hinzugefügt
-			Name           string `json:"name"`           // Name des Datapoints
-			NodeIdentifier string `json:"nodeIdentifier"` // Node Identifier hinzugefügt
-		} `json:"dataNodes,omitempty"`
 		Rack     string `json:"rack,omitempty"`
 		Slot     string `json:"slot,omitempty"`
 		Password string `json:"password,omitempty"`
@@ -752,8 +749,8 @@ func updateDevice(c *gin.Context) {
 	}
 
 	// Aktualisiere die allgemeinen Gerätedaten
-	query := `UPDATE devices SET address = ?, acquisition_time = ? WHERE name = ?`
-	_, err := db.(*sql.DB).Exec(query, updatedDevice.Address, updatedDevice.AcquisitionTime, deviceName)
+	query := `UPDATE devices SET address = ?, acquisition_time = ? WHERE id = ?`
+	_, err := db.(*sql.DB).Exec(query, updatedDevice.Address, updatedDevice.AcquisitionTime, device_id)
 	if err != nil {
 		logrus.Println("Error updating device data:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating device data"})
@@ -763,8 +760,8 @@ func updateDevice(c *gin.Context) {
 	// Gerätetyp-spezifische Logik für S7
 	if updatedDevice.DeviceType == "s7" {
 		// Aktualisiere die S7-spezifischen Felder
-		query = `UPDATE devices SET rack = ?, slot = ? WHERE name = ?`
-		_, err := db.(*sql.DB).Exec(query, updatedDevice.Rack, updatedDevice.Slot, deviceName)
+		query = `UPDATE devices SET rack = ?, slot = ? WHERE id = ?`
+		_, err := db.(*sql.DB).Exec(query, updatedDevice.Rack, updatedDevice.Slot, device_id)
 		if err != nil {
 			logrus.Println("Error updating S7-specific fields:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating S7-specific fields"})
@@ -772,7 +769,7 @@ func updateDevice(c *gin.Context) {
 		}
 
 		// Aktualisiere die S7-Datapoints
-		_, err = db.(*sql.DB).Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE name = ?)`, deviceName)
+		_, err = db.(*sql.DB).Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 		if err != nil {
 			logrus.Println("Error clearing old datapoints:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old datapoints"})
@@ -781,10 +778,10 @@ func updateDevice(c *gin.Context) {
 
 		for _, dp := range updatedDevice.DataPoints {
 			// Automatische Generierung der DatapointId, falls leer
-			if dp.DatapointId == "" {
+			if dp.DatapointId == "" && dp.Address != "" && dp.Name != "" {
 				// Hole die device_id
 				var deviceId int
-				err := db.(*sql.DB).QueryRow(`SELECT id FROM devices WHERE name = ?`, deviceName).Scan(&deviceId)
+				err := db.(*sql.DB).QueryRow(`SELECT id FROM devices WHERE id = ?`, device_id).Scan(&deviceId)
 				if err != nil {
 					logrus.Println("Error retrieving device_id:", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device_id"})
@@ -801,7 +798,12 @@ func updateDevice(c *gin.Context) {
 				logrus.Error(dp.DatapointId)
 			}
 
-			_, err = db.(*sql.DB).Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE name = ?), ?, ?, ?, ?)`, deviceName, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
+			if dp.DatapointId == "" || dp.Name == "" || dp.Address == "" {
+				logrus.Println("Skipping empty datapoint:", dp)
+				continue
+			}
+
+			_, err = db.(*sql.DB).Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`, device_id, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
 			if err != nil {
 				logrus.Println("Error inserting new datapoints:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new datapoints"})
@@ -811,10 +813,10 @@ func updateDevice(c *gin.Context) {
 	}
 
 	// Gerätetyp-spezifische Logik für OPC UA
-	if updatedDevice.DeviceType == "opcua" {
+	if updatedDevice.DeviceType == "opc-ua" {
 		// Aktualisiere die OPC-UA-spezifischen Felder
-		query = `UPDATE devices SET security_mode = ?, security_policy = ? WHERE name = ?`
-		_, err := db.(*sql.DB).Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, deviceName)
+		query = `UPDATE devices SET security_mode = ?, security_policy = ? WHERE id = ?`
+		_, err := db.(*sql.DB).Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, device_id)
 		if err != nil {
 			logrus.Println("Error updating OPC-UA-specific fields:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating OPC-UA-specific fields"})
@@ -822,38 +824,39 @@ func updateDevice(c *gin.Context) {
 		}
 
 		// Lösche alte OPC-UA DataNodes
-		_, err = db.(*sql.DB).Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE name = ?)`, deviceName)
+		_, err = db.(*sql.DB).Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 		if err != nil {
 			logrus.Println("Error clearing old OPC-UA nodes:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old OPC-UA nodes"})
 			return
 		}
 
+		// Device_id to INT
+		dev_id, err := strconv.Atoi(device_id)
+
 		// Füge die neuen OPC-UA DataNodes ein
-		for _, node := range updatedDevice.DataNodes {
+		for _, node := range updatedDevice.DataPoints {
 			// Automatische Generierung der DatapointId, falls leer
-			if node.DatapointId == "" {
-				// Hole die device_id
-				var deviceId int
-				err := db.(*sql.DB).QueryRow(`SELECT id FROM devices WHERE name = ?`, deviceName).Scan(&deviceId)
-				if err != nil {
-					logrus.Println("Error retrieving device_id:", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device_id"})
-					return
-				}
+			if node.DatapointId == "" && node.Address != "" && node.Name != "" {
 				var nextId int
-				err = db.(*sql.DB).QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, deviceId).Scan(&nextId)
+				err = db.(*sql.DB).QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, device_id).Scan(&nextId)
 				if err != nil {
 					logrus.Println("Error finding next datapoint ID:", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
 					return
 				}
-				node.DatapointId = fmt.Sprintf("1%03d%03d", deviceId, nextId)
+				node.DatapointId = fmt.Sprintf("1%03d%03d", dev_id, nextId)
 			}
+
+			if node.DatapointId == "" || node.Name == "" || node.Address == "" {
+				logrus.Println("Skipping empty OPC-UA node:", node)
+				continue
+			}
+
 			query = `
 				INSERT INTO opcua_datanodes (device_id, datapointId, name, node_identifier)
-				VALUES ((SELECT id FROM devices WHERE name = ?), ?, ?, ?)`
-			_, err := db.(*sql.DB).Exec(query, deviceName, node.DatapointId, node.Name, node.NodeIdentifier)
+				VALUES ( ?, ?, ?, ?)`
+			_, err = db.(*sql.DB).Exec(query, dev_id, node.DatapointId, node.Name, node.Address)
 			if err != nil {
 				logrus.Println("Error inserting new OPC-UA nodes:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new OPC-UA nodes"})

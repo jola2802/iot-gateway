@@ -71,7 +71,7 @@ const (
 	createS7DatapointsTable = `
 		CREATE TABLE IF NOT EXISTS s7_datapoints (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			device_id INT REFERENCES devices(id),
+			device_id INT NOT NULL,
 			datapointId VARCHAR(10) NOT NULL,
 			name VARCHAR(100) NOT NULL,
 			datatype VARCHAR(100) NOT NULL,
@@ -82,7 +82,7 @@ const (
 	createOPCUADatanodesTable = `
 		CREATE TABLE IF NOT EXISTS opcua_datanodes (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			device_id INT REFERENCES devices(id),
+			device_id INT NOT NULL,
 			datapointId VARCHAR(10) NOT NULL,
 			name VARCHAR(100) NOT NULL,
 			node_identifier VARCHAR(100) NOT NULL
@@ -143,6 +143,15 @@ const (
 			status TEXT DEFAULT NULL
 		);
 	`
+
+	createInfluxDBTable = `
+		CREATE TABLE IF NOT EXISTS influxdb (
+			url TEXT NOT NULL,
+			token TEXT NOT NULL,
+			org TEXT NOT NULL,
+			bucket TEXT NOT NULL
+		);
+	`
 )
 
 // InitDB initialisiert die SQLite-Datenbank mit einem übergebenen Pfad
@@ -175,6 +184,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		createdataRoutesTable,
 		createdeviceDataTable,
 		createImageProcessTable,
+		createInfluxDBTable,
 	}
 
 	// Tabellen erstellen

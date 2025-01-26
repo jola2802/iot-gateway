@@ -60,17 +60,42 @@
         <div class="d-flex flex-column" id="content-wrapper">
             <div id="content">
                 <nav class="navbar navbar-expand bg-body-tertiary shadow mb-4 topbar" style="border-color: var(--bs-secondary);background: var(--bs-secondary);">
-                    <div class="container-fluid"><button class="btn btn-link d-md-none rounded-circle me-3" id="sidebarToggleTop" type="button"><i class="fas fa-bars"></i></button>
+                    <div class="container-fluid">
+                        <button class="btn btn-link d-md-none rounded-circle me-3" id="sidebarToggleTop" type="button">
+                            <i class="fas fa-bars"></i>
+                        </button>
                         <ul class="navbar-nav flex-nowrap ms-auto">
-                            <li class="nav-item"><a class="nav-link border rounded border-3 border-secondary shadow-sm d-xxl-flex align-items-xxl-center" href="/logout"><strong><span style="color: rgb(0, 0, 0);">Logout</span></strong></a></li>
+                            <li class="nav-item">
+                                <a class="nav-link border rounded border-3 border-secondary shadow-sm d-xxl-flex align-items-xxl-center" href="/logout">
+                                    <strong><span style="color: rgb(0, 0, 0);">Logout</span></strong>
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </nav>
                 <div class="container-fluid">
-                    <h3 class="text-dark mb-4"><strong><span style="text-decoration: underline;">Settings</span></strong></h3>
-                    <div class="card shadow"></div>
+                    <h2>Settings</h2>
+                    <hr>
+            
+                    <!-- Eingabefelder für Node-RED und InfluxDB URLs -->
+                    <form id="settings-form" class="mb-4">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="node-red-url" class="form-label">Node-RED URL:</label>
+                                <input type="url" id="node-red-url" class="form-control" placeholder="e.g., http://localhost:1880" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="influxdb-url" class="form-label">InfluxDB URL:</label>
+                                <input type="url" id="influxdb-url" class="form-control" placeholder="e.g., http://localhost:8086" required>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </div>
+                    </form>
                 </div>
             </div>
+            
             <footer class="bg-white sticky-footer">
                 <div class="container my-auto">
                     <div class="text-center my-auto copyright"><span>Copyright © IPDM - Hochschule Ansbach</span></div>
@@ -81,6 +106,7 @@
     <script src="assets/js/jquery.min.js"></script>
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
     <script src="assets/js/api.js"></script>
+    <script src="assets/js/settings.js"></script>
     <!-- <script src="assets/js/broker.js"></script> -->
     <!-- <script src="assets/js/data-forwarding.js"></script> -->
     <!-- <script src="assets/js/devices/devices-charts.js"></script> -->

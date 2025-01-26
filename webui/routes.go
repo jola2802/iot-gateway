@@ -1,9 +1,7 @@
 package webui
 
 import (
-	"io"
 	"net/http"
-	"strings"
 	"text/template"
 
 	"github.com/gin-gonic/gin"
@@ -49,7 +47,10 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/api/changePassword", changePassword)
 		authorized.GET("/api/getDevices", getDevices)
 		authorized.GET("/api/getDevice/:device_id", getDevice)
-		authorized.GET("/api/influxdb", getInfluxDB)
+		authorized.POST("/api/query-data", queryDataHandler)
+		authorized.POST("/api/get-measurements", getMeasurements)
+		authorized.POST("api/add-device", addDevice)
+		authorized.PUT("api/update-device/:device_id", updateDevice)
 		/// #############
 		// Show the pages
 		authorized.GET("/", showDashboard)
@@ -81,9 +82,9 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/devices/:deviceName", getDeviceStatus)          // Get a single device status
 		authorized.PUT("/devices/:deviceName", updateDevice)             // Update a single device
 		authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
-		authorized.POST("/devices", addDevice)                           // Add a new device
-		authorized.DELETE("/devices/:deviceName", deleteDevice)          // Delete a device
-		authorized.GET("/browseNodes/:deviceName", browseNodes)          // Get device attributes
+		// authorized.POST("/devices", addDevice)                           // Add a new device
+		authorized.DELETE("/devices/:deviceName", deleteDevice) // Delete a device
+		authorized.GET("/browseNodes/:deviceName", browseNodes) // Get device attributes
 
 		//websocket for device status and data
 		authorized.GET("/ws/deviceStatus", deviceStatusWebSocket)
@@ -132,26 +133,4 @@ func showNodeRedPage(c *gin.Context) {
 
 func showBrokerPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "broker.html", nil)
-}
-
-func getInfluxDB(c *gin.Context) {
-	resp, err := http.Get("http://127.0.0.1:8086")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch InfluxDB UI"})
-		return
-	}
-	defer resp.Body.Close()
-
-	// HTML-Inhalt aus der Antwort lesen
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response from InfluxDB"})
-		return
-	}
-
-	// Manipuliere das <base href> im HTML
-	modifiedBody := strings.ReplaceAll(string(body), `<base href="/">`, `<base href="/api/influxdb/">`)
-
-	// Geänderten HTML-Inhalt zurückgeben
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(modifiedBody))
 }

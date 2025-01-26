@@ -1,0 +1,110 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.18.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/data/.npmrc
+5 silly config load:file:/usr/src/node-red/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm install sqlite-plugin-red@0.0.3
+8 verbose argv "install" "--no-audit" "--no-update-notifier" "--no-fund" "--save" "--save-prefix" "~" "--omit" "dev" "--engine-strict" "sqlite-plugin-red@0.0.3"
+9 verbose logfile logs-max:10 dir:/data/.npm/_logs/2025-01-13T13_28_07_357Z-
+10 verbose logfile /data/.npm/_logs/2025-01-13T13_28_07_357Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile start cleaning logs, removing 1 files
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly fetch manifest sqlite-plugin-red@0.0.3
+16 silly packumentCache full:https://registry.npmjs.org/sqlite-plugin-red cache-miss
+17 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+18 http fetch GET 200 https://registry.npmjs.org/sqlite-plugin-red 898ms (cache updated)
+19 silly packumentCache full:https://registry.npmjs.org/sqlite-plugin-red set size:undefined disposed:false
+20 silly placeDep ROOT sqlite-plugin-red@0.0.3 OK for: node-red-project@0.0.1 want: 0.0.3
+21 silly fetch manifest better-sqlite3@^7.4.1
+22 silly packumentCache full:https://registry.npmjs.org/better-sqlite3 cache-miss
+23 http fetch GET 200 https://registry.npmjs.org/better-sqlite3 108ms (cache updated)
+24 silly packumentCache full:https://registry.npmjs.org/better-sqlite3 set size:undefined disposed:false
+25 silly placeDep ROOT better-sqlite3@7.6.2 OK for: sqlite-plugin-red@0.0.3 want: ^7.4.1
+26 silly reify moves {}
+27 info run better-sqlite3@7.6.2 install node_modules/better-sqlite3 prebuild-install || npm run build-release
+28 info run better-sqlite3@7.6.2 install { code: 1, signal: null }
+29 verbose stack Error: command failed
+29 verbose stack     at promiseSpawn (/usr/local/lib/node_modules/npm/node_modules/@npmcli/promise-spawn/lib/index.js:22:22)
+29 verbose stack     at spawnWithShell (/usr/local/lib/node_modules/npm/node_modules/@npmcli/promise-spawn/lib/index.js:124:10)
+29 verbose stack     at promiseSpawn (/usr/local/lib/node_modules/npm/node_modules/@npmcli/promise-spawn/lib/index.js:12:12)
+29 verbose stack     at runScriptPkg (/usr/local/lib/node_modules/npm/node_modules/@npmcli/run-script/lib/run-script-pkg.js:77:13)
+29 verbose stack     at runScript (/usr/local/lib/node_modules/npm/node_modules/@npmcli/run-script/lib/run-script.js:9:12)
+29 verbose stack     at /usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/rebuild.js:329:17
+29 verbose stack     at run (/usr/local/lib/node_modules/npm/node_modules/promise-call-limit/dist/commonjs/index.js:67:22)
+29 verbose stack     at /usr/local/lib/node_modules/npm/node_modules/promise-call-limit/dist/commonjs/index.js:84:9
+29 verbose stack     at new Promise (<anonymous>)
+29 verbose stack     at callLimit (/usr/local/lib/node_modules/npm/node_modules/promise-call-limit/dist/commonjs/index.js:35:69)
+30 verbose pkgid better-sqlite3@7.6.2
+31 error code 1
+32 error path /data/node_modules/better-sqlite3
+33 error command failed
+34 error command sh -c prebuild-install || npm run build-release
+35 error > better-sqlite3@7.6.2 build-release
+35 error > node-gyp rebuild --release
+36 error prebuild-install warn install No prebuilt binaries found (target=20.18.1 runtime=node arch=x64 libc=musl platform=linux)
+36 error gyp info it worked if it ends with ok
+36 error gyp info using node-gyp@8.4.1
+36 error gyp info using node@20.18.1 | linux | x64
+36 error gyp info find Python using Python version 3.12.8 found at "/usr/bin/python3"
+36 error gyp info spawn /usr/bin/python3
+36 error gyp info spawn args [
+36 error gyp info spawn args   '/data/node_modules/node-gyp/gyp/gyp_main.py',
+36 error gyp info spawn args   'binding.gyp',
+36 error gyp info spawn args   '-f',
+36 error gyp info spawn args   'make',
+36 error gyp info spawn args   '-I',
+36 error gyp info spawn args   '/data/node_modules/better-sqlite3/build/config.gypi',
+36 error gyp info spawn args   '-I',
+36 error gyp info spawn args   '/data/node_modules/node-gyp/addon.gypi',
+36 error gyp info spawn args   '-I',
+36 error gyp info spawn args   '/usr/src/node-red/.cache/node-gyp/20.18.1/include/node/common.gypi',
+36 error gyp info spawn args   '-Dlibrary=shared_library',
+36 error gyp info spawn args   '-Dvisibility=default',
+36 error gyp info spawn args   '-Dnode_root_dir=/usr/src/node-red/.cache/node-gyp/20.18.1',
+36 error gyp info spawn args   '-Dnode_gyp_dir=/data/node_modules/node-gyp',
+36 error gyp info spawn args   '-Dnode_lib_file=/usr/src/node-red/.cache/node-gyp/20.18.1/<(target_arch)/node.lib',
+36 error gyp info spawn args   '-Dmodule_root_dir=/data/node_modules/better-sqlite3',
+36 error gyp info spawn args   '-Dnode_engine=v8',
+36 error gyp info spawn args   '--depth=.',
+36 error gyp info spawn args   '--no-parallel',
+36 error gyp info spawn args   '--generator-output',
+36 error gyp info spawn args   'build',
+36 error gyp info spawn args   '-Goutput_dir=.'
+36 error gyp info spawn args ]
+36 error Traceback (most recent call last):
+36 error   File "/data/node_modules/node-gyp/gyp/gyp_main.py", line 42, in <module>
+36 error     import gyp  # noqa: E402
+36 error     ^^^^^^^^^^
+36 error   File "/data/node_modules/node-gyp/gyp/pylib/gyp/__init__.py", line 9, in <module>
+36 error     import gyp.input
+36 error   File "/data/node_modules/node-gyp/gyp/pylib/gyp/input.py", line 19, in <module>
+36 error     from distutils.version import StrictVersion
+36 error ModuleNotFoundError: No module named 'distutils'
+36 error gyp ERR! configure error 
+36 error gyp ERR! stack Error: `gyp` failed with exit code: 1
+36 error gyp ERR! stack     at ChildProcess.onCpExit (/data/node_modules/node-gyp/lib/configure.js:259:16)
+36 error gyp ERR! stack     at ChildProcess.emit (node:events:518:28)
+36 error gyp ERR! stack     at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+36 error gyp ERR! System Linux 5.15.167.4-microsoft-standard-WSL2
+36 error gyp ERR! command "/usr/local/bin/node" "/data/node_modules/.bin/node-gyp" "rebuild" "--release"
+36 error gyp ERR! cwd /data/node_modules/better-sqlite3
+36 error gyp ERR! node -v v20.18.1
+36 error gyp ERR! node-gyp -v v8.4.1
+36 error gyp ERR! not ok
+37 silly unfinished npm timer reify 1736774887821
+38 silly unfinished npm timer reify:build 1736774889396
+39 silly unfinished npm timer build 1736774889396
+40 silly unfinished npm timer build:deps 1736774889396
+41 silly unfinished npm timer build:run:install 1736774889397
+42 silly unfinished npm timer build:run:install:node_modules/better-sqlite3 1736774889397
+43 verbose cwd /data
+44 verbose os Linux 5.15.167.4-microsoft-standard-WSL2
+45 verbose node v20.18.1
+46 verbose npm  v10.8.2
+47 verbose exit 1
+48 verbose code 1
+49 error A complete log of this run can be found in: /data/.npm/_logs/2025-01-13T13_28_07_357Z-debug-0.log

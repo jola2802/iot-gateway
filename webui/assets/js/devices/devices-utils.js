@@ -216,6 +216,11 @@ function initializeEditDeviceModal(device_id) {
             // Falls OPC-UA ausgewählt wurde, initialisiere Sicherheitsrichtlinie und -modus
             if (selectedType === 'opc-ua') {
                 initializeOpcUaSecuritySettings();
+                document.querySelectorAll('.datatype-column').forEach(col => col.classList.add('hidden'));
+                document.querySelectorAll('td:nth-child(3)').forEach(cell => cell.classList.add('hidden')); // Verstecke alle Zellen in der Spalte
+            } else {
+                document.querySelectorAll('.datatype-column').forEach(col => col.classList.remove('hidden'));
+                document.querySelectorAll('td:nth-child(3)').forEach(cell => cell.classList.remove('hidden')); // Zeige alle Zellen in der Spalte
             }
         }
     }
@@ -237,26 +242,36 @@ function initializeEditDeviceModal(device_id) {
             // Gerätedaten in das Modal einfügen
             document.getElementById('device-name-1').value = deviceData.deviceName || '';
             selectDeviceType.value = deviceData.deviceType || 'opc-ua';
-            //Disbale the device type dropdown
             selectDeviceType.disabled = true;
+            //disable name input field
+            document.getElementById('device-name-1').disabled = true;
             showConfig(deviceData.deviceType);
 
             if (deviceData.deviceType === 'opc-ua') {
+                // Clear old values
+                document.getElementById('address-1').value = '';
+                document.getElementById('select-security-policy-1').value = 'none';
+                document.getElementById('select-authentication-settings-1').value = 'anonymous';
+                document.getElementById('select-security-mode-1').value = 'None';
+
+                // Fill new values
                 document.getElementById('address-1').value = deviceData.address || '';
                 document.getElementById('select-security-policy-1').value = deviceData.securityPolicy.String || 'none';
                 document.getElementById('select-authentication-settings-1').value = deviceData.authentication || 'anonymous';
                 document.getElementById('select-security-mode-1').value = deviceData.securityMode.String || 'None';
 
-                if (deviceData.authentication === 'user-pw') {
+                createCredentialsFields();
+                const usernameGroup = document.getElementById('username-group');
+                const passwordGroup = document.getElementById('password-group');
+                // username und password darf kein sql nullstring sein
+                if (deviceData.username.String !== '' && deviceData.password.String !== '') {
                     // Create Username- and password-groups
-                    createCredentialsFields();
 
-                    const usernameGroup = document.getElementById('username-group');
-                    const passwordGroup = document.getElementById('password-group');
 
                     if (usernameGroup && passwordGroup) {
                         usernameGroup.style.display = 'block';
                         passwordGroup.style.display = 'block';
+                        document.getElementById('select-authentication-settings-1').value = 'user-pw';
 
                         const usernameInput = document.getElementById('username');
                         const passwordInput = document.getElementById('password');
@@ -268,8 +283,17 @@ function initializeEditDeviceModal(device_id) {
                             console.error('Username or Password input not found in DOM');
                         }
                     } else {
+                        document.getElementById('select-authentication-settings-1').value = 'anonymous';
+                        usernameGroup.style.display = 'none';
+                        passwordGroup.style.display = 'none';
                         console.error('Username group or Password group not found in DOM');
                     }
+                }
+                else {
+                    // deleteCredentialsFields();
+                    usernameGroup.style.display = 'none';
+                    passwordGroup.style.display = 'none';
+                    document.getElementById('select-authentication-settings-1').value = 'anonymous';
                 }
                 document.getElementById('acquisition-time-opc-ua-1').value = deviceData.acquisitionTime;
                 
@@ -281,6 +305,10 @@ function initializeEditDeviceModal(device_id) {
             } else if (deviceData.deviceType === 'mqtt') {
                 document.querySelector('#mqtt-config-1 [placeholder="Type in password"]').value = deviceData.password.String || '';
             }
+
+            // Tabelle der Datenpunkte leeren
+            const datapointsTableBody = document.querySelector('#ipi-table tbody');
+            datapointsTableBody.innerHTML = '';
 
             if (deviceData.datapoint) {
                 // Tabelle für Datenpunkte
@@ -299,6 +327,10 @@ function initializeEditDeviceModal(device_id) {
                     nameCell.textContent = datapoint.name;
                     nameCell.style.color = 'rgb(121, 121, 121)';
                     row.appendChild(nameCell);
+
+                    const datatypeCell = document.createElement('td');
+                    datatypeCell.textContent = datapoint.datatype || 'INT';
+                    row.appendChild(datatypeCell);
 
                     const addressCell = document.createElement('td');
                     addressCell.textContent = datapoint.address || '';
@@ -379,7 +411,6 @@ function initializeEditDeviceModal(device_id) {
         }
     }
     
-
     // Initiales Ausblenden aller Konfigurationskarten
     hideAllConfigs();
 
@@ -558,6 +589,19 @@ function createEmptyRow() {
     nameCell.appendChild(nameInput);
     emptyRow.appendChild(nameCell);
 
+    // Dropdown für Datatype
+    const datatypeCell = document.createElement('td');
+    const datatypeSelect = document.createElement('select');
+    datatypeSelect.className = 'form-select';
+    ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        datatypeSelect.appendChild(option);
+    });
+    datatypeCell.appendChild(datatypeSelect);
+    emptyRow.appendChild(datatypeCell);
+
     // Leere Felder für Address / Node ID
     const addressCell = document.createElement('td');
     const addressInput = document.createElement('input');
@@ -573,7 +617,7 @@ function createEmptyRow() {
     saveButton.className = 'btn btn-success';
     saveButton.textContent = 'Save';
     saveButton.addEventListener('click', () => {
-        saveDatapoint(idInput.value, nameInput.value, addressInput.value);
+        saveDatapoint(idInput.value, nameInput.value, datatypeSelect.value, addressInput.value);
     });
     actionCell.appendChild(saveButton);
     emptyRow.appendChild(actionCell);
@@ -581,8 +625,8 @@ function createEmptyRow() {
     return emptyRow;
 }
 
-function saveDatapoint(id, name, address) {
-    if (!name || !address) {
+function saveDatapoint(id, name, datatype, address) {
+    if (!name || !address || !datatype) {
         alert('Please fill all fields before saving!');
         return;
     }
@@ -591,38 +635,44 @@ function saveDatapoint(id, name, address) {
 
     const newRow = document.createElement('tr');
 
+
+    // use datapointId when id is empty
+    if (!id) {
+        id = datapointId;
+    }
+
     const idCell = document.createElement('td');
     idCell.textContent = id;
     idCell.style.color = 'rgb(121, 121, 121)';
     newRow.appendChild(idCell);
 
-    // Name
     const nameCell = document.createElement('td');
     nameCell.textContent = name;
     nameCell.style.color = 'rgb(121, 121, 121)';
     newRow.appendChild(nameCell);
 
-    // Address
+    const datatypeCell = document.createElement('td');
+    datatypeCell.textContent = datatype;
+    datatypeCell.style.color = 'rgb(121, 121, 121)';
+    newRow.appendChild(datatypeCell);
+
     const addressCell = document.createElement('td');
     addressCell.textContent = address;
     addressCell.style.color = 'rgb(121, 121, 121)';
     newRow.appendChild(addressCell);
 
-    // Action mit Löschen
     const actionCell = document.createElement('td');
     actionCell.innerHTML = `
-                        <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" style="margin-left: 5px;" data-bs-toggle="modal" data-bs-target="#delete-modal">
-                            <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
-                        </a>
-                    `;
+        <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" style="margin-left: 5px;" data-bs-toggle="modal" data-bs-target="#delete-modal">
+            <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
+        </a>
+    `;
     newRow.appendChild(actionCell);
 
-    // Neue Zeile vor der leeren Zeile hinzufügen
     const tableBody = document.querySelector('#ipi-table tbody');
-    const lastRow = tableBody.lastChild; // Leere Zeile
+    const lastRow = tableBody.lastChild;
     tableBody.insertBefore(newRow, lastRow);
 
-    // Felder der leeren Zeile zurücksetzen
-    const inputs = lastRow.querySelectorAll('input');
+    const inputs = lastRow.querySelectorAll('input, select');
     inputs.forEach(input => (input.value = ''));
 }

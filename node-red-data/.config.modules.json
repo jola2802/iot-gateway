@@ -1,0 +1,51 @@
+{
+    "node-opcua": {
+        "spec": "node-opcua",
+        "module": "node-opcua",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "axios": {
+        "spec": "axios",
+        "module": "axios",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "fs-extra": {
+        "spec": "fs-extra",
+        "module": "fs-extra",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "mqtt": {
+        "spec": "mqtt",
+        "module": "mqtt",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "jsonwebtoken": {
+        "spec": "jsonwebtoken",
+        "module": "jsonwebtoken",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "node-mqtt": {
+        "spec": "node-mqtt",
+        "module": "node-mqtt",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "luxon": {
+        "spec": "luxon",
+        "module": "luxon",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    }
+}

@@ -1,0 +1,77 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.18.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/data/.npmrc
+5 silly config load:file:/usr/src/node-red/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm remove node-red-contrib-teachable-machine
+8 verbose argv "remove" "--no-audit" "--no-update-notifier" "--no-fund" "--save" "node-red-contrib-teachable-machine"
+9 verbose logfile logs-max:10 dir:/data/.npm/_logs/2025-01-23T11_36_56_718Z-
+10 verbose logfile /data/.npm/_logs/2025-01-23T11_36_56_718Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile start cleaning logs, removing 1 files
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly reify mark retired [ '/data/node_modules/data-uri-to-buffer' ]
+16 silly reify mark retired [ '/data/node_modules/fetch-blob' ]
+17 silly reify mark retired [ '/data/node_modules/formdata-polyfill' ]
+18 silly reify mark retired [ '/data/node_modules/jpeg-js' ]
+19 silly reify mark retired [ '/data/node_modules/node-domexception' ]
+20 silly reify mark retired [ '/data/node_modules/node-red-contrib-teachable-machine' ]
+21 silly reify mark retired [ '/data/node_modules/opentype.js', '/data/node_modules/.bin/ot' ]
+22 silly reify mark retired [ '/data/node_modules/web-streams-polyfill' ]
+23 silly reify moves {
+23 silly reify   '/data/node_modules/data-uri-to-buffer': '/data/node_modules/.data-uri-to-buffer-HkSCCsC7',
+23 silly reify   '/data/node_modules/fetch-blob': '/data/node_modules/.fetch-blob-1cAz6W05',
+23 silly reify   '/data/node_modules/formdata-polyfill': '/data/node_modules/.formdata-polyfill-jG4EN79F',
+23 silly reify   '/data/node_modules/jpeg-js': '/data/node_modules/.jpeg-js-wm9W4UXo',
+23 silly reify   '/data/node_modules/node-domexception': '/data/node_modules/.node-domexception-anpBa2Uh',
+23 silly reify   '/data/node_modules/node-red-contrib-teachable-machine': '/data/node_modules/.node-red-contrib-teachable-machine-2jnkB2yg',
+23 silly reify   '/data/node_modules/opentype.js': '/data/node_modules/.opentype.js-Xk8q3KXg',
+23 silly reify   '/data/node_modules/.bin/ot': '/data/node_modules/.bin/.ot-m76iL6kf',
+23 silly reify   '/data/node_modules/web-streams-polyfill': '/data/node_modules/.web-streams-polyfill-s6C1ioPQ'
+23 silly reify }
+24 silly REMOVE node_modules/web-streams-polyfill
+25 silly REMOVE node_modules/opentype.js
+26 silly REMOVE node_modules/node-red-contrib-teachable-machine
+27 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/yargs-parser
+28 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/yargs
+29 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/yallist
+30 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/tar
+31 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/rimraf
+32 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/pureimage
+33 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/pngjs
+34 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/node-fetch
+35 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/mkdirp
+36 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/minizlib
+37 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/minipass
+38 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/minimatch
+39 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/glob
+40 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/fs-minipass
+41 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/cliui
+42 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/chownr
+43 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/brace-expansion
+44 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@webgpu/types
+45 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-node
+46 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-layers
+47 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-data
+48 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-data/node_modules/node-fetch
+49 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-core
+50 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-core/node_modules/node-fetch
+51 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-core/node_modules/@types/offscreencanvas
+52 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-converter
+53 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-backend-webgl
+54 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs-backend-cpu
+55 silly REMOVE node_modules/node-red-contrib-teachable-machine/node_modules/@tensorflow/tfjs
+56 silly REMOVE node_modules/node-domexception
+57 silly REMOVE node_modules/jpeg-js
+58 silly REMOVE node_modules/formdata-polyfill
+59 silly REMOVE node_modules/fetch-blob
+60 silly REMOVE node_modules/data-uri-to-buffer
+61 verbose cwd /data
+62 verbose os Linux 5.15.167.4-microsoft-standard-WSL2
+63 verbose node v20.18.1
+64 verbose npm  v10.8.2
+65 verbose exit 0
+66 info ok

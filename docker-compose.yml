@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   iot-gateway:
     build:
@@ -11,6 +9,7 @@ services:
       - "5001:5001"
       - "5101:5101"
       - "5100:5100"
+      # - "8086:8086"
     volumes:
       - ./iot_gateway.db:/app/iot_gateway.db
       - ./webui/templates:/app/webui/templates
@@ -24,31 +23,31 @@ services:
   node-red:
     image: nodered/node-red:latest
     ports:
-      - "7777:1880"
+      - "7777:7777"
     volumes:
-      - ./flows.json:/data/flows.json
-      - ./node-red-data:/data
-      - ./server.crt:/data/server.crt
-      - ./server.key:/data/server.key
-    environment:
-      - NODE_RED_FLOW_NAME=flows.json
+        - ./node-red-data:/data
+      # - ./webui/assets/img:/data/assets/img
+      # - ./data/settings.js:/data/settings.js
+      # - ./data/package.json:/data/package.json
+      # - ./data/flows.json:/data/flows.json
+        # - ./server.crt:/data/server.crt
+        # - ./server.key:/data/server.key
     networks:
       - app-network
     restart: unless-stopped
 
   influxdb:
     image: influxdb:2.7
-    container_name: influxdb
     ports:
       - "8086:8086"
     volumes:
-      - influxdb-data:/var/lib/influxdb2
+      - ./data/:/data/
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME=admin
       - DOCKER_INFLUXDB_INIT_PASSWORD=abc+1247
       - DOCKER_INFLUXDB_INIT_ORG=idpm
-      - DOCKER_INFLUXDB_INIT_BUCKET=iot-gateway
+      - DOCKER_INFLUXDB_INIT_BUCKET=iot
     
     networks:
       - app-network
@@ -58,5 +57,5 @@ networks:
   app-network:
     driver: bridge
 
-volumes:
-  influxdb-data:
+# volumes:
+#   influxdb-data:

@@ -1,0 +1,48 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.18.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/data/.npmrc
+5 silly config load:file:/usr/src/node-red/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm install modbus
+8 verbose argv "install" "--omit" "dev" "--engine-strict" "modbus"
+9 verbose logfile logs-max:10 dir:/data/.npm/_logs/2025-01-19T19_46_29_663Z-
+10 verbose logfile /data/.npm/_logs/2025-01-19T19_46_29_663Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile start cleaning logs, removing 1 files
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly fetch manifest modbus@*
+16 silly packumentCache full:https://registry.npmjs.org/modbus cache-miss
+17 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+18 http fetch GET https://registry.npmjs.org/modbus attempt 1 failed with ENOTFOUND
+19 http fetch GET https://registry.npmjs.org/modbus attempt 2 failed with ENOTFOUND
+20 http fetch GET https://registry.npmjs.org/modbus attempt 3 failed with ENOTFOUND
+21 silly placeDep ROOT modbus@ OK for: node-red-project@0.0.1 want: *
+22 verbose type system
+23 verbose stack FetchError: request to https://registry.npmjs.org/modbus failed, reason: getaddrinfo ENOTFOUND registry.npmjs.org
+23 verbose stack     at ClientRequest.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/minipass-fetch/lib/index.js:130:14)
+23 verbose stack     at ClientRequest.emit (node:events:518:28)
+23 verbose stack     at emitErrorEvent (node:_http_client:101:11)
+23 verbose stack     at _destroy (node:_http_client:884:9)
+23 verbose stack     at onSocketNT (node:_http_client:904:5)
+23 verbose stack     at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
+24 error code ENOTFOUND
+25 error syscall getaddrinfo
+26 error errno ENOTFOUND
+27 error network request to https://registry.npmjs.org/modbus failed, reason: getaddrinfo ENOTFOUND registry.npmjs.org
+28 error network This is a problem related to network connectivity.
+28 error network In most cases you are behind a proxy or have bad network settings.
+28 error network
+28 error network If you are behind a proxy, please make sure that the
+28 error network 'proxy' config is set properly.  See: 'npm help config'
+29 silly unfinished npm timer reify 1737315990136
+30 silly unfinished npm timer reify:loadTrees 1737315990140
+31 verbose cwd /data
+32 verbose os Linux 5.15.167.4-microsoft-standard-WSL2
+33 verbose node v20.18.1
+34 verbose npm  v10.8.2
+35 verbose exit 1
+36 verbose code 1
+37 error A complete log of this run can be found in: /data/.npm/_logs/2025-01-19T19_46_29_663Z-debug-0.log

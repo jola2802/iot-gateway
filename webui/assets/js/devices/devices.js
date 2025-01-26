@@ -65,13 +65,14 @@ async function fetchAndPopulateDevices() {
 
         const devices = devicesArr.devices; 
 
-        console.log('Devices fetched successfully:', devices);
+        // console.log('Devices fetched successfully:', devices);
 
         // Tabelle referenzieren
         const tableBody = document.querySelector('#table-devices tbody');
 
         // Spinner-Zeile entfernen
         tableBody.innerHTML = '';
+        
 
         // Accordion-Container referenzieren
         const accordionContainer = document.querySelector('#accordion-data');

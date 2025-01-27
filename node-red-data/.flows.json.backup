@@ -563,7 +563,7 @@
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
         "name": "CRUD-Prozess",
-        "func": "const db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Tabellen-Schema für jeden Gerätetyp\nconst tableSchemas = {\n    'opcua': `\n        CREATE TABLE IF NOT EXISTS opcua (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            endpoint TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            security_policy TEXT,\n            security_mode TEXT,\n            username TEXT,\n            password TEXT,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    's7': `\n        CREATE TABLE IF NOT EXISTS s7 (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL, \n            ip TEXT NOT NULL,\n            rack INTEGER NOT NULL,\n            slot INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    'mqtt': `\n        CREATE TABLE IF NOT EXISTS mqtt (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            broker TEXT NOT NULL,\n            topic TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    'modbus': `\n        CREATE TABLE IF NOT EXISTS modbus (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            ip TEXT NOT NULL,\n            port INTEGER NOT NULL,\n            unitId INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `\n};\n\n// 1. Tabellen erstellen (Setup)\nconst createTables = (callback) => {\n    let completed = 0;\n    const total = Object.keys(tableSchemas).length;\n\n    Object.entries(tableSchemas).forEach(([tableName, query]) => {\n        db.run(query, [], (err) => {\n            if (err) {\n                node.error(`Fehler beim Erstellen der Tabelle \"${tableName}\": ${err.message}`);\n            } else {\n                node.log(`Tabelle \"${tableName}\" erfolgreich erstellt.`);\n            }\n\n            completed++;\n            if (completed === total) {\n                callback(); // Tabellen sind erstellt, fahre mit weiteren Operationen fort\n            }\n        });\n    });\n};\n\n// 2. Funktion: Prozess hinzufügen\nconst addProcess = (process, callback) => {\n    let { type, device_id, deviceName, datapoints, acquisition_time, ...specificFields } = process;\n\n    const tableName = type;\n    if (!tableSchemas[type]) {\n        return callback({ error: `Ungültiger Gerätetyp: ${type}` });\n    }\n\n    if (type === 'opc-ua') {\n        type = 'opcua';\n    }\n\n    // Überprüfen, ob die Datapoints korrekt sind\n    if (!Array.isArray(datapoints) || datapoints.length === 0) {\n        return callback({ error: 'Datapoints müssen ein nicht-leeres Array sein.' });\n    }\n\n    // Zusätzliche Validierung für S7\n    if (type === 's7') {\n        const invalidPoints = datapoints.filter(\n            (point) => !point.datapoint_id || !point.name || !point.address || !point.datatype\n        );\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'S7-Datapoints müssen datapoint_id, name, address und datatype enthalten.' });\n        }\n    } else {\n        const invalidPoints = datapoints.filter((point) => !point.datapoint_id || !point.name || !point.address);\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'Datapoints müssen datapoint_id, name und address enthalten.' });\n        }\n    }\n\n    const processId = `${device_id}_${type}_${deviceName}_${Date.now()}`;\n    const insertQuery = `\n        INSERT INTO ${tableName} (processId, device_id, deviceName, datapoints, acquisition_time, ${Object.keys(\n        specificFields\n    ).join(', ')})\n        VALUES (?, ?, ?, ?, ?, ${Object.keys(specificFields)\n            .map(() => '?')\n            .join(', ')})\n    `;\n\n    const params = [\n        processId,\n        device_id,\n        deviceName,\n        JSON.stringify(datapoints),\n        acquisition_time,\n        ...Object.values(specificFields),\n    ];\n\n    db.run(insertQuery, params, (err) => {\n        if (err) {\n            node.error(`SQLite Insert Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Hinzufügen des Prozesses' });\n        }\n        callback({ message: 'Prozess hinzugefügt', processId });\n    });\n};\n\n// 3. Funktion: Prozess löschen\nconst deleteProcess = (processId, type, callback) => {\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Anfrage oder Gerätetyp' });\n    }\n\n    const deleteQuery = `DELETE FROM ${type} WHERE processId = ?`;\n    db.run(deleteQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Delete Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Löschen des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess gelöscht', processId });\n    });\n};\n\n// 4. Funktion: Prozess ändern\nconst updateProcess = (process, callback) => {\n    const { processId, type, ...updateFields } = process;\n\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Prozess-ID oder Gerätetyp' });\n    }\n\n    const setClause = Object.keys(updateFields).map((field) => `${field} = ?`).join(', ');\n    const params = [...Object.values(updateFields), processId];\n\n    const updateQuery = `UPDATE ${type} SET ${setClause} WHERE processId = ?`;\n    db.run(updateQuery, params, function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Ändern des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess geändert', processId });\n    });\n};\n\n// 5. Dispatcher: CRUD-Operation basierend auf HTTP-Methode\nconst action = msg.req.method.toUpperCase();\nconst requestBody = msg.payload;\n\ncreateTables(() => {\n    if (action === 'POST' && msg.req.url === '/api/add-process') {\n        addProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'DELETE' && msg.req.url === '/api/delete-process') {\n        deleteProcess(requestBody.processId, requestBody.type, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'PUT' && msg.req.url === '/api/change-process') {\n        updateProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else {\n        msg.payload = { error: 'Ungültige Anfrage' };\n        node.send(msg);\n    }\n});\n\nreturn null;\n",
+        "func": "const db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Tabellen-Schema für jeden Gerätetyp\nconst tableSchemas = {\n    'opcua': `\n        CREATE TABLE IF NOT EXISTS opcua (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            endpoint TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            security_policy TEXT,\n            security_mode TEXT,\n            username TEXT,\n            password TEXT,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    's7': `\n        CREATE TABLE IF NOT EXISTS s7 (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL, \n            ip TEXT NOT NULL,\n            rack INTEGER NOT NULL,\n            slot INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    'mqtt': `\n        CREATE TABLE IF NOT EXISTS mqtt (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            broker TEXT NOT NULL,\n            topic TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    'modbus': `\n        CREATE TABLE IF NOT EXISTS modbus (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            ip TEXT NOT NULL,\n            port INTEGER NOT NULL,\n            unitId INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `\n};\n\n// 1. Tabellen erstellen (Setup)\nconst createTables = (callback) => {\n    let completed = 0;\n    const total = Object.keys(tableSchemas).length;\n\n    Object.entries(tableSchemas).forEach(([tableName, query]) => {\n        db.run(query, [], (err) => {\n            if (err) {\n                node.error(`Fehler beim Erstellen der Tabelle \"${tableName}\": ${err.message}`);\n            } else {\n                node.log(`Tabelle \"${tableName}\" erfolgreich erstellt.`);\n            }\n\n            completed++;\n            if (completed === total) {\n                callback(); // Tabellen sind erstellt, fahre mit weiteren Operationen fort\n            }\n        });\n    });\n};\n\n// 2. Funktion: Prozess hinzufügen\nconst addProcess = (process, callback) => {\n    let { type, device_id, deviceName, datapoints, acquisition_time, ...specificFields } = process;\n\n    if (type === 'opc-ua') {\n        type = 'opcua';\n    }\n    \n    const tableName = type;\n    if (!tableSchemas[type]) {\n        return callback({ error: `Ungültiger Gerätetyp: ${type}` });\n    }\n\n\n    // Überprüfen, ob die Datapoints korrekt sind\n    if (!Array.isArray(datapoints) || datapoints.length === 0) {\n        return callback({ error: 'Datapoints müssen ein nicht-leeres Array sein.' });\n    }\n\n    // Zusätzliche Validierung für S7\n    if (type === 's7') {\n        const invalidPoints = datapoints.filter(\n            (point) => !point.datapoint_id || !point.name || !point.address || !point.datatype\n        );\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'S7-Datapoints müssen datapoint_id, name, address und datatype enthalten.' });\n        }\n    } else {\n        const invalidPoints = datapoints.filter((point) => !point.datapoint_id || !point.name || !point.address);\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'Datapoints müssen datapoint_id, name und address enthalten.' });\n        }\n    }\n\n    const processId = `${device_id}_${type}_${deviceName}_${Date.now()}`;\n    const insertQuery = `\n        INSERT INTO ${tableName} (\n            processId, device_id, deviceName, datapoints, acquisition_time, active, ${Object.keys(specificFields).join(', ')}\n        )\n        VALUES (?, ?, ?, ?, ?, \"true\", ${Object.keys(specificFields).map(() => '?').join(', ')})\n    `;\n\n    const params = [\n        processId,\n        device_id,\n        deviceName,\n        JSON.stringify(datapoints),\n        acquisition_time,\n        ...Object.values(specificFields),\n    ];\n\n    db.run(insertQuery, params, (err) => {\n        if (err) {\n            node.error(`SQLite Insert Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Hinzufügen des Prozesses' });\n        }\n        callback({ message: 'Prozess hinzugefügt', processId });\n    });\n};\n\n// 3. Funktion: Prozess löschen\nconst deleteProcess = (processId, type, callback) => {\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Anfrage oder Gerätetyp' });\n    }\n\n    const deleteQuery = `DELETE FROM ${type} WHERE processId = ?`;\n    db.run(deleteQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Delete Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Löschen des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess gelöscht', processId });\n    });\n};\n\n// 4. Funktion: Prozess ändern\nconst updateProcess = (process, callback) => {\n    const { processId, type, ...updateFields } = process;\n\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Prozess-ID oder Gerätetyp' });\n    }\n\n    const setClause = Object.keys(updateFields).map((field) => `${field} = ?`).join(', ');\n    const params = [...Object.values(updateFields), processId];\n\n    const updateQuery = `UPDATE ${type} SET ${setClause} WHERE processId = ?`;\n    db.run(updateQuery, params, function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Ändern des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess geändert', processId });\n    });\n};\n\n// 5. Dispatcher: CRUD-Operation basierend auf HTTP-Methode\nconst action = msg.req.method.toUpperCase();\nconst requestBody = msg.payload;\n\ncreateTables(() => {\n    if (action === 'POST' && msg.req.url === '/api/add-process') {\n        addProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'DELETE' && msg.req.url === '/api/delete-process') {\n        deleteProcess(requestBody.processId, requestBody.type, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'PUT' && msg.req.url === '/api/change-process') {\n        updateProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else {\n        msg.payload = { error: 'Ungültige Anfrage' };\n        node.send(msg);\n    }\n});\n\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -855,58 +855,21 @@
         ]
     },
     {
-        "id": "5b923e1159ba3e82",
-        "type": "sqlite",
-        "z": "1728e7a0cbf4dbd0",
-        "mydb": "73fbc7d8d18a521c",
-        "sqlquery": "fixed",
-        "sql": "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';\n",
-        "name": "Process-DB",
-        "x": 950,
-        "y": 240,
-        "wires": [
-            [
-                "b3556e8219622741"
-            ]
-        ]
-    },
-    {
         "id": "39a79fbc3479de7d",
         "type": "inject",
         "z": "1728e7a0cbf4dbd0",
         "name": "Trigger",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "endpoint",
-                "v": "opc.tcp://192.168.0.84:48010",
-                "vt": "str"
-            },
-            {
-                "p": "datapoints",
-                "v": "[\t   {\t       \"name\": \"1_temperature0\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1000\t        },\t   {\t       \"name\": \"1_humidity\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Humidity\",\t       \"datapoint_id\": 1002\t        },\t    {\t       \"name\": \"1_temperature1\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1001\t        },\t    {\t       \"name\": \"1_temperature2\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1002\t        },\t    {\t       \"name\": \"1_temperature3\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1003\t        }\t    ]",
-                "vt": "jsonata"
-            },
-            {
-                "p": "device_id",
-                "v": "1",
-                "vt": "str"
-            }
-        ],
+        "props": [],
         "repeat": "5",
         "crontab": "",
-        "once": true,
+        "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 160,
+        "x": 140,
         "y": 300,
         "wires": [
             [
-                "ee8f83ad8ef37b77"
+                "65281cc92705c4f5"
             ]
         ]
     },
@@ -935,12 +898,13 @@
                 "module": "fs-extra"
             }
         ],
-        "x": 620,
+        "x": 960,
         "y": 300,
         "wires": [
             [
                 "daebcf69f5609fa2",
-                "40a5a7d16221ba88"
+                "40a5a7d16221ba88",
+                "2a02782ad2b74dc4"
             ]
         ],
         "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
@@ -970,7 +934,7 @@
                 "module": "fs-extra"
             }
         ],
-        "x": 370,
+        "x": 750,
         "y": 300,
         "wires": [
             [
@@ -992,7 +956,7 @@
         "retentionPolicyV18Flux": "",
         "org": "idpm",
         "bucket": "iot-data",
-        "x": 880,
+        "x": 1200,
         "y": 300,
         "wires": []
     },
@@ -1003,7 +967,7 @@
         "name": "",
         "server": "01834dd3df2ce705",
         "client": "",
-        "x": 1160,
+        "x": 1540,
         "y": 380,
         "wires": []
     },
@@ -1019,11 +983,12 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 940,
+        "x": 1260,
         "y": 380,
         "wires": [
             [
-                "9ed8a01f651a92e6"
+                "9ed8a01f651a92e6",
+                "14ccb4f01fd8a6b7"
             ]
         ]
     },
@@ -1052,7 +1017,7 @@
                 "vt": "str"
             }
         ],
-        "repeat": "3",
+        "repeat": "1",
         "crontab": "",
         "once": true,
         "onceDelay": 0.1,
@@ -1126,7 +1091,7 @@
                 "module": "fs-extra"
             }
         ],
-        "x": 640,
+        "x": 940,
         "y": 380,
         "wires": [
             [
@@ -1153,36 +1118,66 @@
         "wires": []
     },
     {
-        "id": "7a9a76c436c3de8c",
-        "type": "inject",
+        "id": "65281cc92705c4f5",
+        "type": "function",
         "z": "1728e7a0cbf4dbd0",
-        "name": "",
-        "props": [
+        "name": "GET Data from SQLite and give to OPC",
+        "func": "// Lade Daten aus SQLite /tmp/process.db\nconst db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Asynchrone Funktion, um Daten aus der SQLite-Datenbank zu laden\nconst loadProcessData = async () => {\n    return new Promise((resolve, reject) => {\n        // Lese das erste aktive Gerät aus der Tabelle\n        const query = `\n            SELECT endpoint, datapoints, device_id, acquisition_time\n            FROM opcua\n            WHERE active = \"true\"\n            LIMIT 1\n        `;\n\n        db.get(query, [], (err, row) => {\n            if (err) {\n                reject(`Fehler beim Abrufen der Daten: ${err.message}`);\n            } else if (row) {\n                resolve(row);\n            } else {\n                reject('Keine aktiven Prozesse gefunden.');\n            }\n        });\n    });\n};\n\n// Funktion, um die Datapoints in das richtige Format zu transformieren\nconst transformDatapoints = (datapoints) => {\n    return datapoints.map((point) => ({\n        name: point.name,\n        nodeId: point.address, // Umbenennen von `address` zu `nodeId`\n        datapoint_id: point.datapoint_id,\n    }));\n};\n\n// Hauptlogik\nloadProcessData()\n    .then((data) => {\n        try {\n            // Überprüfen, ob die Datapoints gültig sind\n            const parsedDatapoints = JSON.parse(data.datapoints);\n            if (!Array.isArray(parsedDatapoints) || parsedDatapoints.length === 0) {\n                throw new Error('Ungültige oder leere Datapoints.');\n            }\n\n            // Transformiere die Datapoints in das gewünschte Format\n            const formattedDatapoints = transformDatapoints(parsedDatapoints);\n\n            // Übergebe die geladenen Daten an msg\n            msg.endpoint = data.endpoint;\n            msg.datapoints = formattedDatapoints;\n            msg.device_id = data.device_id;\n            msg.acquisition_time = data.acquisition_time;\n\n            // Sende die Nachricht weiter\n            node.send(msg);\n        } catch (err) {\n            throw new Error(`Fehler beim Verarbeiten der Daten: ${err.message}`);\n        }\n    })\n    .catch((error) => {\n        // Fehlerbehandlung\n        node.error(error);\n        node.status({ fill: 'red', shape: 'dot', text: 'Fehler beim Laden der Daten' });\n    })\n    .finally(() => {\n        // Schließe die Datenbankverbindung (optional)\n        db.close((err) => {\n            if (err) {\n                node.error(`Fehler beim Schließen der Datenbank: ${err.message}`);\n            } else {\n                node.log('Datenbankverbindung geschlossen.');\n            }\n        });\n    });\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
             {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
+                "var": "sqlite3",
+                "module": "sqlite3"
             }
         ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 780,
-        "y": 220,
+        "x": 400,
+        "y": 300,
         "wires": [
             [
-                "5b923e1159ba3e82"
+                "f69998602cae03d2",
+                "ee8f83ad8ef37b77"
             ]
         ]
     },
     {
-        "id": "b3556e8219622741",
+        "id": "f69998602cae03d2",
+        "type": "debug",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "debug 8",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "datapoints",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 660,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "2a02782ad2b74dc4",
+        "type": "debug",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "debug 9",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1140,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "14ccb4f01fd8a6b7",
         "type": "debug",
         "z": "1728e7a0cbf4dbd0",
         "name": "debug 3",
@@ -1193,8 +1188,8 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1090,
-        "y": 240,
+        "x": 1450,
+        "y": 500,
         "wires": []
     },
     {

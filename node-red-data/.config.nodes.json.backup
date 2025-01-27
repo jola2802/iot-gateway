@@ -685,74 +685,6 @@
             }
         }
     },
-    "node-red-contrib-webcam": {
-        "name": "node-red-contrib-webcam",
-        "version": "0.0.1",
-        "local": true,
-        "user": false,
-        "nodes": {
-            "cam": {
-                "name": "cam",
-                "types": [
-                    "motion-event"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "node-red-contrib-webcam",
-                "file": "/data/node_modules/node-red-contrib-webcam/cam.js"
-            },
-            "cam-config": {
-                "name": "cam-config",
-                "types": [
-                    "motion-config"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "node-red-contrib-webcam",
-                "file": "/data/node_modules/node-red-contrib-webcam/cam-config.js"
-            }
-        }
-    },
-    "node-red-contrib-tf-model": {
-        "name": "node-red-contrib-tf-model",
-        "version": "0.1.12",
-        "local": true,
-        "user": false,
-        "nodes": {
-            "tf-model": {
-                "name": "tf-model",
-                "types": [
-                    "tf-model"
-                ],
-                "enabled": false,
-                "local": true,
-                "user": false,
-                "module": "node-red-contrib-tf-model",
-                "file": "/data/node_modules/node-red-contrib-tf-model/dist/index.js"
-            }
-        }
-    },
-    "node-red-node-ui-webcam": {
-        "name": "node-red-node-ui-webcam",
-        "version": "0.4.0",
-        "local": true,
-        "user": false,
-        "nodes": {
-            "ui_webcam": {
-                "name": "ui_webcam",
-                "types": [
-                    "ui_webcam"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "node-red-node-ui-webcam",
-                "file": "/data/node_modules/node-red-node-ui-webcam/ui_webcam.js"
-            }
-        }
-    },
     "node-red-node-sqlite": {
         "name": "node-red-node-sqlite",
         "version": "1.1.0",
@@ -1103,32 +1035,6 @@
                 "user": false,
                 "module": "node-red-contrib-modbus",
                 "file": "/data/node_modules/node-red-contrib-modbus/modbus/modbus-flex-fc.js"
-            }
-        }
-    },
-    "node-red-contrib-chartjs": {
-        "name": "node-red-contrib-chartjs",
-        "version": "0.5.2",
-        "local": true,
-        "user": true,
-        "nodes": {
-            "chartjs": {
-                "name": "chartjs",
-                "types": [
-                    "chartjs-line",
-                    "chartjs-vertical-bar",
-                    "chartjs-horizontal-bar",
-                    "chartjs-pie",
-                    "chartjs-doughnut",
-                    "chartjs-polar",
-                    "chartjs-bubble",
-                    "chartjs-radar"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "node-red-contrib-chartjs",
-                "file": "/data/node_modules/node-red-contrib-chartjs/chartjs/chartjs.js"
             }
         }
     }

@@ -47,7 +47,8 @@ services:
       - DOCKER_INFLUXDB_INIT_USERNAME=admin
       - DOCKER_INFLUXDB_INIT_PASSWORD=abc+1247
       - DOCKER_INFLUXDB_INIT_ORG=idpm
-      - DOCKER_INFLUXDB_INIT_BUCKET=iot
+      - DOCKER_INFLUXDB_INIT_BUCKET=iot-data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=secret-token
     
     networks:
       - app-network

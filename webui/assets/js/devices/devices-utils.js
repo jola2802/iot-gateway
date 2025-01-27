@@ -348,8 +348,8 @@ function initializeEditDeviceModal(device_id) {
                     datapointsTableBody.appendChild(row);
                 });
 
-                datapointsTableBody.appendChild(createEmptyRow());
             }
+            datapointsTableBody.appendChild(createEmptyRow());
 
         } catch (error) {
             console.error(`Error fetching device details: ${error.message}`);

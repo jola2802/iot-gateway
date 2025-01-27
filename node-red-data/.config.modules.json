@@ -47,5 +47,26 @@
         "subpath": "",
         "builtin": false,
         "known": false
+    },
+    "s7": {
+        "spec": "s7",
+        "module": "s7",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "modbus": {
+        "spec": "modbus",
+        "module": "modbus",
+        "subpath": "",
+        "builtin": false,
+        "known": false
+    },
+    "sqlite3": {
+        "spec": "sqlite3",
+        "module": "sqlite3",
+        "subpath": "",
+        "builtin": false,
+        "known": false
     }
 }

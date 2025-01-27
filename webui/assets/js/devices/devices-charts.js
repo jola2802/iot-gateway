@@ -42,13 +42,13 @@ function openChartModal(deviceId, datapoint) {
                 x: {
                     title: {
                         display: true,
-                        text: 'Zeit'
+                        text: 'Time'
                     }
                 },
                 y: {
                     title: {
                         display: true,
-                        text: 'Wert'
+                        text: 'Value'
                     }
                 }
             }

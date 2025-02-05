@@ -1,4 +1,17 @@
-const BASE_PATH = 'http://localhost:7777';
-const WS_PATH = 'ws://localhost:7777';
+function getHostInfo() {
+    const hostname = window.location.hostname;
+    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
 
-// ACHTUNG MUSS BEI DEVICES AUCH NOCH AM ANFANG ANGEPASST WERDEN!!!
+    // hostname = "192.168.0.84"
+    const BASE_PATH = `https://${hostname}/nodered/`;
+    const WS_PATH = `wss://${hostname}/nodered/`;
+
+    console.log('BASE_PATH:', BASE_PATH);
+    console.log('WS_PATH:', WS_PATH);
+
+    return { BASE_PATH, WS_PATH };
+}
+
+// Beispielaufruf der Funktion
+const { BASE_PATH, WS_PATH } = getHostInfo();
+// Verwende BASE_PATH und WS_PATH weiter in deinem Skript

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -255,27 +256,24 @@ func StopMqttListener() {
 	}
 }
 
-func RestartMqttListener(db *sql.DB) {
-	StopMqttListener()
-	StartMqttListener(stateTopic, db)
-}
+// func RestartMqttListener(db *sql.DB) {
+// 	StopMqttListener()
+// 	StartMqttListener(stateTopic, db)
+// }
 
 // MQTT-Publikation mit exponentiellem Backoff
-func publishDeviceState(client mqtt.Client, deviceType, deviceName string, status string) {
+func publishDeviceState(server *MQTT.Server, deviceType, deviceName string, status string) {
 	topic := "iot-gateway/driver/states/" + deviceType + "/" + deviceName
-	publishWithBackoff(client, topic, status, 5)
+	publishWithBackoff(server, topic, status, 5)
 }
 
 // Implementiere exponentiellen Backoff
-func publishWithBackoff(client mqtt.Client, topic string, payload string, maxRetries int) {
+func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRetries int) {
 	backoff := 1000 * time.Millisecond
 	for i := 0; i < maxRetries; i++ {
-		if client.IsConnected() {
-			token := client.Publish(topic, 1, true, payload)
-			token.Wait()
-			if token.Error() == nil {
-				return
-			}
+		err := server.Publish(topic, []byte(payload), true, 1)
+		if err == nil {
+			return
 		}
 		time.Sleep(backoff)
 		backoff *= 2 // Exponentielles Wachstum der Wartezeit

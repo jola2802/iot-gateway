@@ -64,7 +64,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/settings", showSettingsPage)
 		// ############
 
-		authorized.GET("/ws/broker/status", brokerStatusWebSocket)
+		// authorized.GET("/ws/broker/status", brokerStatusWebSocket)
 		authorized.POST("/restart", restartGatewayHandler)
 
 		authorized.POST("/profile", updateProfile)
@@ -87,8 +87,8 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/browseNodes/:deviceName", browseNodes) // Get device attributes
 
 		//websocket for device status and data
-		authorized.GET("/ws/deviceStatus", deviceStatusWebSocket)
-		authorized.GET("/ws/deviceData", deviceDataWebSocket)
+		// authorized.GET("/ws/deviceStatus", deviceStatusWebSocket)
+		// authorized.GET("/ws/deviceData", deviceDataWebSocket)
 
 		// Broker routes
 		authorized.POST("/settings", updateBrokerSettings)
@@ -107,7 +107,6 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/add-image-process", addImageProcess)
 
 		authorized.GET("/browse-nodes/:deviceName", browseNodes)
-		authorized.GET("/node-red-url", getNodeRedURL)
 	}
 }
 
@@ -129,8 +128,4 @@ func getPermissionText(permission int) string {
 
 func showNodeRedPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "node-red.html", nil)
-}
-
-func showBrokerPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "broker.html", nil)
 }

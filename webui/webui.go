@@ -12,6 +12,7 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	_ "github.com/glebarez/go-sqlite"
+	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,16 +28,15 @@ type Config struct {
 	WebUI WebUIConfig `json:"webui"`
 }
 
-var nodeRedURL string
+var server *MQTT.Server
 
 // Main function to start the web server
-func Main(db *sql.DB, URL string) {
+func Main(db *sql.DB, server *MQTT.Server) {
+	server = server
+
 	if db == nil {
 		logrus.Fatal("Database connection is not initalized.")
 	}
-
-	// Save the Node-RED URL
-	nodeRedURL = URL
 
 	// Lade die Konfiguration aus der config.json
 	config, err := loadConfig("config.json")

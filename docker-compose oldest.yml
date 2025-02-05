@@ -1,18 +1,15 @@
-version: "3.8"
-
 services:
   iot-gateway:
     build:
       context: .
       dockerfile: Dockerfile
-    # Nur intern sichtbar (kein externes Port-Mapping)
-    expose:
-      - "8443"
-      - "50000"
-      - "5001"
-      - "5100"
-      - "5101"
-      - "5102"
+    ports:
+      - "8443:8443"
+      - "50000:50000"
+      - "5001:5001"
+      - "5101:5101"
+      - "5100:5100"
+      # - "8086:8086"
     volumes:
       - ./iot_gateway.db:/app/iot_gateway.db
       - ./webui/templates:/app/webui/templates
@@ -25,18 +22,24 @@ services:
 
   node-red:
     image: nodered/node-red:latest
-    expose:
-      - "7777"
+    ports:
+      - "7777:7777"
     volumes:
-      - ./node-red-data:/data
+        - ./node-red-data:/data
+      # - ./webui/assets/img:/data/assets/img
+      # - ./data/settings.js:/data/settings.js
+      # - ./data/package.json:/data/package.json
+      # - ./data/flows.json:/data/flows.json
+        # - ./server.crt:/data/server.crt
+        # - ./server.key:/data/server.key
     networks:
       - app-network
     restart: unless-stopped
 
   influxdb:
     image: influxdb:2.7
-    expose:
-      - "8086"
+    ports:
+      - "8086:8086"
     volumes:
       - ./data/:/data/
     environment:
@@ -52,30 +55,9 @@ services:
       - app-network
     restart: unless-stopped
 
-  nginx:
-    image: nginx:latest
-    container_name: reverse-proxy
-    depends_on:
-      - iot-gateway
-      - node-red
-      - influxdb
-    # NGINX ist von außen auf 80/443 erreichbar
-    ports:
-      - "8080:8080"
-      - "443:443"
-      - "50000:50000"
-      - "5001:5001"
-      - "5100:5100"
-      - "5101:5101"
-      - "5102:5102"
-    volumes:
-      - ./server.crt:/etc/nginx/certs/server.crt
-      - ./server.key:/etc/nginx/certs/server.key
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - app-network
-    restart: unless-stopped
-
 networks:
   app-network:
     driver: bridge
+
+# volumes:
+#   influxdb-data:

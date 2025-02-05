@@ -2,7 +2,7 @@
     {
         "id": "a6c53714143ca763",
         "type": "tab",
-        "label": "Flow 1",
+        "label": "Dashboard Data",
         "disabled": false,
         "info": "",
         "env": []
@@ -29,6 +29,14 @@
         "label": "InfluxDB Dashboard",
         "disabled": true,
         "info": ""
+    },
+    {
+        "id": "4d524a0c3754f0d5",
+        "type": "tab",
+        "label": "old",
+        "disabled": true,
+        "info": "",
+        "env": []
     },
     {
         "id": "78b1c13ba5f9cb20",
@@ -122,6 +130,117 @@
         "y": 719,
         "w": 1132,
         "h": 202
+    },
+    {
+        "id": "6c40ee5f3bfc9a02",
+        "type": "group",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "S7-Data-Acquisition",
+        "style": {
+            "fill": "#bfc7d7",
+            "label": true,
+            "label-position": "ne",
+            "color": "#000000"
+        },
+        "nodes": [
+            "69a19f8604abf278",
+            "34c0ab03a6142383",
+            "b74e0d7142f12d6b",
+            "e4382643018d49ab",
+            "a32804f68dc4b83b"
+        ],
+        "x": 274,
+        "y": 499,
+        "w": 1132,
+        "h": 142
+    },
+    {
+        "id": "f6fa006b47040a9a",
+        "type": "group",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "MQTT-Data-Acquisition",
+        "style": {
+            "fill": "#bfc7d7",
+            "label": true,
+            "label-position": "ne",
+            "color": "#000000"
+        },
+        "nodes": [
+            "6dbff117afdf56fc",
+            "ce1ae6e123ddbb3c",
+            "7016ae403c5312e4",
+            "a13260d78ce851d6",
+            "6853eded1fbf0981"
+        ],
+        "x": 274,
+        "y": 659,
+        "w": 1132,
+        "h": 142
+    },
+    {
+        "id": "19a30d3a5fc44261",
+        "type": "group",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "CRUD-Prozess-Management",
+        "style": {
+            "label": true,
+            "label-position": "ne",
+            "color": "#000000",
+            "fill": "#d1d1d1"
+        },
+        "nodes": [
+            "baa42ee3c884bd41",
+            "8ef1cfe4694ce888",
+            "b4aad3d7aa099aaf",
+            "0471ae0778a5a057",
+            "8a5bd8f7e5108109"
+        ],
+        "x": 14,
+        "y": 79,
+        "w": 672,
+        "h": 202
+    },
+    {
+        "id": "f8a672ffc785a741",
+        "type": "group",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "OPC-Data-Acquisition",
+        "style": {
+            "fill": "#bfc7d7",
+            "label": true,
+            "label-position": "ne",
+            "color": "#000000"
+        },
+        "nodes": [
+            "76f799b24bf5a323",
+            "ee8f83ad8ef37b77",
+            "daebcf69f5609fa2",
+            "40a5a7d16221ba88",
+            "65281cc92705c4f5",
+            "e114b2e7f8e87dab"
+        ],
+        "x": 274,
+        "y": 339,
+        "w": 1122,
+        "h": 142
+    },
+    {
+        "id": "972ccc72943d2074",
+        "type": "group",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "Weitergeben und Visualisieren der Live-Daten",
+        "style": {
+            "label": true
+        },
+        "nodes": [
+            "dee49bb2a91064b4",
+            "958671caf54728ea",
+            "e2b68dcc1b60ff4d"
+        ],
+        "x": 1074,
+        "y": 919,
+        "w": 572,
+        "h": 82
     },
     {
         "id": "3cb4c7902fc85732",
@@ -240,37 +359,6 @@
         "mode": "RWC"
     },
     {
-        "id": "0b7c7515b1c6aa53",
-        "type": "mqtt-broker",
-        "name": "",
-        "broker": "localhost",
-        "port": "50000",
-        "clientid": "",
-        "autoConnect": true,
-        "usetls": false,
-        "protocolVersion": 4,
-        "keepalive": 60,
-        "cleansession": true,
-        "autoUnsubscribe": true,
-        "birthTopic": "",
-        "birthQos": "0",
-        "birthRetain": "false",
-        "birthPayload": "",
-        "birthMsg": {},
-        "closeTopic": "",
-        "closeQos": "0",
-        "closeRetain": "false",
-        "closePayload": "",
-        "closeMsg": {},
-        "willTopic": "",
-        "willQos": "0",
-        "willRetain": "false",
-        "willPayload": "",
-        "willMsg": {},
-        "userProps": "",
-        "sessionExpiry": ""
-    },
-    {
         "id": "4d6531ba64d3fa58",
         "type": "ui_tab",
         "name": "Data Dashboard",
@@ -308,13 +396,7 @@
         "id": "d1d25278780d0bb3",
         "type": "global-config",
         "name": "global-config",
-        "env": [
-            {
-                "name": "selected_measurement",
-                "value": "",
-                "type": "str"
-            }
-        ]
+        "env": []
     },
     {
         "id": "92d7d11efd835ff9",
@@ -329,169 +411,50 @@
         "userprivatekey": ""
     },
     {
-        "id": "741b6046b01b339b",
-        "type": "websocket out",
-        "z": "a6c53714143ca763",
-        "d": true,
+        "id": "e82a7202f23f3cdd",
+        "type": "tls-config",
         "name": "",
-        "server": "01834dd3df2ce705",
-        "client": "",
-        "x": 620,
-        "y": 363,
-        "wires": []
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "",
+        "servername": "",
+        "verifyservercert": true,
+        "alpnprotocol": ""
     },
     {
-        "id": "081cd15455fd2428",
-        "type": "debug",
-        "z": "a6c53714143ca763",
-        "name": "Debug Ausgabe",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 640,
-        "y": 463,
-        "wires": []
-    },
-    {
-        "id": "8caad21b1a4c5776",
-        "type": "http in",
-        "z": "a6c53714143ca763",
+        "id": "0b7c7515b1c6aa53",
+        "type": "mqtt-broker",
         "name": "",
-        "url": "/getDataForwarding",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 150,
-        "y": 83,
-        "wires": [
-            [
-                "abd088809784b879"
-            ]
-        ]
-    },
-    {
-        "id": "abd088809784b879",
-        "type": "function",
-        "z": "a6c53714143ca763",
-        "name": "function 3",
-        "func": "// Simulierte Daten für Data Forwarding\nconst dataForwarding = [\n    {\n        route_id: \"1\",\n        type: \"REST\",\n        devices: [\"Device 1\", \"Device 2\"],\n        address: \"http://example.com/api/data\",\n        last_send: new Date().toISOString()\n    },\n    {\n        route_id: \"2\",\n        type: \"File\",\n        devices: [\"Device 3\"],\n        address: \"/var/log/device_data.json\",\n        last_send: new Date(new Date().getTime() - 3600000).toISOString() // 1 Stunde vorher\n    },\n    {\n        route_id: \"3\",\n        type: \"MQTT\",\n        devices: [\"Device 4\", \"Device 5\"],\n        address: \"mqtt://broker.example.com:1883\",\n        last_send: null // Noch nicht gesendet\n    }\n];\n\n// Antwort vorbereiten\nmsg.payload = dataForwarding;\nmsg.headers = { \"Content-Type\": \"application/json\" };\n\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 480,
-        "y": 103,
-        "wires": [
-            [
-                "f3e40233e93558b7"
-            ]
-        ]
-    },
-    {
-        "id": "f3e40233e93558b7",
-        "type": "http response",
-        "z": "a6c53714143ca763",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 690,
-        "y": 103,
-        "wires": []
-    },
-    {
-        "id": "3cf9bc24def0f91e",
-        "type": "http in",
-        "z": "a6c53714143ca763",
-        "name": "",
-        "url": "/getImgProcesses",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 140,
-        "y": 223,
-        "wires": [
-            [
-                "376d8e7212cd8612"
-            ]
-        ]
-    },
-    {
-        "id": "376d8e7212cd8612",
-        "type": "function",
-        "z": "a6c53714143ca763",
-        "name": "function 4",
-        "func": "// Simulierte Daten für Image Capture Processes\nconst imgProcesses = [\n    {\n        process_id: \"1001\",\n        device: \"Device XX - Camera 1\",\n        address: \"http://example.com/image/capture1\",\n        last_capture: new Date().toISOString()\n    },\n    {\n        process_id: \"1002\",\n        device: \"Device YY - Camera 2\",\n        address: \"http://example.com/image/capture2\",\n        last_capture: new Date(new Date().getTime() - 600000).toISOString() // 10 Minuten vorher\n    },\n    {\n        process_id: \"1003\",\n        device: \"Device ZZ - Camera 3\",\n        address: \"http://example.com/image/capture3\",\n        last_capture: null // Noch keine Aufnahme\n    }\n];\n\n// Antwort vorbereiten\nmsg.payload = imgProcesses;\nmsg.headers = { \"Content-Type\": \"application/json\" };\n\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 480,
-        "y": 243,
-        "wires": [
-            [
-                "6429590b4172bce2"
-            ]
-        ]
-    },
-    {
-        "id": "6429590b4172bce2",
-        "type": "http response",
-        "z": "a6c53714143ca763",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 670,
-        "y": 243,
-        "wires": []
-    },
-    {
-        "id": "36434c9c2dd946b5",
-        "type": "inject",
-        "z": "a6c53714143ca763",
-        "name": "Simulierte Daten",
-        "props": [],
-        "repeat": "",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "",
-        "topic": "",
-        "x": 170,
-        "y": 683,
-        "wires": [
-            [
-                "837090d75889c080"
-            ]
-        ]
-    },
-    {
-        "id": "837090d75889c080",
-        "type": "function",
-        "z": "a6c53714143ca763",
-        "name": "Generiere Daten",
-        "func": "// Variablen initialisieren\nlet uptimeInSeconds = 0; // Startzeit für Uptime\nlet numberMessages = 0; // Nachrichtenanzahl starten bei 0\nlet numberDevices = 3;\n\n// Funktion wird jede Sekunde aufgerufen\nsetInterval(() => {\n    // Uptime hochzählen\n    uptimeInSeconds++;\n\n    // Nachrichtenanzahl zufällig erhöhen\n    numberMessages += Math.floor(Math.random() * 11) + 5; // Erhöhung zwischen 5 und 15\n\n    // Daten vorbereiten\n    const data = {\n        uptime: `${Math.floor(uptimeInSeconds / 60)} min, ${uptimeInSeconds % 60} sec`,\n        numberDevices: numberDevices,\n        numberMessages: numberMessages,\n        nodeRedConnection: true // Verbindung immer aktiv\n    };\n\n    // Daten als msg.payload senden\n    node.send({ payload: data });\n}, 1000); // Intervall: jede Sekunde\n\n// Initiale Rückgabe, damit keine leere Nachricht gesendet wird\nreturn null;\n",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 370,
-        "y": 683,
-        "wires": [
-            [
-                "be0b5caf806a5436",
-                "973588d84295fde9"
-            ]
-        ]
+        "broker": "iot-gateway",
+        "port": "50000",
+        "tls": "e82a7202f23f3cdd",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
     },
     {
         "id": "be0b5caf806a5436",
@@ -500,70 +463,83 @@
         "name": "",
         "server": "992a6b8d3e508e45",
         "client": "",
-        "x": 680,
-        "y": 603,
+        "x": 780,
+        "y": 200,
         "wires": []
     },
     {
-        "id": "973588d84295fde9",
-        "type": "debug",
-        "z": "a6c53714143ca763",
-        "name": "Debug Ausgabe",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "x": 600,
-        "y": 683,
-        "wires": []
-    },
-    {
-        "id": "307e5dfb2bfbe3ee",
-        "type": "inject",
-        "z": "a6c53714143ca763",
-        "name": "Simulierte Daten",
-        "props": [],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": "",
-        "topic": "",
-        "x": 140,
-        "y": 383,
-        "wires": [
-            [
-                "0872b598507de490"
-            ]
-        ]
-    },
-    {
-        "id": "0872b598507de490",
+        "id": "412b9a3a4e751a69",
         "type": "function",
         "z": "a6c53714143ca763",
-        "name": "Generiere Daten",
-        "func": "// Simulierte Daten für die Geräte\nconst simulatedData = [\n    {\n        device_id: \"1\",\n        datapoints: [\n            { id: \"101\", name: \"Temperature\", value: (20 + Math.random() * 5).toFixed(2) },\n            { id: \"1011\", name: \"Pressure\", value: (1000 + Math.random() * 50).toFixed(2) },\n            { id: \"10111\", name: \"Humidity\", value: (30 + Math.random() * 10).toFixed(2) }\n        ]\n    },\n    {\n        device_id: \"2\",\n        datapoints: [\n            { id: \"202\", name: \"Voltage\", value: (220 + Math.random() * 5).toFixed(2) },\n            { id: \"2022\", name: \"Current\", value: (10 + Math.random() * 2).toFixed(2) },\n            { id: \"20222\", name: \"Power\", value: (50 + Math.random() * 10).toFixed(2) }\n        ]\n    },\n    {\n        device_id: \"3\",\n        datapoints: [\n            { id: \"303\", name: \"Voltage\", value: (222 + Math.random() * 5).toFixed(2) },\n            { id: \"3033\", name: \"Current\", value: (5 + Math.random() * 2).toFixed(2) },\n            { id: \"30333\", name: \"Power\", value: (20 + Math.random() * 10).toFixed(2) }\n        ]\n    },\n    {\n        device_id: \"4\",\n        datapoints: [\n            { id: \"101\", name: \"Temperature\", value: (20 + Math.random() * 5).toFixed(2) },\n            { id: \"1011\", name: \"Pressure\", value: (1000 + Math.random() * 50).toFixed(2) },\n            { id: \"10111\", name: \"Humidity\", value: (30 + Math.random() * 10).toFixed(2) }\n        ]\n    },\n    {\n        device_id: \"5\",\n        datapoints: [\n            { id: \"202\", name: \"Voltage\", value: (220 + Math.random() * 5).toFixed(2) },\n            { id: \"2022\", name: \"Current\", value: (10 + Math.random() * 2).toFixed(2) },\n            { id: \"20222\", name: \"Power\", value: (50 + Math.random() * 10).toFixed(2) }\n        ]\n    }\n];\n\n// Nachricht vorbereiten\nmsg.payload = simulatedData;\nreturn msg;",
+        "name": "MQTT to Dashboard",
+        "func": "// Basiswerte initialisieren\nlet uptime = null;\nlet numberMessages = null;\nlet numberDevices = null;\nlet nodeRedConnection = null;\n\n// Werte basierend auf dem empfangenen Topic und Payload setzen\nif (msg.topic === \"$SYS/broker/uptime\") {\n    uptime = msg.payload;\n} else if (msg.topic === \"$SYS/broker/messages/sent\") {\n    numberMessages = parseInt(msg.payload, 10) || 0;\n} else if (msg.topic === \"$SYS/broker/clients/connected\") {\n    numberDevices = parseInt(msg.payload, 10) || 0;\n}\n\n// Testanfrage an Node-RED\nconst testNodeRedConnection = async () => {\n    try {\n        const response = await axios.get('https://node-red:7777', { timeout: 5000 });\n        // HTTP-Status 200: Verbindung erfolgreich\n        nodeRedConnection = response.status === 200;\n    } catch (error) {\n        // Verbindung fehlgeschlagen\n        nodeRedConnection = false;\n    }\n\n    // MQTT-Daten formatieren und senden\n    const outputData = {\n        uptime: uptime || 0,\n        numberMessages: numberMessages || 0,\n        numberDevices: numberDevices || 0,\n        nodeRedConnection: nodeRedConnection || false,\n    };\n\n    // Nachricht weiterleiten\n    node.send({ payload: outputData });\n};\n\n// Prüfen, ob Node-RED-Testabfrage nötig ist\nif (uptime !== null || numberMessages !== null || numberDevices !== null) {\n    testNodeRedConnection();\n} else {\n    // Keine relevanten Daten empfangen\n    node.warn(\"Kein gültiges MQTT-Topic erkannt.\");\n}\n",
         "outputs": 1,
-        "timeout": "",
+        "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
-        "libs": [],
-        "x": 350,
-        "y": 383,
+        "libs": [
+            {
+                "var": "axios",
+                "module": "axios"
+            }
+        ],
+        "x": 520,
+        "y": 180,
         "wires": [
             [
-                "081cd15455fd2428"
+                "be0b5caf806a5436",
+                "c15fda370b51e40f"
+            ]
+        ],
+        "icon": "font-awesome/fa-send"
+    },
+    {
+        "id": "bc919d90f33c294d",
+        "type": "mqtt in",
+        "z": "a6c53714143ca763",
+        "d": true,
+        "name": "",
+        "topic": "$SYS/broker/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "0b7c7515b1c6aa53",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 220,
+        "y": 140,
+        "wires": [
+            [
+                "c15fda370b51e40f",
+                "412b9a3a4e751a69"
             ]
         ]
+    },
+    {
+        "id": "c15fda370b51e40f",
+        "type": "debug",
+        "z": "a6c53714143ca763",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 650,
+        "y": 100,
+        "wires": []
     },
     {
         "id": "baa42ee3c884bd41",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
+        "g": "19a30d3a5fc44261",
         "name": "CRUD-Prozess",
-        "func": "const db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Tabellen-Schema für jeden Gerätetyp\nconst tableSchemas = {\n    'opcua': `\n        CREATE TABLE IF NOT EXISTS opcua (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            endpoint TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            security_policy TEXT,\n            security_mode TEXT,\n            username TEXT,\n            password TEXT,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    's7': `\n        CREATE TABLE IF NOT EXISTS s7 (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL, \n            ip TEXT NOT NULL,\n            rack INTEGER NOT NULL,\n            slot INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    'mqtt': `\n        CREATE TABLE IF NOT EXISTS mqtt (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            broker TEXT NOT NULL,\n            topic TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `,\n    'modbus': `\n        CREATE TABLE IF NOT EXISTS modbus (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            ip TEXT NOT NULL,\n            port INTEGER NOT NULL,\n            unitId INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            lastPublish INTEGER\n        );\n    `\n};\n\n// 1. Tabellen erstellen (Setup)\nconst createTables = (callback) => {\n    let completed = 0;\n    const total = Object.keys(tableSchemas).length;\n\n    Object.entries(tableSchemas).forEach(([tableName, query]) => {\n        db.run(query, [], (err) => {\n            if (err) {\n                node.error(`Fehler beim Erstellen der Tabelle \"${tableName}\": ${err.message}`);\n            } else {\n                node.log(`Tabelle \"${tableName}\" erfolgreich erstellt.`);\n            }\n\n            completed++;\n            if (completed === total) {\n                callback(); // Tabellen sind erstellt, fahre mit weiteren Operationen fort\n            }\n        });\n    });\n};\n\n// 2. Funktion: Prozess hinzufügen\nconst addProcess = (process, callback) => {\n    let { type, device_id, deviceName, datapoints, acquisition_time, ...specificFields } = process;\n\n    if (type === 'opc-ua') {\n        type = 'opcua';\n    }\n    \n    const tableName = type;\n    if (!tableSchemas[type]) {\n        return callback({ error: `Ungültiger Gerätetyp: ${type}` });\n    }\n\n\n    // Überprüfen, ob die Datapoints korrekt sind\n    if (!Array.isArray(datapoints) || datapoints.length === 0) {\n        return callback({ error: 'Datapoints müssen ein nicht-leeres Array sein.' });\n    }\n\n    // Zusätzliche Validierung für S7\n    if (type === 's7') {\n        const invalidPoints = datapoints.filter(\n            (point) => !point.datapoint_id || !point.name || !point.address || !point.datatype\n        );\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'S7-Datapoints müssen datapoint_id, name, address und datatype enthalten.' });\n        }\n    } else {\n        const invalidPoints = datapoints.filter((point) => !point.datapoint_id || !point.name || !point.address);\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'Datapoints müssen datapoint_id, name und address enthalten.' });\n        }\n    }\n\n    const processId = `${device_id}_${type}_${deviceName}_${Date.now()}`;\n    const insertQuery = `\n        INSERT INTO ${tableName} (\n            processId, device_id, deviceName, datapoints, acquisition_time, active, ${Object.keys(specificFields).join(', ')}\n        )\n        VALUES (?, ?, ?, ?, ?, \"true\", ${Object.keys(specificFields).map(() => '?').join(', ')})\n    `;\n\n    const params = [\n        processId,\n        device_id,\n        deviceName,\n        JSON.stringify(datapoints),\n        acquisition_time,\n        ...Object.values(specificFields),\n    ];\n\n    db.run(insertQuery, params, (err) => {\n        if (err) {\n            node.error(`SQLite Insert Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Hinzufügen des Prozesses' });\n        }\n        callback({ message: 'Prozess hinzugefügt', processId });\n    });\n};\n\n// 3. Funktion: Prozess löschen\nconst deleteProcess = (processId, type, callback) => {\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Anfrage oder Gerätetyp' });\n    }\n\n    const deleteQuery = `DELETE FROM ${type} WHERE processId = ?`;\n    db.run(deleteQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Delete Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Löschen des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess gelöscht', processId });\n    });\n};\n\n// 4. Funktion: Prozess ändern\nconst updateProcess = (process, callback) => {\n    const { processId, type, ...updateFields } = process;\n\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Prozess-ID oder Gerätetyp' });\n    }\n\n    const setClause = Object.keys(updateFields).map((field) => `${field} = ?`).join(', ');\n    const params = [...Object.values(updateFields), processId];\n\n    const updateQuery = `UPDATE ${type} SET ${setClause} WHERE processId = ?`;\n    db.run(updateQuery, params, function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Ändern des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess geändert', processId });\n    });\n};\n\n// 5. Dispatcher: CRUD-Operation basierend auf HTTP-Methode\nconst action = msg.req.method.toUpperCase();\nconst requestBody = msg.payload;\n\ncreateTables(() => {\n    if (action === 'POST' && msg.req.url === '/api/add-process') {\n        addProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'DELETE' && msg.req.url === '/api/delete-process') {\n        deleteProcess(requestBody.processId, requestBody.type, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'PUT' && msg.req.url === '/api/change-process') {\n        updateProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else {\n        msg.payload = { error: 'Ungültige Anfrage' };\n        node.send(msg);\n    }\n});\n\nreturn null;\n",
+        "func": "const db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Tabellen-Schema für jeden Gerätetyp\nconst tableSchemas = {\n    'opcua': `\n        CREATE TABLE IF NOT EXISTS opcua (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            endpoint TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            security_policy TEXT,\n            security_mode TEXT,\n            username TEXT,\n            password TEXT,\n            active INTEGER DEFAULT 0,\n            updated TEXT NOT NULL\n        );\n    `,\n    's7': `\n        CREATE TABLE IF NOT EXISTS s7 (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL, \n            ip TEXT NOT NULL,\n            rack INTEGER NOT NULL,\n            slot INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            updated TEXT NOT NULL\n        );\n    `,\n    'mqtt': `\n        CREATE TABLE IF NOT EXISTS mqtt (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            broker TEXT NOT NULL,\n            topic TEXT NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            updated TEXT NOT NULL\n        );\n    `,\n    'modbus': `\n        CREATE TABLE IF NOT EXISTS modbus (\n            processId TEXT PRIMARY KEY,\n            device_id TEXT NOT NULL,\n            deviceName TEXT NOT NULL,\n            datapoints TEXT NOT NULL,\n            ip TEXT NOT NULL,\n            port INTEGER NOT NULL,\n            unitId INTEGER NOT NULL,\n            acquisition_time INTEGER NOT NULL,\n            active INTEGER DEFAULT 0,\n            updated TEXT NOT NULL\n        );\n    `\n};\n\n// 1. Tabellen erstellen (Setup)\nconst createTables = (callback) => {\n    let completed = 0;\n    const total = Object.keys(tableSchemas).length;\n\n    Object.entries(tableSchemas).forEach(([tableName, query]) => {\n        db.run(query, [], (err) => {\n            if (err) {\n                node.error(`Fehler beim Erstellen der Tabelle \"${tableName}\": ${err.message}`);\n            } else {\n                node.log(`Tabelle \"${tableName}\" erfolgreich erstellt.`);\n            }\n\n            completed++;\n            if (completed === total) {\n                callback(); // Tabellen sind erstellt, fahre mit weiteren Operationen fort\n            }\n        });\n    });\n};\n\n// Hilfsfunktion\nconst getLocalISOString = () => {\n    const now = new Date();\n    const offset = now.getTimezoneOffset(); // Offset in Minuten\n    const localTime = new Date(now.getTime() - offset * 60 * 1000); // Lokale Zeit berechnen\n    return localTime.toISOString().slice(0, 19).replace('T', ' '); // \"YYYY-MM-DD HH:mm:ss\"-Format\n};\n\n// 2. Funktion: Prozess hinzufügen\nconst addProcess = (process, callback) => {\n    let { type, device_id, deviceName, datapoints, acquisition_time, ...specificFields } = process;\n\n    if (type === 'opc-ua') {\n        type = 'opcua';\n        flow.set(\"OPCdevicesData\", null);\n    } else if (type == 's7') {\n        flow.set(\"S7devicesData\", null)\n    } else if (type = 'mqtt') {\n        flow.set(\"MQTTdevicesData\", null)\n    }\n    \n    const tableName = type;\n    if (!tableSchemas[type]) {\n        return callback({ error: `Ungültiger Gerätetyp: ${type}` });\n    }\n\n    // Überprüfen, ob die Datapoints korrekt sind\n    if (!Array.isArray(datapoints) || datapoints.length === 0) {\n        return callback({ error: 'Datapoints müssen ein nicht-leeres Array sein.' });\n    }\n\n    // Zusätzliche Validierung für S7\n    if (type === 's7') {\n        const invalidPoints = datapoints.filter(\n            (point) => !point.datapoint_id || !point.name || !point.address || !point.datatype\n        );\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'S7-Datapoints müssen datapoint_id, name, address und datatype enthalten.' });\n        }\n    } else {\n        const invalidPoints = datapoints.filter((point) => !point.datapoint_id || !point.name || !point.address);\n        if (invalidPoints.length > 0) {\n            return callback({ error: 'Datapoints müssen datapoint_id, name und address enthalten.' });\n        }\n    }\n\n    const processId = `${device_id}_${type}_${deviceName}_${Date.now()}`;\n    const lastUpdated = getLocalISOString();\n    const insertQuery = `\n        INSERT INTO ${tableName} (\n            processId, device_id, deviceName, datapoints, acquisition_time, active, updated, ${Object.keys(specificFields).join(', ')}\n        )\n        VALUES (?, ?, ?, ?, ?, \"true\", ?, ${Object.keys(specificFields).map(() => '?').join(', ')})\n    `;\n\n    const params = [\n        processId,\n        device_id,\n        deviceName,\n        JSON.stringify(datapoints),\n        acquisition_time,\n        lastUpdated,\n        ...Object.values(specificFields),\n    ];\n\n    db.run(insertQuery, params, (err) => {\n        if (err) {\n            node.error(`SQLite Insert Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Hinzufügen des Prozesses' });\n        }\n        callback({ message: 'Prozess hinzugefügt', processId, lastUpdated });\n    });\n};\n\n// 3. Funktion: Prozess löschen\nconst deleteProcess = (processId, type, callback) => {\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Anfrage oder Gerätetyp' });\n    }\n\n    const deleteQuery = `DELETE FROM ${type} WHERE processId = ?`;\n    db.run(deleteQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Delete Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Löschen des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess gelöscht', processId });\n    });\n};\n\n// 4. Funktion: Prozess ändern\nconst updateProcess = (process, callback) => {\n    let { processId, type, datapoints, ...updateFields } = process;\n\n    if (type === 'opc-ua' || type == 'opcua') {\n        type = 'opcua';\n        flow.set(\"OPCdevicesData\", null);\n    } else if (type == 's7') {\n        flow.set(\"S7devicesData\", null)\n    } else if (type = 'mqtt') {\n        flow.set(\"MQTTdevicesData\", null)\n    }\n\n    if (!processId || !tableSchemas[type]) {\n        return callback({ error: 'Ungültige Prozess-ID oder Gerätetyp' });\n    }\n\n    // Prüfen, ob Datapoints ein gültiges Array sind\n    if (datapoints) {\n        if (!Array.isArray(datapoints) || datapoints.length === 0) {\n            return callback({ error: 'Datapoints müssen ein nicht-leeres Array sein.' });\n        }\n\n        // Transformiere die Datapoints in JSON-String\n        updateFields.datapoints = JSON.stringify(datapoints);\n    }\n\n    // Aktualisiere den Zeitstempel\n    updateFields.updated = getLocalISOString();\n\n    const setClause = Object.keys(updateFields).map((field) => `${field} = ?`).join(', ');\n    const params = [...Object.values(updateFields), processId];\n\n    const updateQuery = `UPDATE ${type} SET ${setClause} WHERE processId = ?`;\n    db.run(updateQuery, params, function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            return callback({ error: 'Fehler beim Ändern des Prozesses' });\n        }\n        if (this.changes === 0) {\n            return callback({ error: 'Prozess nicht gefunden' });\n        }\n        callback({ message: 'Prozess geändert', processId });\n    });\n};\n\n// 5. Dispatcher: CRUD-Operation basierend auf HTTP-Methode\nconst action = msg.req.method.toUpperCase();\nconst requestBody = msg.payload;\n\ncreateTables(() => {\n    if (action === 'POST' && msg.req.url === '/api/add-process') {\n        addProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'DELETE' && msg.req.url === '/api/delete-process') {\n        deleteProcess(requestBody.processId, requestBody.type, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else if (action === 'PUT' && msg.req.url === '/api/change-process') {\n        updateProcess(requestBody, (response) => {\n            msg.payload = response;\n            node.send(msg);\n        });\n    } else {\n        msg.payload = { error: 'Ungültige Anfrage' };\n        node.send(msg);\n    }\n});\n\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -575,11 +551,12 @@
                 "module": "sqlite3"
             }
         ],
-        "x": 660,
-        "y": 120,
+        "x": 420,
+        "y": 180,
         "wires": [
             [
-                "8a5bd8f7e5108109"
+                "8a5bd8f7e5108109",
+                "65281cc92705c4f5"
             ]
         ]
     },
@@ -587,17 +564,17 @@
         "id": "8ef1cfe4694ce888",
         "type": "http in",
         "z": "1728e7a0cbf4dbd0",
+        "g": "19a30d3a5fc44261",
         "name": "Hinzufügen eines Prozesses",
         "url": "/api/add-process",
         "method": "post",
         "upload": false,
         "swaggerDoc": "",
-        "x": 360,
-        "y": 60,
+        "x": 160,
+        "y": 120,
         "wires": [
             [
-                "baa42ee3c884bd41",
-                "aaec3a3f824f9700"
+                "baa42ee3c884bd41"
             ]
         ]
     },
@@ -605,13 +582,14 @@
         "id": "b4aad3d7aa099aaf",
         "type": "http in",
         "z": "1728e7a0cbf4dbd0",
+        "g": "19a30d3a5fc44261",
         "name": "Löschen eines Prozesses",
         "url": "/api/delete-process",
         "method": "delete",
         "upload": false,
         "swaggerDoc": "",
-        "x": 350,
-        "y": 120,
+        "x": 150,
+        "y": 180,
         "wires": [
             [
                 "baa42ee3c884bd41"
@@ -622,13 +600,14 @@
         "id": "0471ae0778a5a057",
         "type": "http in",
         "z": "1728e7a0cbf4dbd0",
+        "g": "19a30d3a5fc44261",
         "name": "Ändern eines Prozesses",
         "url": "/api/change-process",
         "method": "put",
         "upload": false,
         "swaggerDoc": "",
-        "x": 350,
-        "y": 180,
+        "x": 150,
+        "y": 240,
         "wires": [
             [
                 "baa42ee3c884bd41"
@@ -639,236 +618,31 @@
         "id": "8a5bd8f7e5108109",
         "type": "http response",
         "z": "1728e7a0cbf4dbd0",
+        "g": "19a30d3a5fc44261",
         "name": "",
         "statusCode": "200",
         "headers": {},
-        "x": 1140,
-        "y": 120,
+        "x": 600,
+        "y": 180,
         "wires": []
-    },
-    {
-        "id": "f735af7c3b0457f3",
-        "type": "function",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "Prozess-Manager",
-        "func": "// Funktion: Prozess-Manager\n// Verantwortlich für Starten, Stoppen und Neustarten von Prozessen\n\nconst action = msg.req.url; // /start-process, /stop-process, /restart-process\nconst sqlite = global.get('sqlite'); // SQLite Modul\nconst db = sqlite.open('processes.db');\n\nconst processId = msg.payload.processId;\n\nif (!processId) {\n    msg.payload = { error: 'Prozess-ID muss angegeben werden' };\n    return [msg, null];\n}\n\nif (action === '/api/start-process') {\n    // Starten eines Prozesses\n    const startQuery = `UPDATE processes SET active = 1 WHERE processId = ?`;\n    db.run(startQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            msg.payload = { error: 'Fehler beim Starten des Prozesses' };\n        } else if (this.changes === 0) {\n            msg.payload = { error: 'Prozess nicht gefunden' };\n        } else {\n            // Lade die Prozessdaten und sende sie weiter\n            db.get(`SELECT * FROM processes WHERE processId = ?`, [processId], (err, row) => {\n                if (err) {\n                    node.error(`SQLite Select Error: ${err.message}`);\n                    msg.payload = { error: 'Fehler beim Laden des Prozesses' };\n                } else if (!row) {\n                    msg.payload = { error: 'Prozess nicht gefunden' };\n                } else {\n                    // Speichere Gerätedaten im Flow-Kontext\n                    flow.set(`process_${processId}`, row);\n                    msg.payload = { message: 'Prozess gestartet', processId: processId };\n                }\n                node.send([msg, null]);\n            });\n        }\n    });\n\n} else if (action === '/api/stop-process') {\n    // Stoppen eines Prozesses\n    const stopQuery = `UPDATE processes SET active = 0 WHERE processId = ?`;\n    db.run(stopQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            msg.payload = { error: 'Fehler beim Stoppen des Prozesses' };\n        } else if (this.changes === 0) {\n            msg.payload = { error: 'Prozess nicht gefunden' };\n        } else {\n            // Entferne die Prozessdaten aus dem Flow-Kontext\n            flow.set(`process_${processId}`, null);\n            msg.payload = { message: 'Prozess gestoppt', processId: processId };\n        }\n        node.send([msg, null]);\n    });\n\n} else if (action === '/api/restart-process') {\n    // Neustarten eines Prozesses\n    const restartQuery = `UPDATE processes SET active = 0 WHERE processId = ?`;\n    db.run(restartQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            msg.payload = { error: 'Fehler beim Stoppen des Prozesses' };\n        } else if (this.changes === 0) {\n            msg.payload = { error: 'Prozess nicht gefunden' };\n        } else {\n            // Lade die Prozessdaten\n            db.get(`SELECT * FROM processes WHERE processId = ?`, [processId], (err, row) => {\n                if (err) {\n                    node.error(`SQLite Select Error: ${err.message}`);\n                    msg.payload = { error: 'Fehler beim Laden des Prozesses' };\n                } else if (!row) {\n                    msg.payload = { error: 'Prozess nicht gefunden' };\n                } else {\n                    // Generiere eine neue Prozess-ID\n                    const newProcessId = `${row.type}_${row.deviceName}_${Date.now()}`;\n                    const insertQuery = `INSERT INTO processes (processId, type, deviceName, datapoint, mqttSettings) VALUES (?, ?, ?, ?, ?)`;\n                    const params = [\n                        newProcessId,\n                        row.type,\n                        row.deviceName,\n                        row.datapoint,\n                        row.mqttSettings\n                    ];\n\n                    db.run(insertQuery, params, function (err) {\n                        if (err) {\n                            node.error(`SQLite Insert Error: ${err.message}`);\n                            msg.payload = { error: 'Fehler beim Neustarten des Prozesses' };\n                        } else {\n                            // Starte den neuen Prozess\n                            const activateQuery = `UPDATE processes SET active = 1 WHERE processId = ?`;\n                            db.run(activateQuery, [newProcessId], function (err) {\n                                if (err) {\n                                    node.error(`SQLite Update Error: ${err.message}`);\n                                    msg.payload = { error: 'Fehler beim Aktivieren des neuen Prozesses' };\n                                } else {\n                                    // Lade die neuen Prozessdaten und sende sie weiter\n                                    db.get(`SELECT * FROM processes WHERE processId = ?`, [newProcessId], (err, newRow) => {\n                                        if (err) {\n                                            node.error(`SQLite Select Error: ${err.message}`);\n                                            msg.payload = { error: 'Fehler beim Laden des neuen Prozesses' };\n                                        } else if (!newRow) {\n                                            msg.payload = { error: 'Neuer Prozess nicht gefunden' };\n                                        } else {\n                                            // Speichere die neuen Prozessdaten im Flow-Kontext\n                                            flow.set(`process_${newProcessId}`, newRow);\n                                            msg.payload = { message: 'Prozess neu gestartet', processId: newProcessId };\n                                        }\n                                        node.send([msg, null]);\n                                    });\n                                }\n                            });\n                        }\n                    });\n                }\n            });\n        }\n    });\n\n} else {\n    // Ungültige Aktion\n    msg.payload = { error: 'Ungültige Aktion' };\n    node.send([msg, null]);\n}\n\nreturn null;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 530,
-        "y": 660,
-        "wires": [
-            [
-                "fc2c6e4f8f53f44a"
-            ]
-        ]
-    },
-    {
-        "id": "5bbf6685fcc81ebe",
-        "type": "http in",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "Stoppen eines Prozesses",
-        "url": "/api/stop-process",
-        "method": "post",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 230,
-        "y": 660,
-        "wires": [
-            [
-                "f735af7c3b0457f3"
-            ]
-        ]
-    },
-    {
-        "id": "1911626b9326a442",
-        "type": "http in",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "Neustart eines Prozesses",
-        "url": "/api/restart-process",
-        "method": "post",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 230,
-        "y": 720,
-        "wires": [
-            [
-                "f735af7c3b0457f3"
-            ]
-        ]
-    },
-    {
-        "id": "e334c27e1121f33e",
-        "type": "http in",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "Starten eines Prozesses",
-        "url": "/api/start-process",
-        "method": "post",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 230,
-        "y": 600,
-        "wires": [
-            [
-                "f735af7c3b0457f3"
-            ]
-        ]
-    },
-    {
-        "id": "fc2c6e4f8f53f44a",
-        "type": "switch",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "Switch - TYPE",
-        "property": "type",
-        "propertyType": "msg",
-        "rules": [
-            {
-                "t": "eq",
-                "v": "opcua",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "s7",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "mqtt",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "modbus",
-                "vt": "str"
-            }
-        ],
-        "checkall": "true",
-        "repair": false,
-        "outputs": 4,
-        "x": 840,
-        "y": 660,
-        "wires": [
-            [
-                "0aa37253046a225d"
-            ],
-            [
-                "25d4d16cb52441f1"
-            ],
-            [
-                "0842b69206031968"
-            ],
-            [
-                "cea2bae3c5d96c92"
-            ]
-        ]
-    },
-    {
-        "id": "0aa37253046a225d",
-        "type": "function",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "OPC-UA - Connector",
-        "func": "// Funktion: OPC-UA - Connector\n// Verantwortlich für die Verbindung zu OPC-UA-Geräten, das Lesen von Datenpunkten und das Weiterleiten an den MQTT-Publisher\n\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = opcua.OPCUAClient.create({\n    endpoint_must_exist: false\n});\n\nconst endpointUrl = mqttSettings.opcuaEndpoint || 'opc.tcp://localhost:4840'; // Default Endpoint\n\n(async () => {\n    try {\n        await client.connect(endpointUrl);\n        const session = await client.createSession();\n\n        // Lese den Datenpunkt (angenommen, es ist ein OPC UA NodeId)\n        const dataValue = await session.readVariableValue(datapoints.nodeId);\n\n        if (dataValue.statusCode.isGood()) {\n            const value = dataValue.value.value;\n            const topic = `data/${procData.deviceName}/${datapoints.name}`;\n            const timestamp = new Date().toISOString();\n\n            // Erstelle die MQTT-Nachricht\n            const mqttMsg = {\n                topic: topic,\n                payload: JSON.stringify({\n                    value: value,\n                    timestamp: timestamp\n                }),\n                mqttSettings: mqttSettings\n            };\n\n            node.send(mqttMsg);\n        } else {\n            node.error(`OPC-UA Read Error: ${dataValue.statusCode.toString()}`);\n        }\n\n        await session.close();\n        await client.disconnect();\n    } catch (err) {\n        node.error(`OPC-UA Connection Error: ${err.message}`);\n    }\n})();\n\nreturn null;\n",
-        "outputs": 1,
-        "timeout": "10",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "nodeOpcua",
-                "module": "node-opcua"
-            }
-        ],
-        "x": 1080,
-        "y": 600,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "25d4d16cb52441f1",
-        "type": "function",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "S7 - Connector",
-        "func": "const snap7 = global.get('snap7') || require('node-snap7');\n\n// Funktion: S7 - Connector\n// Verantwortlich für die Verbindung zu S7-Geräten, das Lesen von Datenpunkten und das Weiterleiten an den MQTT-Publisher\n\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = new snap7.S7Client();\n\nconst connectionParams = {\n    ip: mqttSettings.s7.ip,\n    rack: mqttSettings.s7.rack,\n    slot: mqttSettings.s7.slot\n};\n\nclient.on('error', function (err) {\n    node.error(`S7 Connection Error: ${err.message}`);\n});\n\nclient.on('connect', function () {\n    // Verbunden, lese den Datenpunkt\n    client.readFloat(datapoints.db, datapoints.start, function (err, value) {\n        if (err) {\n            node.error(`S7 Read Error: ${err.message}`);\n        } else {\n            const topic = `data/${procData.deviceName}/${datapoints.name}`;\n            const timestamp = new Date().toISOString();\n\n            // Erstelle die MQTT-Nachricht\n            const mqttMsg = {\n                topic: topic,\n                payload: JSON.stringify({\n                    value: value,\n                    timestamp: timestamp\n                }),\n                mqttSettings: mqttSettings\n            };\n\n            node.send(mqttMsg);\n        }\n\n        client.disconnect();\n    });\n});\n\n// Verbinde mit dem S7-Gerät\nclient.connect(connectionParams);\n\nreturn null;\n",
-        "outputs": 1,
-        "timeout": "10",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1060,
-        "y": 640,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "0842b69206031968",
-        "type": "function",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "MQTT - Connector",
-        "func": "// Funktion: MQTT - Connector\n// Verantwortlich für das Empfangen von MQTT-Nachrichten und das Weiterleiten an den MQTT-Publisher\n\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = mqtt.connect(mqttSettings.broker, {\n    username: mqttSettings.username,\n    password: mqttSettings.password\n});\n\nclient.on('connect', function () {\n    // Subscribe auf das spezifische Topic\n    client.subscribe(`data/${procData.deviceName}/${datapoints.name}`, function (err) {\n        if (err) {\n            node.error(`MQTT Subscribe Error: ${err.message}`);\n        }\n    });\n});\n\nclient.on('message', function (topic, message) {\n    const value = message.toString();\n    const timestamp = new Date().toISOString();\n\n    // Erstelle die MQTT-Nachricht\n    const mqttMsg = {\n        topic: topic,\n        payload: JSON.stringify({\n            value: value,\n            timestamp: timestamp\n        }),\n        mqttSettings: mqttSettings\n    };\n\n    node.send(mqttMsg);\n\n    client.end();\n});\n\nclient.on('error', function (err) {\n    node.error(`MQTT Connection Error: ${err.message}`);\n    client.end();\n});\n\nreturn null;\n",
-        "outputs": 1,
-        "timeout": "10",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "mqtt",
-                "module": "node-mqtt"
-            }
-        ],
-        "x": 1070,
-        "y": 680,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "cea2bae3c5d96c92",
-        "type": "function",
-        "z": "1728e7a0cbf4dbd0",
-        "d": true,
-        "name": "MODBUS - Connector",
-        "func": "// Funktion: MODBUS - Connector (Modbus-TCP)\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = new modbus.client.TCP(mqttSettings.modbus.host, mqttSettings.modbus.port || 502);\n\n// Optional: Timeout und andere Optionen können hier gesetzt werden\nconst options = {\n    // Beispiel: Timeout in Millisekunden\n    timeout: 1000\n};\n\n// Verbinde mit dem Modbus-TCP Server\nclient.readHoldingRegisters(datapoints.address, 1)\n    .then(function (resp) {\n        const value = resp.register[0]; // Annahme: Ein Holding Register\n        const timestamp = new Date().toISOString();\n        const topic = `data/${procData.deviceName}/${datapoints.name}`;\n\n        // Erstelle die MQTT-Nachricht\n        const mqttMsg = {\n            topic: topic,\n            payload: JSON.stringify({\n                value: value,\n                timestamp: timestamp\n            }),\n            mqttSettings: mqttSettings\n        };\n\n        node.send(mqttMsg);\n    })\n    .catch(function (err) {\n        node.error(`Modbus-TCP Error: ${err.message}`);\n    });\n\nreturn null;\n",
-        "outputs": 1,
-        "timeout": "10",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "modbus",
-                "module": "node-red-contrib-modbus/modbus"
-            }
-        ],
-        "x": 1080,
-        "y": 720,
-        "wires": [
-            []
-        ]
     },
     {
         "id": "39a79fbc3479de7d",
         "type": "inject",
         "z": "1728e7a0cbf4dbd0",
-        "name": "Trigger",
+        "name": "DEFAULT START",
         "props": [],
-        "repeat": "5",
+        "repeat": "",
         "crontab": "",
-        "once": false,
+        "once": true,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 140,
-        "y": 300,
+        "x": 130,
+        "y": 580,
         "wires": [
             [
+                "a32804f68dc4b83b",
+                "6853eded1fbf0981",
                 "65281cc92705c4f5"
             ]
         ]
@@ -877,8 +651,9 @@
         "id": "76f799b24bf5a323",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
+        "g": "f8a672ffc785a741",
         "name": "OPC-DATA-Process",
-        "func": "// ------------------------------------------------------\n// \"OPC-UA Read and Prepare Data for InfluxDB\"\n// ------------------------------------------------------\n\n// 1) Hole die Session und die Datapoints aus msg\nconst session = msg.session;\nconst datapoints = msg.datapoints;\n\nif (!session) {\n    throw new Error(\"No OPC-UA session found. Please connect first.\");\n}\nif (!datapoints || !Array.isArray(datapoints)) {\n    throw new Error(\"No valid datapoints array found in msg.datapoints.\");\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Reading and preparing data...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    const influxData = []; // Array für die InfluxDB-Datenpunkte\n\n    for (const point of datapoints) {\n        const { name, nodeId, datapoint_id } = point;\n\n        // Validierungsprüfung\n        if (!name || !nodeId || !datapoint_id) {\n            node.warn(`Invalid datapoint: ${JSON.stringify(point)}`);\n            continue;\n        }\n\n        try {\n            // Lese den Wert vom OPC-UA-Node\n            const value = await readNodeValue(session, nodeId);\n\n            // Bereite den InfluxDB-Datenpunkt vor\n            const influxPoint = {\n                measurement: name, // Der Name wird als Measurement genutzt\n                fields: {\n                    value: value,\n                    datapoint_id: datapoint_id\n                }\n            };\n\n            // Füge den Datenpunkt zum Array hinzu\n            influxData.push(influxPoint);\n        } catch (err) {\n            node.warn(`Failed to read nodeId ${nodeId}: ${err.message}`);\n        }\n    }\n\n    // Setze die vorbereiteten Daten als Payload\n    msg.payload = influxData;\n\n    // Erfolgsstatus\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for InfluxDB\" });\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: OPC-UA-Node-Wert lesen\n// ------------------------------------------------------\nasync function readNodeValue(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(`Cannot read node ${nodeId}: ${dataValue.statusCode.description}`);\n    }\n    return dataValue.value.value;\n}\n\n// ------------------------------------------------------\n// Asynchrones Hauptprogramm ausführen\n// ------------------------------------------------------\nreturn main().catch(err => {\n    node.error(err.message, msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n    return null;\n});\n",
+        "func": "// ------------------------------------------------------\n// \"OPC-UA Read and Prepare Data for InfluxDB\"\n// ------------------------------------------------------\n\n// 1) Hole die Session und die Datapoints aus msg\nconst session = msg.session;\nconst datapoints = msg.datapoints;\n\nif (!session) {\n    throw new Error(\"No OPC-UA session found. Please connect first.\");\n}\nif (!datapoints || !Array.isArray(datapoints)) {\n    throw new Error(\"No valid datapoints array found in msg.datapoints.\");\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Reading and preparing data...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    const influxData = []; // Array für die InfluxDB-Datenpunkte\n\n    for (const point of datapoints) {\n        const { name, nodeId, datapoint_id } = point;\n\n        // Validierungsprüfung\n        if (!name || !nodeId || !datapoint_id) {\n            // node.warn(`Invalid datapoint: ${JSON.stringify(point)}`);\n            continue;\n        }\n\n        try {\n            // Lese den Wert vom OPC-UA-Node\n            const value = await readNodeValue(session, nodeId);\n\n            // Bereite den InfluxDB-Datenpunkt vor\n            const influxPoint = {\n                measurement: name, // Der Name wird als Measurement genutzt\n                fields: {\n                    value: value,\n                    datapoint_id: datapoint_id\n                }\n            };\n\n            // Füge den Datenpunkt zum Array hinzu\n            influxData.push(influxPoint);\n        } catch (err) {\n            // node.warn(`Failed to read nodeId ${nodeId}: ${err.message}`);\n        }\n    }\n\n    // Setze die vorbereiteten Daten als Payload\n    msg.payload = influxData;\n\n    // Erfolgsstatus\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for InfluxDB\" });\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: OPC-UA-Node-Wert lesen\n// ------------------------------------------------------\nasync function readNodeValue(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(`Cannot read node ${nodeId}: ${dataValue.statusCode.description}`);\n    }\n    return dataValue.value.value;\n}\n\n// ------------------------------------------------------\n// Asynchrones Hauptprogramm ausführen\n// ------------------------------------------------------\nreturn main().catch(err => {\n    node.error(err.message, msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n    return null;\n});\n",
         "outputs": 1,
         "timeout": "30",
         "noerr": 0,
@@ -898,21 +673,22 @@
                 "module": "fs-extra"
             }
         ],
-        "x": 960,
-        "y": 300,
+        "x": 1010,
+        "y": 380,
         "wires": [
             [
-                "daebcf69f5609fa2",
                 "40a5a7d16221ba88",
-                "2a02782ad2b74dc4"
+                "daebcf69f5609fa2"
             ]
         ],
+        "icon": "node-red-dashboard/ui_chart.png",
         "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
     },
     {
         "id": "ee8f83ad8ef37b77",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
+        "g": "f8a672ffc785a741",
         "name": "OPC-CONNECT",
         "func": "// ------------------------------------------------------\n// \"OPC-UA Connect with Reconnection\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen\nconst endpoint = msg.endpoint;\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar = (msg.securityModeVar || \"NONE\").toUpperCase();\nconst securityPolicyVar = (msg.securityPolicyVar || \"NONE\").toUpperCase();\nconst username = msg.username || \"\";\nconst password = msg.password || \"\";\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// 4) Globale Variablen für Verbindung und Session\nconst baseKey = `${endpoint}_${username}`; // Basis-Schlüssel für die Verbindung\nlet connection = global.get(\"opcuaConnection\") || {};\n\n// Überprüfen, ob bereits eine Verbindung existiert\nlet connectionKey = Object.keys(connection).find((key) => key.startsWith(baseKey));\n\n// Zufälligen Schlüssel nur hinzufügen, wenn keine bestehende Verbindung existiert\nif (!connectionKey) {\n    const uniqueKey = Math.random().toString(36).substring(2, 12);\n    connectionKey = `${baseKey}_${uniqueKey}`;\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    // 5) Überprüfen, ob eine bestehende Verbindung vorhanden und gültig ist\n    if (connection[connectionKey] && connection[connectionKey].session) {\n        try {\n            // Überprüfe, ob die Session noch aktiv ist\n            await connection[connectionKey].session.read({ nodeId: opcua.resolveNodeId(\"ns=0;i=2259\") }); // Lese einen Standardknoten\n            // node.log(\"[DEBUG] Using existing OPC-UA connection.\");\n            msg.session = connection[connectionKey].session;\n            msg.client = connection[connectionKey].client;\n            return msg;\n        } catch (err) {\n            node.warn(\"[DEBUG] Existing session is invalid. Reconnecting...\");\n            // Verbindung schließen und neu aufbauen\n            await closeConnection(connection[connectionKey]);\n            delete connection[connectionKey];\n            global.set(\"opcuaConnection\", connection);\n        }\n    }\n\n    // 6) Neue Verbindung herstellen\n    node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n\n    const client = opcua.OPCUAClient.create({\n        applicationName: \"MyNodeRedOpcUaClient\",\n        endpoint_must_exist: false,\n\n        // Security Mode\n        securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n\n        // Security Policy\n        securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n\n        // Optional: connectionStrategy\n        connectionStrategy: {\n            initialDelay: 1000,\n            maxRetry: 5\n        },\n\n        // Keep-Alive-Mechanismus\n        keepAlive: true,\n        keepAliveInterval: 10000 // Alle 10 Sekunden einen Keep-Alive senden\n    });\n\n    // 7) OPC-UA-Server verbinden\n    try {\n        await client.connect(endpoint);\n        // node.log(\"[DEBUG] Successfully connected to OPC UA Server.\");\n    } catch (err) {\n        node.error(\"Failed to connect to OPC UA Server: \" + err.message, msg);\n        throw err;\n    }\n\n    // 8) Session aufbauen\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n\n    let userIdentity = null;\n    if (username && password) {\n        userIdentity = { userName: username, password };\n    }\n\n    const session = await client.createSession(userIdentity);\n    // node.log(\"[DEBUG] Session created successfully.\");\n\n    // 9) Verbindung und Session im globalen Kontext speichern\n    connection[connectionKey] = { client, session };\n    global.set(\"opcuaConnection\", connection);\n\n    // 10) Session und Client im msg speichern\n    msg.session = session;\n    msg.client = client;\n    msg.connectionKey = connectionKey; // Füge den eindeutigen Schlüssel zu msg hinzu\n\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: Verbindung schließen\n// ------------------------------------------------------\nasync function closeConnection(connection) {\n    if (connection.session) {\n        try {\n            await connection.session.close();\n            // node.log(\"[DEBUG] Session closed successfully.\");\n        } catch (err) {\n            node.warn(\"[DEBUG] Failed to close session: \" + err.message);\n        }\n    }\n    if (connection.client) {\n        try {\n            await connection.client.disconnect();\n            // node.log(\"[DEBUG] Client disconnected successfully.\");\n        } catch (err) {\n            node.warn(\"[DEBUG] Failed to disconnect client: \" + err.message);\n        }\n    }\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Connected\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);\n",
         "outputs": 1,
@@ -934,40 +710,31 @@
                 "module": "fs-extra"
             }
         ],
-        "x": 750,
-        "y": 300,
+        "x": 800,
+        "y": 380,
         "wires": [
             [
                 "76f799b24bf5a323"
             ]
         ],
+        "icon": "node-red-contrib-opcua/opcuanode.png",
         "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
     },
     {
         "id": "daebcf69f5609fa2",
         "type": "influxdb batch",
         "z": "1728e7a0cbf4dbd0",
+        "g": "f8a672ffc785a741",
         "influxdb": "99e16a6e858bbbfe",
         "precision": "",
         "retentionPolicy": "",
         "name": "InfluxDB",
         "database": "database",
-        "precisionV18FluxV20": "ms",
+        "precisionV18FluxV20": "ns",
         "retentionPolicyV18Flux": "",
         "org": "idpm",
         "bucket": "iot-data",
-        "x": 1200,
-        "y": 300,
-        "wires": []
-    },
-    {
-        "id": "9ed8a01f651a92e6",
-        "type": "websocket out",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "",
-        "server": "01834dd3df2ce705",
-        "client": "",
-        "x": 1540,
+        "x": 1310,
         "y": 380,
         "wires": []
     },
@@ -975,154 +742,32 @@
         "id": "40a5a7d16221ba88",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
+        "g": "f8a672ffc785a741",
         "name": "Prepare Data for Live Chart",
-        "func": "// Prepare Data for Live Chart\nconst datapoints = msg.payload;\n\n// Überprüfen, ob gültige Daten vorhanden sind\nif (!datapoints || !Array.isArray(datapoints)) {\n    node.warn(\"No valid datapoints array found in msg.payload.\");\n    return null;\n}\n\n// Ziehe die device_id aus msg.device_id\nconst device_id = msg.device_id;\n\nif (!device_id) {\n    node.warn(\"No valid device_id found in msg.\");\n    return null;\n}\n\n// Simulierte Struktur für die WebSocket-Ausgabe\nconst simulatedData = [\n    {\n        device_id: device_id, // Die device_id aus msg.device_id\n        datapoints: datapoints.map((point) => ({\n            id: point.fields.datapoint_id || \"unknown\",\n            name: point.measurement || \"unknown\",\n            value: point.fields.value !== undefined ? point.fields.value.toFixed(2) : \"unknown\",\n        })),\n    },\n];\n\n// Entferne alle anderen Eigenschaften außer msg.payload\nmsg = {\n    payload: simulatedData,\n};\n\n// Rückgabe der Nachricht zur Weitergabe an WebSocket\nreturn msg;\n",
+        "func": "// Prepare Data for Live Chart\nconst datapoints = msg.payload;\n\n// Überprüfen, ob gültige Daten vorhanden sind\nif (!datapoints || !Array.isArray(datapoints)) {\n    // node.warn(\"No valid datapoints array found in msg.payload.\");\n    return null;\n}\n\n// Ziehe die device_id aus msg.device_id\nconst device_id = msg.device_id;\n\nif (!device_id) {\n    // node.warn(\"No valid device_id found in msg.\");\n    return null;\n}\n\n// Simulierte Struktur für die WebSocket-Ausgabe\nconst simulatedData = [\n    {\n        device_id: device_id, // Die device_id aus msg.device_id\n        datapoints: datapoints.map((point) => ({\n            id: point.fields.datapoint_id || \"unknown\",\n            name: point.measurement || \"unknown\",\n            value: point.fields.value !== undefined ? point.fields.value.toFixed(2) : \"unknown\",\n        })),\n    },\n];\n\n// Entferne alle anderen Eigenschaften außer msg.payload\nmsg = {\n    payload: simulatedData,\n    deviceName: msg.deviceName,\n};\n\nnode.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for Dashboard\" });\n\n// Rückgabe der Nachricht zur Weitergabe an WebSocket\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 1260,
-        "y": 380,
+        "x": 1230,
+        "y": 440,
         "wires": [
             [
                 "9ed8a01f651a92e6",
-                "14ccb4f01fd8a6b7"
-            ]
-        ]
-    },
-    {
-        "id": "85e1de30eb0180d5",
-        "type": "inject",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "Trigger",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "endpoint",
-                "v": "opc.tcp://192.168.0.84:48011",
-                "vt": "str"
-            },
-            {
-                "p": "datapoints",
-                "v": "[\t   {\t       \"name\": \"2_temperature0\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1000\t        },\t   {\t       \"name\": \"2_humidity\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Humidity\",\t       \"datapoint_id\": 1002\t        },\t    {\t       \"name\": \"2_temperature1\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1001\t        },\t    {\t       \"name\": \"2_temperature2\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1002\t        },\t    {\t       \"name\": \"2_temperature3\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1003\t        }\t    ]",
-                "vt": "jsonata"
-            },
-            {
-                "p": "device_id",
-                "v": "2",
-                "vt": "str"
-            }
-        ],
-        "repeat": "1",
-        "crontab": "",
-        "once": true,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 160,
-        "y": 380,
-        "wires": [
-            [
-                "834f0b02bdb5e9d8"
-            ]
-        ]
-    },
-    {
-        "id": "834f0b02bdb5e9d8",
-        "type": "function",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "OPC-CONNECT",
-        "func": "// ------------------------------------------------------\n// \"OPC-UA Connect with Reconnection\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen\nconst endpoint = msg.endpoint;\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar = (msg.securityModeVar || \"NONE\").toUpperCase();\nconst securityPolicyVar = (msg.securityPolicyVar || \"NONE\").toUpperCase();\nconst username = msg.username || \"\";\nconst password = msg.password || \"\";\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// 4) Globale Variablen für Verbindung und Session\nconst baseKey = `${endpoint}_${username}`; // Basis-Schlüssel für die Verbindung\nlet connection = global.get(\"opcuaConnection\") || {};\n\n// Überprüfen, ob bereits eine Verbindung existiert\nlet connectionKey = Object.keys(connection).find((key) => key.startsWith(baseKey));\n\n// Zufälligen Schlüssel nur hinzufügen, wenn keine bestehende Verbindung existiert\nif (!connectionKey) {\n    const uniqueKey = Math.random().toString(36).substring(2, 12);\n    connectionKey = `${baseKey}_${uniqueKey}`;\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    // 5) Überprüfen, ob eine bestehende Verbindung vorhanden und gültig ist\n    if (connection[connectionKey] && connection[connectionKey].session) {\n        try {\n            // Überprüfe, ob die Session noch aktiv ist\n            await connection[connectionKey].session.read({ nodeId: opcua.resolveNodeId(\"ns=0;i=2259\") }); // Lese einen Standardknoten\n            // node.log(\"[DEBUG] Using existing OPC-UA connection.\");\n            msg.session = connection[connectionKey].session;\n            msg.client = connection[connectionKey].client;\n            return msg;\n        } catch (err) {\n            node.warn(\"[DEBUG] Existing session is invalid. Reconnecting...\");\n            // Verbindung schließen und neu aufbauen\n            await closeConnection(connection[connectionKey]);\n            delete connection[connectionKey];\n            global.set(\"opcuaConnection\", connection);\n        }\n    }\n\n    // 6) Neue Verbindung herstellen\n    node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n\n    const client = opcua.OPCUAClient.create({\n        applicationName: \"MyNodeRedOpcUaClient\",\n        endpoint_must_exist: false,\n\n        // Security Mode\n        securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n\n        // Security Policy\n        securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n\n        // Optional: connectionStrategy\n        connectionStrategy: {\n            initialDelay: 1000,\n            maxRetry: 5\n        },\n\n        // Keep-Alive-Mechanismus\n        keepAlive: true,\n        keepAliveInterval: 10000 // Alle 10 Sekunden einen Keep-Alive senden\n    });\n\n    // 7) OPC-UA-Server verbinden\n    try {\n        await client.connect(endpoint);\n        // node.log(\"[DEBUG] Successfully connected to OPC UA Server.\");\n    } catch (err) {\n        node.error(\"Failed to connect to OPC UA Server: \" + err.message, msg);\n        throw err;\n    }\n\n    // 8) Session aufbauen\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n\n    let userIdentity = null;\n    if (username && password) {\n        userIdentity = { userName: username, password };\n    }\n\n    const session = await client.createSession(userIdentity);\n    node.log(\"[DEBUG] Session created successfully.\");\n\n    // 9) Verbindung und Session im globalen Kontext speichern\n    connection[connectionKey] = { client, session };\n    global.set(\"opcuaConnection\", connection);\n\n    // 10) Session und Client im msg speichern\n    msg.session = session;\n    msg.client = client;\n    msg.connectionKey = connectionKey; // Füge den eindeutigen Schlüssel zu msg hinzu\n\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: Verbindung schließen\n// ------------------------------------------------------\nasync function closeConnection(connection) {\n    if (connection.session) {\n        try {\n            await connection.session.close();\n            // node.log(\"[DEBUG] Session closed successfully.\");\n        } catch (err) {\n            node.warn(\"[DEBUG] Failed to close session: \" + err.message);\n        }\n    }\n    if (connection.client) {\n        try {\n            await connection.client.disconnect();\n            node.log(\"[DEBUG] Client disconnected successfully.\");\n        } catch (err) {\n            node.warn(\"[DEBUG] Failed to disconnect client: \" + err.message);\n        }\n    }\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Connected\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);\n",
-        "outputs": 1,
-        "timeout": "30",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "opcua",
-                "module": "node-opcua"
-            },
-            {
-                "var": "axios",
-                "module": "axios"
-            },
-            {
-                "var": "fs",
-                "module": "fs-extra"
-            }
-        ],
-        "x": 365,
-        "y": 380,
-        "wires": [
-            [
-                "86f7d1d690c63e98"
+                "a632f585947343f8"
             ]
         ],
-        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
-    },
-    {
-        "id": "86f7d1d690c63e98",
-        "type": "function",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "OPC-DATA-Process",
-        "func": "// ------------------------------------------------------\n// \"OPC-UA Read and Prepare Data for InfluxDB\"\n// ------------------------------------------------------\n\n// 1) Hole die Session und die Datapoints aus msg\nconst session = msg.session;\nconst datapoints = msg.datapoints;\n\nif (!session) {\n    throw new Error(\"No OPC-UA session found. Please connect first.\");\n}\nif (!datapoints || !Array.isArray(datapoints)) {\n    throw new Error(\"No valid datapoints array found in msg.datapoints.\");\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Reading and preparing data...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    const influxData = []; // Array für die InfluxDB-Datenpunkte\n\n    for (const point of datapoints) {\n        const { name, nodeId, datapoint_id } = point;\n\n        // Validierungsprüfung\n        if (!name || !nodeId || !datapoint_id) {\n            node.warn(`Invalid datapoint: ${JSON.stringify(point)}`);\n            continue;\n        }\n\n        try {\n            // Lese den Wert vom OPC-UA-Node\n            const value = await readNodeValue(session, nodeId);\n\n            // Bereite den InfluxDB-Datenpunkt vor\n            const influxPoint = {\n                measurement: name, // Der Name wird als Measurement genutzt\n                fields: {\n                    value: value,\n                    datapoint_id: datapoint_id\n                }\n            };\n\n            // Füge den Datenpunkt zum Array hinzu\n            influxData.push(influxPoint);\n        } catch (err) {\n            node.warn(`Failed to read nodeId ${nodeId}: ${err.message}`);\n        }\n    }\n\n    // Setze die vorbereiteten Daten als Payload\n    msg.payload = influxData;\n\n    // Erfolgsstatus\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for InfluxDB\" });\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: OPC-UA-Node-Wert lesen\n// ------------------------------------------------------\nasync function readNodeValue(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(`Cannot read node ${nodeId}: ${dataValue.statusCode.description}`);\n    }\n    return dataValue.value.value;\n}\n\n// ------------------------------------------------------\n// Asynchrones Hauptprogramm ausführen\n// ------------------------------------------------------\nreturn main().catch(err => {\n    node.error(err.message, msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n    return null;\n});\n",
-        "outputs": 1,
-        "timeout": "30",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "opcua",
-                "module": "node-opcua"
-            },
-            {
-                "var": "axios",
-                "module": "axios"
-            },
-            {
-                "var": "fs",
-                "module": "fs-extra"
-            }
-        ],
-        "x": 940,
-        "y": 380,
-        "wires": [
-            [
-                "40a5a7d16221ba88",
-                "daebcf69f5609fa2"
-            ]
-        ],
-        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
-    },
-    {
-        "id": "aaec3a3f824f9700",
-        "type": "debug",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "debug 1",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 610,
-        "y": 40,
-        "wires": []
+        "icon": "node-red/swap.svg"
     },
     {
         "id": "65281cc92705c4f5",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
-        "name": "GET Data from SQLite and give to OPC",
-        "func": "// Lade Daten aus SQLite /tmp/process.db\nconst db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Asynchrone Funktion, um Daten aus der SQLite-Datenbank zu laden\nconst loadProcessData = async () => {\n    return new Promise((resolve, reject) => {\n        // Lese das erste aktive Gerät aus der Tabelle\n        const query = `\n            SELECT endpoint, datapoints, device_id, acquisition_time\n            FROM opcua\n            WHERE active = \"true\"\n            LIMIT 1\n        `;\n\n        db.get(query, [], (err, row) => {\n            if (err) {\n                reject(`Fehler beim Abrufen der Daten: ${err.message}`);\n            } else if (row) {\n                resolve(row);\n            } else {\n                reject('Keine aktiven Prozesse gefunden.');\n            }\n        });\n    });\n};\n\n// Funktion, um die Datapoints in das richtige Format zu transformieren\nconst transformDatapoints = (datapoints) => {\n    return datapoints.map((point) => ({\n        name: point.name,\n        nodeId: point.address, // Umbenennen von `address` zu `nodeId`\n        datapoint_id: point.datapoint_id,\n    }));\n};\n\n// Hauptlogik\nloadProcessData()\n    .then((data) => {\n        try {\n            // Überprüfen, ob die Datapoints gültig sind\n            const parsedDatapoints = JSON.parse(data.datapoints);\n            if (!Array.isArray(parsedDatapoints) || parsedDatapoints.length === 0) {\n                throw new Error('Ungültige oder leere Datapoints.');\n            }\n\n            // Transformiere die Datapoints in das gewünschte Format\n            const formattedDatapoints = transformDatapoints(parsedDatapoints);\n\n            // Übergebe die geladenen Daten an msg\n            msg.endpoint = data.endpoint;\n            msg.datapoints = formattedDatapoints;\n            msg.device_id = data.device_id;\n            msg.acquisition_time = data.acquisition_time;\n\n            // Sende die Nachricht weiter\n            node.send(msg);\n        } catch (err) {\n            throw new Error(`Fehler beim Verarbeiten der Daten: ${err.message}`);\n        }\n    })\n    .catch((error) => {\n        // Fehlerbehandlung\n        node.error(error);\n        node.status({ fill: 'red', shape: 'dot', text: 'Fehler beim Laden der Daten' });\n    })\n    .finally(() => {\n        // Schließe die Datenbankverbindung (optional)\n        db.close((err) => {\n            if (err) {\n                node.error(`Fehler beim Schließen der Datenbank: ${err.message}`);\n            } else {\n                node.log('Datenbankverbindung geschlossen.');\n            }\n        });\n    });\n\nreturn null;\n",
+        "g": "f8a672ffc785a741",
+        "name": "GET Data from SQLite",
+        "func": "const loadAllProcessData = async () => {\n    return new Promise((resolve, reject) => {\n        const query = `\n            SELECT endpoint, datapoints, device_id, deviceName, acquisition_time, security_policy, security_mode, username, password, updated\n            FROM opcua\n            WHERE active = \"true\"\n        `;\n\n        const db = new sqlite3.Database('/tmp/process.db', (err) => {\n            if (err) {\n                reject(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n            }\n        });\n\n        db.all(query, [], (err, rows) => {\n            if (err) {\n                reject(`Fehler beim Abrufen der Daten: ${err.message}`);\n            } else if (rows.length > 0) {\n                resolve(rows);\n            } else {\n                reject('Keine aktiven Prozesse gefunden.');\n            }\n        });\n\n        db.close((err) => {\n            if (err) {\n                node.error(`Fehler beim Schließen der SQLite-Datenbank: ${err.message}`);\n            } else {\n                node.log('Datenbankverbindung geschlossen.');\n            }\n        });\n    });\n};\n\nconst transformDatapoints = (datapoints) => {\n    return datapoints.map((point) => ({\n        name: point.name,\n        nodeId: point.address,\n        datapoint_id: point.datapoint_id,\n    }));\n};\n\n(async () => {\n    try {\n        node.log(\"Lade Gerätedaten aus SQLite...\");\n        const devices = await loadAllProcessData();\n\n        // Transformiere die Datapoints und bereite die Geräte-Daten vor\n        devices.forEach((device) => {\n            device.datapoints = JSON.parse(device.datapoints || \"[]\").map((point) => ({\n                name: point.name,\n                nodeId: point.address,\n                datapoint_id: point.datapoint_id,\n            }));\n        });\n\n        // Geräte-Daten an den Cycle Manager senden\n        msg.payload = devices;\n        node.send(msg);\n\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Gerätedaten gesendet\" });\n    } catch (error) {\n        node.error(`Fehler beim Abrufen der Gerätedaten: ${error.message}`);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Fehler\" });\n    }\n})();\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -1135,62 +780,454 @@
             }
         ],
         "x": 400,
-        "y": 300,
+        "y": 380,
         "wires": [
             [
-                "f69998602cae03d2",
+                "e114b2e7f8e87dab"
+            ]
+        ],
+        "icon": "node-red/leveldb.svg"
+    },
+    {
+        "id": "69a19f8604abf278",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "6c40ee5f3bfc9a02",
+        "name": "S7-DATA-Process",
+        "func": "// ------------------------------------------------------\n// \"S7 Read and Prepare Data for InfluxDB\"\n// ------------------------------------------------------\n\n// 1) Hole die Session und die Datapoints aus msg\nconst session = msg.session;\nconst datapoints = msg.datapoints;\n\nif (!session) {\n    throw new Error(\"No S7 session found. Please connect first.\");\n}\nif (!datapoints || !Array.isArray(datapoints)) {\n    throw new Error(\"No valid datapoints array found in msg.datapoints.\");\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Reading and preparing data...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    const influxData = []; // Array für die InfluxDB-Datenpunkte\n\n    for (const point of datapoints) {\n        const { name, nodeId, datapoint_id, datatype } = point;\n\n        // Validierungsprüfung\n        if (!name || !nodeId || !datapoint_id || !datatype) {\n            node.warn(`Invalid datapoint: ${JSON.stringify(point)}`);\n            continue;\n        }\n\n        try {\n            // Lese den Wert vom S7-Node\n            const value = await readNodeValue(session, nodeId);\n\n            // Bereite den InfluxDB-Datenpunkt vor\n            const influxPoint = {\n                measurement: name, // Der Name wird als Measurement genutzt\n                fields: {\n                    value: value,\n                    datapoint_id: datapoint_id\n                }\n            };\n\n            // Füge den Datenpunkt zum Array hinzu\n            influxData.push(influxPoint);\n        } catch (err) {\n            node.warn(`Failed to read nodeId ${nodeId}: ${err.message}`);\n        }\n    }\n\n    // Setze die vorbereiteten Daten als Payload\n    msg.payload = influxData;\n\n    // Erfolgsstatus\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for InfluxDB\" });\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: S7-Node-Wert lesen\n// ------------------------------------------------------\nasync function readNodeValue(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(`Cannot read node ${nodeId}: ${dataValue.statusCode.description}`);\n    }\n    return dataValue.value.value;\n}\n\n// ------------------------------------------------------\n// Asynchrones Hauptprogramm ausführen\n// ------------------------------------------------------\nreturn main().catch(err => {\n    node.error(err.message, msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n    return null;\n});\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 1010,
+        "y": 540,
+        "wires": [
+            [
+                "b74e0d7142f12d6b",
+                "e4382643018d49ab"
+            ]
+        ],
+        "icon": "node-red-dashboard/ui_chart.png",
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "34c0ab03a6142383",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "6c40ee5f3bfc9a02",
+        "name": "S7-CONNECT",
+        "func": "// ------------------------------------------------------\n// \"S7 Connect with Reconnection using nodes7\"\n// ------------------------------------------------------\n\nconst nodes7 = require('nodes7'); // Importiere das nodes7-Modul\n\n// Prüfe, ob die notwendigen Parameter im msg enthalten sind\nif (!msg.endpoint || !msg.rack || !msg.slot) {\n    node.error(\"Die Parameter 'endpoint', 'rack' und 'slot' sind erforderlich.\");\n    return null;\n}\n\n// Aufteilen des Endpoints in IP und Port\nlet ip, port;\ntry {\n    [ip, port] = msg.endpoint.split(\":\").map((val) => val.trim());\n    if (!ip || !port) {\n        throw new Error(\"Ungültiges 'endpoint'-Format. Erwartet: 'IP:Port'.\");\n    }\n    port = parseInt(port, 10); // Port als Integer\n} catch (err) {\n    node.error(`Fehler beim Verarbeiten des Endpoints: ${err.message}`);\n    return null;\n}\n\n// PLC-Einstellungen aus msg\nconst plcSettings = {\n    host: ip,\n    port: port,\n    rack: parseInt(msg.rack, 10),\n    slot: parseInt(msg.slot, 10),\n};\n\n// Globale Variablen für Verbindung und Session\nconst baseKey = `${ip}:${port}`; // Basis-Schlüssel für die Verbindung\nlet connection = global.get(\"s7Connection\") || {};\n\n// Überprüfen, ob bereits eine Verbindung existiert\nlet connectionKey = Object.keys(connection).find((key) => key.startsWith(baseKey));\n\n// Zufälligen Schlüssel nur hinzufügen, wenn keine bestehende Verbindung existiert\nif (!connectionKey) {\n    const uniqueKey = Math.random().toString(36).substring(2, 12);\n    connectionKey = `${baseKey}_${uniqueKey}`;\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    const conn = new nodes7(); // Erstelle einen neuen nodes7-Client\n\n    node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n\n    return new Promise((resolve, reject) => {\n        conn.initiateConnection(plcSettings, (err) => {\n            if (err) {\n                node.error(`Verbindung fehlgeschlagen: ${err.message}`);\n                node.status({ fill: \"red\", shape: \"dot\", text: \"Connection Error\" });\n                return reject(err);\n            }\n\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Connected to S7\" });\n\n            // Speichere die Verbindung und den Client\n            connection[connectionKey] = { conn, settings: plcSettings };\n            global.set(\"s7Connection\", connection);\n\n            msg.client = conn;\n            resolve(msg);\n        });\n    });\n}\n\n// ------------------------------------------------------\n// Beispiel: Lesen und Schreiben von Daten\n// ------------------------------------------------------\nfunction handleReadWrite(client) {\n    // Beispielvariablen\n    const variables = {\n        TEST1: 'M4.0',           // Merkerbereich, erstes Bit\n        TEST2: 'DB1,REAL0',      // Realwert in Datenbaustein 1, Adresse 0\n        TEST3: 'DB1,X2.0',       // Bit in DB1\n    };\n\n    // Übersetzung einrichten\n    client.setTranslationCB((tag) => variables[tag]);\n\n    // Hinzufügen von Items\n    client.addItems(['TEST1', 'TEST2']);\n    client.addItems('TEST3');\n\n    // Lesen aller Items\n    client.readAllItems((err, values) => {\n        if (err) {\n            node.error(\"Fehler beim Lesen der Daten: \" + err.message);\n            return;\n        }\n        node.log(\"Gelesene Werte:\" + values);\n        msg.payload = values;\n\n        // Beispiel: Schreiben eines Bits\n        client.writeItems('TEST3', true, (writeErr) => {\n            if (writeErr) {\n                node.error(\"Fehler beim Schreiben: \" + writeErr.message);\n            } else {\n                node.log(\"Erfolgreich geschrieben.\");\n            }\n        });\n    });\n}\n\n// ------------------------------------------------------\n// Verbindung trennen, falls notwendig\n// ------------------------------------------------------\nfunction closeConnection(client) {\n    if (client) {\n        client.dropConnection(() => {\n            node.log(\"Verbindung zur PLC erfolgreich getrennt.\");\n        });\n    }\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen und Promise zurückgeben\n// ------------------------------------------------------\nreturn main()\n    .then((msg) => {\n        // Daten lesen und schreiben\n        handleReadWrite(msg.client);\n        return msg;\n    })\n    .catch((err) => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n\n        // Eventuell bestehende Verbindung schließen\n        if (connection[connectionKey]) {\n            closeConnection(connection[connectionKey].conn);\n            delete connection[connectionKey];\n            global.set(\"s7Connection\", connection);\n        }\n\n        return null;\n    });\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 760,
+        "y": 540,
+        "wires": [
+            [
+                "69a19f8604abf278"
+            ]
+        ],
+        "icon": "font-awesome/fa-microchip",
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "b74e0d7142f12d6b",
+        "type": "influxdb batch",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "6c40ee5f3bfc9a02",
+        "influxdb": "99e16a6e858bbbfe",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "InfluxDB",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "idpm",
+        "bucket": "iot-data",
+        "x": 1260,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "e4382643018d49ab",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "6c40ee5f3bfc9a02",
+        "name": "Prepare Data for Live Chart",
+        "func": "// Prepare Data for Live Chart\nconst datapoints = msg.payload;\n\n// Überprüfen, ob gültige Daten vorhanden sind\nif (!datapoints || !Array.isArray(datapoints)) {\n    node.warn(\"No valid datapoints array found in msg.payload.\");\n    return null;\n}\n\n// Ziehe die device_id aus msg.device_id\nconst device_id = msg.device_id;\n\nif (!device_id) {\n    node.warn(\"No valid device_id found in msg.\");\n    return null;\n}\n\n// Simulierte Struktur für die WebSocket-Ausgabe\nconst simulatedData = [\n    {\n        device_id: device_id, // Die device_id aus msg.device_id\n        datapoints: datapoints.map((point) => ({\n            id: point.fields.datapoint_id || \"unknown\",\n            name: point.measurement || \"unknown\",\n            value: point.fields.value !== undefined ? point.fields.value.toFixed(2) : \"unknown\",\n        })),\n    },\n];\n\n// Entferne alle anderen Eigenschaften außer msg.payload\nmsg = {\n    payload: simulatedData,\n};\n\nnode.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for Dashboard\" });\n\n// Rückgabe der Nachricht zur Weitergabe an WebSocket\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1260,
+        "y": 600,
+        "wires": [
+            [
+                "9ed8a01f651a92e6",
+                "a632f585947343f8"
+            ]
+        ],
+        "icon": "node-red/swap.svg"
+    },
+    {
+        "id": "a32804f68dc4b83b",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "d": true,
+        "g": "6c40ee5f3bfc9a02",
+        "name": "GET Data from SQLite and give to S7",
+        "func": "// Lade Daten aus SQLite /tmp/process.db\nconst db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Asynchrone Funktion, um Daten aus der SQLite-Datenbank zu laden\nconst loadProcessData = async () => {\n    return new Promise((resolve, reject) => {\n        // Lese das erste aktive Gerät aus der Tabelle\n        const query = `\n            SELECT ip, datapoints, device_id, acquisition_time, rack, slot, deviceName\n            FROM s7\n            WHERE active = \"true\"\n            LIMIT 1\n        `;\n\n        db.get(query, [], (err, row) => {\n            if (err) {\n                reject(`Fehler beim Abrufen der Daten: ${err.message}`);\n            } else if (row) {\n                resolve(row);\n            } else {\n                reject('Keine aktiven Prozesse gefunden.');\n            }\n        });\n    });\n};\n\n// Funktion, um die Datapoints in das richtige Format zu transformieren\nconst transformDatapoints = (datapoints) => {\n    return datapoints.map((point) => ({\n        name: point.name,\n        address: point.address,\n        datatype : point.datatype,\n        datapoint_id: point.datapoint_id,\n    }));\n};\n\n// Hauptlogik\nloadProcessData()\n    .then((data) => {\n        try {\n            // Überprüfen, ob die Datapoints gültig sind\n            const parsedDatapoints = JSON.parse(data.datapoints);\n            if (!Array.isArray(parsedDatapoints) || parsedDatapoints.length === 0) {\n                throw new Error('Ungültige oder leere Datapoints.');\n            }\n\n            // Transformiere die Datapoints in das gewünschte Format\n            const formattedDatapoints = transformDatapoints(parsedDatapoints);\n\n            // Übergebe die geladenen Daten an msg\n            msg.deviceName = data.deviceName;\n            msg.endpoint = data.ip;\n            msg.datapoints = formattedDatapoints;\n            msg.device_id = data.device_id;\n            msg.acquisition_time = data.acquisition_time;\n            msg.rack = data.rack;\n            msg.slot = data.slot;\n\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Got Data from SQLite\" });\n\n            // Sende die Nachricht weiter\n            node.send(msg);\n        } catch (err) {\n            throw new Error(`Fehler beim Verarbeiten der Daten: ${err.message}`);\n        }\n    })\n    .catch((error) => {\n        // Fehlerbehandlung\n        node.error(error);\n        node.status({ fill: 'red', shape: 'dot', text: 'Fehler beim Laden der Daten' });\n    })\n    .finally(() => {\n        // Schließe die Datenbankverbindung (optional)\n        db.close((err) => {\n            if (err) {\n                node.error(`Fehler beim Schließen der Datenbank: ${err.message}`);\n            } else {\n                node.log('Datenbankverbindung geschlossen.');\n            }\n        });\n    });\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "sqlite3",
+                "module": "sqlite3"
+            }
+        ],
+        "x": 450,
+        "y": 540,
+        "wires": [
+            [
+                "34c0ab03a6142383"
+            ]
+        ],
+        "icon": "node-red/leveldb.svg"
+    },
+    {
+        "id": "6dbff117afdf56fc",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "f6fa006b47040a9a",
+        "name": "MQTT-DATA-Process",
+        "func": "const processMQTTData = (msg) => {\n    if (!msg.topic || !msg.payload) {\n        node.warn(\"Ungültige MQTT-Daten empfangen.\");\n        return null;\n    }\n\n    const dataPoint = {\n        measurement: msg.topic, // Verwende den Topic-Namen als Measurement\n        fields: {\n            value: parseFloat(msg.payload) || msg.payload, // Konvertiere, falls möglich\n        },\n        timestamp: Date.now(), // Aktueller Timestamp\n    };\n\n    return dataPoint;\n};\n\n// Hauptlogik\nif (!msg || !msg.payload) {\n    node.warn(\"Keine gültigen Daten gefunden.\");\n    return null;\n}\n\nconst influxData = processMQTTData(msg);\n\nif (influxData) {\n    msg.payload = influxData;\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Data processed\" });\n} else {\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Processing error\" });\n}\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 1020,
+        "y": 700,
+        "wires": [
+            [
+                "7016ae403c5312e4",
+                "a13260d78ce851d6"
+            ]
+        ],
+        "icon": "node-red-dashboard/ui_chart.png",
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "ce1ae6e123ddbb3c",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "f6fa006b47040a9a",
+        "name": "MQTT-CONNECT",
+        "func": "const mqtt = require(\"mqtt\");\n\n// Prüfe, ob die notwendigen Parameter im msg enthalten sind\nif (!msg.endpoint || !msg.topics) {\n    node.error(\"Die Parameter 'endpoint' und 'topics' sind erforderlich.\");\n    return null;\n}\n\nconst options = {\n    clientId: `mqtt_${Math.random().toString(16).substr(2, 8)}`,\n    clean: true,\n    reconnectPeriod: 1000,\n};\n\n// Authentifizierung, falls vorhanden\nif (msg.username && msg.password) {\n    options.username = msg.username;\n    options.password = msg.password;\n}\n\nconst client = mqtt.connect(`mqtt://${msg.endpoint}`, options);\n\nclient.on(\"connect\", () => {\n    node.log(\"Erfolgreich mit dem MQTT-Broker verbunden.\");\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Connected to MQTT\" });\n\n    // Abonniere alle Topics\n    const topicList = msg.topics.map((topic) => ({\n        topic: topic.name,\n        qos: topic.qos,\n    }));\n\n    client.subscribe(topicList, (err) => {\n        if (err) {\n            node.error(`Fehler beim Abonnieren der Topics: ${err.message}`);\n            node.status({ fill: \"red\", shape: \"dot\", text: \"Subscribe Error\" });\n        } else {\n            node.log(`Abonniert: ${topicList.map((t) => t.topic).join(\", \")}`);\n        }\n    });\n\n    // Speichere die Verbindung global\n    global.set(\"mqttClient\", client);\n});\n\nclient.on(\"message\", (topic, message) => {\n    node.log(`Nachricht empfangen: Topic = ${topic}, Payload = ${message.toString()}`);\n\n    // Weiterleiten der empfangenen Daten\n    node.send({ topic, payload: message.toString() });\n});\n\nclient.on(\"error\", (err) => {\n    node.error(`MQTT-Fehler: ${err.message}`);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Connection Error\" });\n});\n\nclient.on(\"close\", () => {\n    node.log(\"MQTT-Verbindung geschlossen.\");\n    node.status({ fill: \"grey\", shape: \"dot\", text: \"Disconnected\" });\n});\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 770,
+        "y": 700,
+        "wires": [
+            [
+                "6dbff117afdf56fc"
+            ]
+        ],
+        "icon": "font-awesome/fa-microchip",
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "7016ae403c5312e4",
+        "type": "influxdb batch",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "f6fa006b47040a9a",
+        "influxdb": "99e16a6e858bbbfe",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "InfluxDB",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "idpm",
+        "bucket": "iot-data",
+        "x": 1260,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "a13260d78ce851d6",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "f6fa006b47040a9a",
+        "name": "Prepare Data for Live Chart",
+        "func": "// Prepare Data for Live Chart\nconst datapoints = msg.payload;\n\n// Überprüfen, ob gültige Daten vorhanden sind\nif (!datapoints || !Array.isArray(datapoints)) {\n    node.warn(\"No valid datapoints array found in msg.payload.\");\n    return null;\n}\n\n// Ziehe die device_id aus msg.device_id\nconst device_id = msg.device_id;\n\nif (!device_id) {\n    node.warn(\"No valid device_id found in msg.\");\n    return null;\n}\n\n// Simulierte Struktur für die WebSocket-Ausgabe\nconst simulatedData = [\n    {\n        device_id: device_id, // Die device_id aus msg.device_id\n        datapoints: datapoints.map((point) => ({\n            id: point.fields.datapoint_id || \"unknown\",\n            name: point.measurement || \"unknown\",\n            value: point.fields.value !== undefined ? point.fields.value.toFixed(2) : \"unknown\",\n        })),\n    },\n];\n\n// Entferne alle anderen Eigenschaften außer msg.payload\nmsg = {\n    payload: simulatedData,\n};\n\nnode.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for Dashboard\" });\n\n// Rückgabe der Nachricht zur Weitergabe an WebSocket\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1260,
+        "y": 760,
+        "wires": [
+            [
+                "9ed8a01f651a92e6",
+                "a632f585947343f8"
+            ]
+        ],
+        "icon": "node-red/swap.svg"
+    },
+    {
+        "id": "6853eded1fbf0981",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "d": true,
+        "g": "f6fa006b47040a9a",
+        "name": "GET Data from SQLite and give to MQTT",
+        "func": "// Lade Daten aus SQLite /tmp/process.db\nconst db = new sqlite3.Database('/tmp/process.db', (err) => {\n    if (err) {\n        node.error(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n    } else {\n        node.log('SQLite-Datenbank erfolgreich geöffnet.');\n    }\n});\n\n// Asynchrone Funktion, um Daten aus der SQLite-Datenbank zu laden\nconst loadProcessData = async () => {\n    return new Promise((resolve, reject) => {\n        // Lese das erste aktive MQTT-Gerät aus der Tabelle\n        const query = `\n            SELECT ip, topics, device_id, username, password\n            FROM mqtt\n            WHERE active = \"true\"\n            LIMIT 1\n        `;\n\n        db.get(query, [], (err, row) => {\n            if (err) {\n                reject(`Fehler beim Abrufen der Daten: ${err.message}`);\n            } else if (row) {\n                resolve(row);\n            } else {\n                reject('Keine aktiven MQTT-Geräte gefunden.');\n            }\n        });\n    });\n};\n\n// Funktion, um die Topics in das richtige Format zu transformieren\nconst transformTopics = (topics) => {\n    return topics.map((topic) => ({\n        name: topic.name,\n        qos: topic.qos || 0, // Standard-QoS auf 0 setzen, falls nicht vorhanden\n    }));\n};\n\n// Hauptlogik\nloadProcessData()\n    .then((data) => {\n        try {\n            // Überprüfen, ob die Topics gültig sind\n            const parsedTopics = JSON.parse(data.topics);\n            if (!Array.isArray(parsedTopics) || parsedTopics.length === 0) {\n                throw new Error('Ungültige oder leere Topics.');\n            }\n\n            // Transformiere die Topics in das gewünschte Format\n            const formattedTopics = transformTopics(parsedTopics);\n\n            // Übergebe die geladenen Daten an msg\n            msg.endpoint = data.ip;\n            msg.topics = formattedTopics;\n            msg.device_id = data.device_id;\n            msg.username = data.username || null;\n            msg.password = data.password || null;\n\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Got Data from SQLite\" });\n\n            // Sende die Nachricht weiter\n            node.send(msg);\n        } catch (err) {\n            throw new Error(`Fehler beim Verarbeiten der Daten: ${err.message}`);\n        }\n    })\n    .catch((error) => {\n        // Fehlerbehandlung\n        node.error(error);\n        node.status({ fill: 'red', shape: 'dot', text: 'Fehler beim Laden der Daten' });\n    })\n    .finally(() => {\n        // Schließe die Datenbankverbindung (optional)\n        db.close((err) => {\n            if (err) {\n                node.error(`Fehler beim Schließen der Datenbank: ${err.message}`);\n            } else {\n                node.log('Datenbankverbindung geschlossen.');\n            }\n        });\n    });\n\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "sqlite3",
+                "module": "sqlite3"
+            }
+        ],
+        "x": 460,
+        "y": 700,
+        "wires": [
+            [
+                "ce1ae6e123ddbb3c"
+            ]
+        ],
+        "icon": "node-red/leveldb.svg"
+    },
+    {
+        "id": "9ed8a01f651a92e6",
+        "type": "websocket out",
+        "z": "1728e7a0cbf4dbd0",
+        "d": true,
+        "name": "",
+        "server": "01834dd3df2ce705",
+        "client": "",
+        "x": 1600,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "a632f585947343f8",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "Publish Data to MQTT",
+        "func": "// Überprüfen, ob die Eingabedaten ein Array enthalten\nif (!Array.isArray(msg.payload) || msg.payload.length === 0) {\n    node.error(\"Die Eingabedaten sind ungültig oder leer.\");\n    return null;\n}\n\n// Basis-Topic\nconst baseTopic = \"data\";\n\n// Ergebnis-Array, um die Nachrichten weiterzuleiten\nconst messages = [];\n\n// Verarbeitung der Geräte-Daten\nmsg.payload.forEach(device => {\n    const deviceName = `device-${device.device_id}`; // Erstelle den Gerätenamen\n    \n    if (Array.isArray(device.datapoints)) {\n        device.datapoints.forEach(datapoint => {\n            const topic = `${baseTopic}/${deviceName}/${datapoint.name}`; // MQTT-Topic\n            const value = datapoint.value; // Wert des Datenpunkts\n            \n            // Erstelle eine Nachricht für jeden Datenpunkt\n            messages.push({\n                topic: topic,\n                payload: value\n            });\n        });\n    } else {\n        node.warn(`Keine gültigen Datapoints für Gerät ${device.device_id}.`);\n    }\n});\n\n// Falls keine Nachrichten erstellt wurden\nif (messages.length === 0) {\n    node.error(\"Es konnten keine MQTT-Nachrichten generiert werden.\");\n    return null;\n}\n\n// Übergabe der Nachrichten\nreturn [messages];\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "mqtt",
+                "module": "node-mqtt"
+            }
+        ],
+        "x": 1620,
+        "y": 520,
+        "wires": [
+            [
+                "e6295619dfb75ee4",
+                "caeef212ea864380"
+            ]
+        ],
+        "icon": "font-awesome/fa-send"
+    },
+    {
+        "id": "e114b2e7f8e87dab",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "f8a672ffc785a741",
+        "name": "Cycle-Manager",
+        "func": "let cycleTimer = null;\n\nconst initializeCycleManager = (devices) => {\n    node.log(\"Cycle Manager wird initialisiert...\");\n\n    if (cycleTimer) {\n        clearInterval(cycleTimer);\n        cycleTimer = null;\n    }\n\n    const OPCdeviceCycles = {};\n    const currentTime = Date.now();\n\n    devices.forEach((device) => {\n        OPCdeviceCycles[device.device_id] = {\n            acquisitionTimeMs: device.acquisition_time,\n            lastRun: currentTime,\n            deviceData: device,\n        };\n    });\n\n    flow.set(\"OPCdeviceCycles\", OPCdeviceCycles);\n    node.log(\"Alle Gerätedaten im Flow-Kontext gespeichert.\");\n\n    cycleTimer = setInterval(() => processDevices(), 100);\n};\n\nconst processDevices = () => {\n    const OPCdeviceCycles = flow.get(\"OPCdeviceCycles\") || {};\n    const currentTime = Date.now();\n\n    Object.entries(OPCdeviceCycles).forEach(([deviceId, cycleData]) => {\n        const timeSinceLastRun = currentTime - cycleData.lastRun;\n\n        if (timeSinceLastRun >= cycleData.acquisitionTimeMs) {\n            cycleData.lastRun = currentTime;\n\n            const msg = {\n                endpoint: cycleData.deviceData.endpoint,\n                datapoints: cycleData.deviceData.datapoints,\n                device_id: cycleData.deviceData.device_id,\n                acquisition_time: cycleData.deviceData.acquisition_time,\n                securityModeVar: cycleData.deviceData.security_mode || \"\",\n                securityPolicyVar: cycleData.deviceData.security_policy || \"\",\n                username: cycleData.deviceData.username || \"\",\n                password: cycleData.deviceData.password || \"\",\n                deviceName: cycleData.deviceData.deviceName,\n            };\n\n            node.status({\n                fill: \"green\",\n                shape: \"dot\",\n                text: `Processing: ${cycleData.deviceData.deviceName}`,\n            });\n\n            node.send(msg);\n        }\n    });\n\n    node.status({\n        fill: \"blue\",\n        shape: \"dot\",\n        text: \"Cycle Manager läuft...\",\n    });\n};\n\n(async () => {\n    try {\n        const devices = msg.payload;\n\n        if (!Array.isArray(devices) || devices.length === 0) {\n            throw new Error(\"Keine gültigen Gerätedaten empfangen.\");\n        }\n\n        initializeCycleManager(devices);\n\n        node.status({\n            fill: \"green\",\n            shape: \"dot\",\n            text: \"Cycle Manager gestartet\",\n        });\n\n        return { payload: \"Cycle Manager erfolgreich gestartet.\" };\n    } catch (error) {\n        node.error(`Fehler im Cycle Manager: ${error.message}`);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Fehler\" });\n        return { payload: `Fehler: ${error.message}` };\n    }\n})();\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "sqlite3",
+                "module": "sqlite3"
+            }
+        ],
+        "x": 600,
+        "y": 380,
+        "wires": [
+            [
                 "ee8f83ad8ef37b77"
+            ]
+        ],
+        "icon": "node-red/timer.svg",
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "e6295619dfb75ee4",
+        "type": "debug",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "debug 1",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1860,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "caeef212ea864380",
+        "type": "mqtt out",
+        "z": "1728e7a0cbf4dbd0",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "0b7c7515b1c6aa53",
+        "x": 1870,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "dee49bb2a91064b4",
+        "type": "mqtt in",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "972ccc72943d2074",
+        "name": "",
+        "topic": "data/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "0b7c7515b1c6aa53",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 1150,
+        "y": 960,
+        "wires": [
+            [
+                "e2b68dcc1b60ff4d"
             ]
         ]
     },
     {
-        "id": "f69998602cae03d2",
-        "type": "debug",
+        "id": "958671caf54728ea",
+        "type": "websocket out",
         "z": "1728e7a0cbf4dbd0",
-        "name": "debug 8",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "datapoints",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 660,
-        "y": 220,
+        "g": "972ccc72943d2074",
+        "name": "",
+        "server": "01834dd3df2ce705",
+        "client": "",
+        "x": 1540,
+        "y": 960,
         "wires": []
     },
     {
-        "id": "2a02782ad2b74dc4",
-        "type": "debug",
+        "id": "e2b68dcc1b60ff4d",
+        "type": "function",
         "z": "1728e7a0cbf4dbd0",
-        "name": "debug 9",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1140,
-        "y": 220,
-        "wires": []
-    },
-    {
-        "id": "14ccb4f01fd8a6b7",
-        "type": "debug",
-        "z": "1728e7a0cbf4dbd0",
-        "name": "debug 3",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1450,
-        "y": 500,
-        "wires": []
+        "g": "972ccc72943d2074",
+        "name": "convert-data",
+        "func": "// Initialisierung: Aggregationsspeicher und Timer (wird nur einmal eingerichtet)\nif (!context.get(\"init\")) {\n    // Aggregationsobjekt zum Speichern der Daten pro device_id\n    context.set(\"aggregated\", {});\n\n    // Timer, der alle 500ms prüft, ob aggregierte Daten vorliegen und diese dann als Block weitergibt\n    var timer = setInterval(function () {\n        var aggregated = context.get(\"aggregated\") || {};\n        var outputArray = [];\n\n        // Für jedes aggregierte Gerät wird ein Objekt erstellt, sofern Messwerte vorhanden sind\n        for (var device in aggregated) {\n            if (aggregated[device].datapoints.length > 0) {\n                outputArray.push(aggregated[device]);\n            }\n        }\n        if (outputArray.length > 0) {\n            // Sende die aggregierten Daten als msg.payload weiter\n            node.send({ payload: outputArray });\n            // Leere den Aggregationsspeicher, um im nächsten Intervall neu zu sammeln\n            context.set(\"aggregated\", {});\n        }\n    }, 500);\n\n    context.set(\"timer\", timer);\n    context.set(\"init\", true);\n}\n\n// Bearbeitung jeder eingehenden Nachricht\n// Beispielhafte Topics: \"data/opcua/1/Hum_1\", \"data/opcua/1/Hum_2\", \"data/s7/3/var1\"\nvar topic = msg.topic;\nvar parts = topic.split(\"/\");\n\n// Überprüfe, ob das Topic das erwartete Format hat: mind. 4 Segmente\nif (parts.length < 4) {\n    node.warn(\"Ungültiges Topic-Format: \" + topic);\n    return null;\n}\n\n// Extrahiere device_id und den Messbezeichner (measurement)\n// parts[0] = \"data\", parts[1] = Gerätetyp (z. B. \"opcua\" oder \"s7\")\n// parts[2] = device_id, parts[3] = measurement (z. B. \"Hum_1\")\nvar device_id = parts[2];\nvar measurement = parts[3];\n\n// Erstelle den Datapoint im gewünschten Format\nvar datapoint = {};\ndatapoint.id = measurement || \"unknown\";\ndatapoint.name = measurement || \"unknown\";\nif (typeof msg.payload === \"number\") {\n    datapoint.value = msg.payload.toFixed(2);\n} else if (!isNaN(Number(msg.payload))) {\n    datapoint.value = Number(msg.payload).toFixed(2);\n} else {\n    datapoint.value = msg.payload || \"unknown\";\n}\n\n// Aggregiere die Daten in einem Kontextobjekt, gruppiert nach device_id\nvar aggregated = context.get(\"aggregated\") || {};\n\n// Falls für das Gerät noch kein Eintrag existiert, anlegen:\nif (!aggregated[device_id]) {\n    aggregated[device_id] = {\n        device_id: device_id,\n        datapoints: []\n    };\n}\n\n// Falls bereits ein Datapoint für das jeweilige measurement existiert, diesen aktualisieren;\n// ansonsten den neuen Datapoint anhängen.\nvar updated = false;\nfor (var i = 0; i < aggregated[device_id].datapoints.length; i++) {\n    if (aggregated[device_id].datapoints[i].id === measurement) {\n        aggregated[device_id].datapoints[i].value = datapoint.value;\n        updated = true;\n        break;\n    }\n}\nif (!updated) {\n    aggregated[device_id].datapoints.push(datapoint);\n}\n\n// Speichere das aktualisierte Aggregationsobjekt zurück in den Kontext\ncontext.set(\"aggregated\", aggregated);\n\n// Es wird kein unmittelbarer Output erzeugt – die Ausgabe erfolgt zyklisch über den Timer\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1330,
+        "y": 960,
+        "wires": [
+            [
+                "958671caf54728ea"
+            ]
+        ]
     },
     {
         "id": "2781ab5481c2061b",
@@ -1634,6 +1671,102 @@
         "headers": {},
         "x": 1240,
         "y": 820,
+        "wires": []
+    },
+    {
+        "id": "8caad21b1a4c5776",
+        "type": "http in",
+        "z": "9cf1a910b50ef244",
+        "name": "",
+        "url": "/getDataForwarding",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 550,
+        "y": 1140,
+        "wires": [
+            [
+                "abd088809784b879"
+            ]
+        ]
+    },
+    {
+        "id": "abd088809784b879",
+        "type": "function",
+        "z": "9cf1a910b50ef244",
+        "name": "function 3",
+        "func": "// Simulierte Daten für Data Forwarding\nconst dataForwarding = [\n    {\n        route_id: \"1\",\n        type: \"REST\",\n        devices: [\"Device 1\", \"Device 2\"],\n        address: \"http://example.com/api/data\",\n        last_send: new Date().toISOString()\n    },\n    {\n        route_id: \"2\",\n        type: \"File\",\n        devices: [\"Device 3\"],\n        address: \"/var/log/device_data.json\",\n        last_send: new Date(new Date().getTime() - 3600000).toISOString() // 1 Stunde vorher\n    },\n    {\n        route_id: \"3\",\n        type: \"MQTT\",\n        devices: [\"Device 4\", \"Device 5\"],\n        address: \"mqtt://broker.example.com:1883\",\n        last_send: null // Noch nicht gesendet\n    }\n];\n\n// Antwort vorbereiten\nmsg.payload = dataForwarding;\nmsg.headers = { \"Content-Type\": \"application/json\" };\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 1160,
+        "wires": [
+            [
+                "f3e40233e93558b7"
+            ]
+        ]
+    },
+    {
+        "id": "f3e40233e93558b7",
+        "type": "http response",
+        "z": "9cf1a910b50ef244",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1090,
+        "y": 1177,
+        "wires": []
+    },
+    {
+        "id": "3cf9bc24def0f91e",
+        "type": "http in",
+        "z": "9cf1a910b50ef244",
+        "name": "",
+        "url": "/getImgProcesses",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 540,
+        "y": 1280,
+        "wires": [
+            [
+                "376d8e7212cd8612"
+            ]
+        ]
+    },
+    {
+        "id": "376d8e7212cd8612",
+        "type": "function",
+        "z": "9cf1a910b50ef244",
+        "name": "function 4",
+        "func": "// Simulierte Daten für Image Capture Processes\nconst imgProcesses = [\n    {\n        process_id: \"1001\",\n        device: \"Device XX - Camera 1\",\n        address: \"http://example.com/image/capture1\",\n        last_capture: new Date().toISOString()\n    },\n    {\n        process_id: \"1002\",\n        device: \"Device YY - Camera 2\",\n        address: \"http://example.com/image/capture2\",\n        last_capture: new Date(new Date().getTime() - 600000).toISOString() // 10 Minuten vorher\n    },\n    {\n        process_id: \"1003\",\n        device: \"Device ZZ - Camera 3\",\n        address: \"http://example.com/image/capture3\",\n        last_capture: null // Noch keine Aufnahme\n    }\n];\n\n// Antwort vorbereiten\nmsg.payload = imgProcesses;\nmsg.headers = { \"Content-Type\": \"application/json\" };\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 1300,
+        "wires": [
+            [
+                "6429590b4172bce2"
+            ]
+        ]
+    },
+    {
+        "id": "6429590b4172bce2",
+        "type": "http response",
+        "z": "9cf1a910b50ef244",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1070,
+        "y": 1300,
         "wires": []
     },
     {
@@ -2189,6 +2322,320 @@
         "libs": [],
         "x": 760,
         "y": 300,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "85e1de30eb0180d5",
+        "type": "inject",
+        "z": "4d524a0c3754f0d5",
+        "name": "Trigger",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "endpoint",
+                "v": "opc.tcp://192.168.0.84:48011",
+                "vt": "str"
+            },
+            {
+                "p": "datapoints",
+                "v": "[\t   {\t       \"name\": \"2_temperature0\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1000\t        },\t   {\t       \"name\": \"2_humidity\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Humidity\",\t       \"datapoint_id\": 1002\t        },\t    {\t       \"name\": \"2_temperature1\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1001\t        },\t    {\t       \"name\": \"2_temperature2\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1002\t        },\t    {\t       \"name\": \"2_temperature3\",\t       \"nodeId\": \"ns=4;s=AirConditioner_1.Temperature\",\t       \"datapoint_id\": 1003\t        }\t    ]",
+                "vt": "jsonata"
+            },
+            {
+                "p": "device_id",
+                "v": "2",
+                "vt": "str"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 320,
+        "y": 160,
+        "wires": [
+            [
+                "834f0b02bdb5e9d8"
+            ]
+        ]
+    },
+    {
+        "id": "834f0b02bdb5e9d8",
+        "type": "function",
+        "z": "4d524a0c3754f0d5",
+        "name": "OPC-CONNECT",
+        "func": "// ------------------------------------------------------\n// \"OPC-UA Connect with Reconnection\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen\nconst endpoint = msg.endpoint;\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar = (msg.securityModeVar || \"NONE\").toUpperCase();\nconst securityPolicyVar = (msg.securityPolicyVar || \"NONE\").toUpperCase();\nconst username = msg.username || \"\";\nconst password = msg.password || \"\";\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// 4) Globale Variablen für Verbindung und Session\nconst baseKey = `${endpoint}_${username}`; // Basis-Schlüssel für die Verbindung\nlet connection = global.get(\"opcuaConnection\") || {};\n\n// Überprüfen, ob bereits eine Verbindung existiert\nlet connectionKey = Object.keys(connection).find((key) => key.startsWith(baseKey));\n\n// Zufälligen Schlüssel nur hinzufügen, wenn keine bestehende Verbindung existiert\nif (!connectionKey) {\n    const uniqueKey = Math.random().toString(36).substring(2, 12);\n    connectionKey = `${baseKey}_${uniqueKey}`;\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    // 5) Überprüfen, ob eine bestehende Verbindung vorhanden und gültig ist\n    if (connection[connectionKey] && connection[connectionKey].session) {\n        try {\n            // Überprüfe, ob die Session noch aktiv ist\n            await connection[connectionKey].session.read({ nodeId: opcua.resolveNodeId(\"ns=0;i=2259\") }); // Lese einen Standardknoten\n            // node.log(\"[DEBUG] Using existing OPC-UA connection.\");\n            msg.session = connection[connectionKey].session;\n            msg.client = connection[connectionKey].client;\n            return msg;\n        } catch (err) {\n            node.warn(\"[DEBUG] Existing session is invalid. Reconnecting...\");\n            // Verbindung schließen und neu aufbauen\n            await closeConnection(connection[connectionKey]);\n            delete connection[connectionKey];\n            global.set(\"opcuaConnection\", connection);\n        }\n    }\n\n    // 6) Neue Verbindung herstellen\n    node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n\n    const client = opcua.OPCUAClient.create({\n        applicationName: \"MyNodeRedOpcUaClient\",\n        endpoint_must_exist: false,\n\n        // Security Mode\n        securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n\n        // Security Policy\n        securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n\n        // Optional: connectionStrategy\n        connectionStrategy: {\n            initialDelay: 1000,\n            maxRetry: 5\n        },\n\n        // Keep-Alive-Mechanismus\n        keepAlive: true,\n        keepAliveInterval: 10000 // Alle 10 Sekunden einen Keep-Alive senden\n    });\n\n    // 7) OPC-UA-Server verbinden\n    try {\n        await client.connect(endpoint);\n        // node.log(\"[DEBUG] Successfully connected to OPC UA Server.\");\n    } catch (err) {\n        node.error(\"Failed to connect to OPC UA Server: \" + err.message, msg);\n        throw err;\n    }\n\n    // 8) Session aufbauen\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n\n    let userIdentity = null;\n    if (username && password) {\n        userIdentity = { userName: username, password };\n    }\n\n    const session = await client.createSession(userIdentity);\n    node.log(\"[DEBUG] Session created successfully.\");\n\n    // 9) Verbindung und Session im globalen Kontext speichern\n    connection[connectionKey] = { client, session };\n    global.set(\"opcuaConnection\", connection);\n\n    // 10) Session und Client im msg speichern\n    msg.session = session;\n    msg.client = client;\n    msg.connectionKey = connectionKey; // Füge den eindeutigen Schlüssel zu msg hinzu\n\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: Verbindung schließen\n// ------------------------------------------------------\nasync function closeConnection(connection) {\n    if (connection.session) {\n        try {\n            await connection.session.close();\n            // node.log(\"[DEBUG] Session closed successfully.\");\n        } catch (err) {\n            node.warn(\"[DEBUG] Failed to close session: \" + err.message);\n        }\n    }\n    if (connection.client) {\n        try {\n            await connection.client.disconnect();\n            node.log(\"[DEBUG] Client disconnected successfully.\");\n        } catch (err) {\n            node.warn(\"[DEBUG] Failed to disconnect client: \" + err.message);\n        }\n    }\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Connected\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 525,
+        "y": 160,
+        "wires": [
+            [
+                "86f7d1d690c63e98"
+            ]
+        ],
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "86f7d1d690c63e98",
+        "type": "function",
+        "z": "4d524a0c3754f0d5",
+        "name": "OPC-DATA-Process",
+        "func": "// ------------------------------------------------------\n// \"OPC-UA Read and Prepare Data for InfluxDB\"\n// ------------------------------------------------------\n\n// 1) Hole die Session und die Datapoints aus msg\nconst session = msg.session;\nconst datapoints = msg.datapoints;\n\nif (!session) {\n    throw new Error(\"No OPC-UA session found. Please connect first.\");\n}\nif (!datapoints || !Array.isArray(datapoints)) {\n    throw new Error(\"No valid datapoints array found in msg.datapoints.\");\n}\n\n// Node-RED UI Feedback\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Reading and preparing data...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    const influxData = []; // Array für die InfluxDB-Datenpunkte\n\n    for (const point of datapoints) {\n        const { name, nodeId, datapoint_id } = point;\n\n        // Validierungsprüfung\n        if (!name || !nodeId || !datapoint_id) {\n            node.warn(`Invalid datapoint: ${JSON.stringify(point)}`);\n            continue;\n        }\n\n        try {\n            // Lese den Wert vom OPC-UA-Node\n            const value = await readNodeValue(session, nodeId);\n\n            // Bereite den InfluxDB-Datenpunkt vor\n            const influxPoint = {\n                measurement: name, // Der Name wird als Measurement genutzt\n                fields: {\n                    value: value,\n                    datapoint_id: datapoint_id\n                }\n            };\n\n            // Füge den Datenpunkt zum Array hinzu\n            influxData.push(influxPoint);\n        } catch (err) {\n            node.warn(`Failed to read nodeId ${nodeId}: ${err.message}`);\n        }\n    }\n\n    // Setze die vorbereiteten Daten als Payload\n    msg.payload = influxData;\n\n    // Erfolgsstatus\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Data ready for InfluxDB\" });\n    return msg;\n}\n\n// ------------------------------------------------------\n// Hilfsfunktion: OPC-UA-Node-Wert lesen\n// ------------------------------------------------------\nasync function readNodeValue(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(`Cannot read node ${nodeId}: ${dataValue.statusCode.description}`);\n    }\n    return dataValue.value.value;\n}\n\n// ------------------------------------------------------\n// Asynchrones Hauptprogramm ausführen\n// ------------------------------------------------------\nreturn main().catch(err => {\n    node.error(err.message, msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n    return null;\n});\n",
+        "outputs": 1,
+        "timeout": "30",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            },
+            {
+                "var": "axios",
+                "module": "axios"
+            },
+            {
+                "var": "fs",
+                "module": "fs-extra"
+            }
+        ],
+        "x": 820,
+        "y": 160,
+        "wires": [
+            []
+        ],
+        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
+    },
+    {
+        "id": "f735af7c3b0457f3",
+        "type": "function",
+        "z": "4d524a0c3754f0d5",
+        "name": "Prozess-Manager",
+        "func": "// Funktion: Prozess-Manager\n// Verantwortlich für Starten, Stoppen und Neustarten von Prozessen\n\nconst action = msg.req.url; // /start-process, /stop-process, /restart-process\nconst sqlite = global.get('sqlite'); // SQLite Modul\nconst db = sqlite.open('processes.db');\n\nconst processId = msg.payload.processId;\n\nif (!processId) {\n    msg.payload = { error: 'Prozess-ID muss angegeben werden' };\n    return [msg, null];\n}\n\nif (action === '/api/start-process') {\n    // Starten eines Prozesses\n    const startQuery = `UPDATE processes SET active = 1 WHERE processId = ?`;\n    db.run(startQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            msg.payload = { error: 'Fehler beim Starten des Prozesses' };\n        } else if (this.changes === 0) {\n            msg.payload = { error: 'Prozess nicht gefunden' };\n        } else {\n            // Lade die Prozessdaten und sende sie weiter\n            db.get(`SELECT * FROM processes WHERE processId = ?`, [processId], (err, row) => {\n                if (err) {\n                    node.error(`SQLite Select Error: ${err.message}`);\n                    msg.payload = { error: 'Fehler beim Laden des Prozesses' };\n                } else if (!row) {\n                    msg.payload = { error: 'Prozess nicht gefunden' };\n                } else {\n                    // Speichere Gerätedaten im Flow-Kontext\n                    flow.set(`process_${processId}`, row);\n                    msg.payload = { message: 'Prozess gestartet', processId: processId };\n                }\n                node.send([msg, null]);\n            });\n        }\n    });\n\n} else if (action === '/api/stop-process') {\n    // Stoppen eines Prozesses\n    const stopQuery = `UPDATE processes SET active = 0 WHERE processId = ?`;\n    db.run(stopQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            msg.payload = { error: 'Fehler beim Stoppen des Prozesses' };\n        } else if (this.changes === 0) {\n            msg.payload = { error: 'Prozess nicht gefunden' };\n        } else {\n            // Entferne die Prozessdaten aus dem Flow-Kontext\n            flow.set(`process_${processId}`, null);\n            msg.payload = { message: 'Prozess gestoppt', processId: processId };\n        }\n        node.send([msg, null]);\n    });\n\n} else if (action === '/api/restart-process') {\n    // Neustarten eines Prozesses\n    const restartQuery = `UPDATE processes SET active = 0 WHERE processId = ?`;\n    db.run(restartQuery, [processId], function (err) {\n        if (err) {\n            node.error(`SQLite Update Error: ${err.message}`);\n            msg.payload = { error: 'Fehler beim Stoppen des Prozesses' };\n        } else if (this.changes === 0) {\n            msg.payload = { error: 'Prozess nicht gefunden' };\n        } else {\n            // Lade die Prozessdaten\n            db.get(`SELECT * FROM processes WHERE processId = ?`, [processId], (err, row) => {\n                if (err) {\n                    node.error(`SQLite Select Error: ${err.message}`);\n                    msg.payload = { error: 'Fehler beim Laden des Prozesses' };\n                } else if (!row) {\n                    msg.payload = { error: 'Prozess nicht gefunden' };\n                } else {\n                    // Generiere eine neue Prozess-ID\n                    const newProcessId = `${row.type}_${row.deviceName}_${Date.now()}`;\n                    const insertQuery = `INSERT INTO processes (processId, type, deviceName, datapoint, mqttSettings) VALUES (?, ?, ?, ?, ?)`;\n                    const params = [\n                        newProcessId,\n                        row.type,\n                        row.deviceName,\n                        row.datapoint,\n                        row.mqttSettings\n                    ];\n\n                    db.run(insertQuery, params, function (err) {\n                        if (err) {\n                            node.error(`SQLite Insert Error: ${err.message}`);\n                            msg.payload = { error: 'Fehler beim Neustarten des Prozesses' };\n                        } else {\n                            // Starte den neuen Prozess\n                            const activateQuery = `UPDATE processes SET active = 1 WHERE processId = ?`;\n                            db.run(activateQuery, [newProcessId], function (err) {\n                                if (err) {\n                                    node.error(`SQLite Update Error: ${err.message}`);\n                                    msg.payload = { error: 'Fehler beim Aktivieren des neuen Prozesses' };\n                                } else {\n                                    // Lade die neuen Prozessdaten und sende sie weiter\n                                    db.get(`SELECT * FROM processes WHERE processId = ?`, [newProcessId], (err, newRow) => {\n                                        if (err) {\n                                            node.error(`SQLite Select Error: ${err.message}`);\n                                            msg.payload = { error: 'Fehler beim Laden des neuen Prozesses' };\n                                        } else if (!newRow) {\n                                            msg.payload = { error: 'Neuer Prozess nicht gefunden' };\n                                        } else {\n                                            // Speichere die neuen Prozessdaten im Flow-Kontext\n                                            flow.set(`process_${newProcessId}`, newRow);\n                                            msg.payload = { message: 'Prozess neu gestartet', processId: newProcessId };\n                                        }\n                                        node.send([msg, null]);\n                                    });\n                                }\n                            });\n                        }\n                    });\n                }\n            });\n        }\n    });\n\n} else {\n    // Ungültige Aktion\n    msg.payload = { error: 'Ungültige Aktion' };\n    node.send([msg, null]);\n}\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 500,
+        "wires": [
+            [
+                "fc2c6e4f8f53f44a"
+            ]
+        ]
+    },
+    {
+        "id": "5bbf6685fcc81ebe",
+        "type": "http in",
+        "z": "4d524a0c3754f0d5",
+        "name": "Stoppen eines Prozesses",
+        "url": "/api/stop-process",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 290,
+        "y": 500,
+        "wires": [
+            [
+                "f735af7c3b0457f3"
+            ]
+        ]
+    },
+    {
+        "id": "1911626b9326a442",
+        "type": "http in",
+        "z": "4d524a0c3754f0d5",
+        "name": "Neustart eines Prozesses",
+        "url": "/api/restart-process",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 290,
+        "y": 560,
+        "wires": [
+            [
+                "f735af7c3b0457f3"
+            ]
+        ]
+    },
+    {
+        "id": "e334c27e1121f33e",
+        "type": "http in",
+        "z": "4d524a0c3754f0d5",
+        "name": "Starten eines Prozesses",
+        "url": "/api/start-process",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 290,
+        "y": 440,
+        "wires": [
+            [
+                "f735af7c3b0457f3"
+            ]
+        ]
+    },
+    {
+        "id": "fc2c6e4f8f53f44a",
+        "type": "switch",
+        "z": "4d524a0c3754f0d5",
+        "name": "Switch - TYPE",
+        "property": "type",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "opcua",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "s7",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "mqtt",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "modbus",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 4,
+        "x": 900,
+        "y": 500,
+        "wires": [
+            [
+                "0aa37253046a225d"
+            ],
+            [
+                "25d4d16cb52441f1"
+            ],
+            [
+                "0842b69206031968"
+            ],
+            [
+                "cea2bae3c5d96c92"
+            ]
+        ]
+    },
+    {
+        "id": "0aa37253046a225d",
+        "type": "function",
+        "z": "4d524a0c3754f0d5",
+        "name": "OPC-UA - Connector",
+        "func": "// Funktion: OPC-UA - Connector\n// Verantwortlich für die Verbindung zu OPC-UA-Geräten, das Lesen von Datenpunkten und das Weiterleiten an den MQTT-Publisher\n\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = opcua.OPCUAClient.create({\n    endpoint_must_exist: false\n});\n\nconst endpointUrl = mqttSettings.opcuaEndpoint || 'opc.tcp://localhost:4840'; // Default Endpoint\n\n(async () => {\n    try {\n        await client.connect(endpointUrl);\n        const session = await client.createSession();\n\n        // Lese den Datenpunkt (angenommen, es ist ein OPC UA NodeId)\n        const dataValue = await session.readVariableValue(datapoints.nodeId);\n\n        if (dataValue.statusCode.isGood()) {\n            const value = dataValue.value.value;\n            const topic = `data/${procData.deviceName}/${datapoints.name}`;\n            const timestamp = new Date().toISOString();\n\n            // Erstelle die MQTT-Nachricht\n            const mqttMsg = {\n                topic: topic,\n                payload: JSON.stringify({\n                    value: value,\n                    timestamp: timestamp\n                }),\n                mqttSettings: mqttSettings\n            };\n\n            node.send(mqttMsg);\n        } else {\n            node.error(`OPC-UA Read Error: ${dataValue.statusCode.toString()}`);\n        }\n\n        await session.close();\n        await client.disconnect();\n    } catch (err) {\n        node.error(`OPC-UA Connection Error: ${err.message}`);\n    }\n})();\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": "10",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "opcua",
+                "module": "node-opcua"
+            }
+        ],
+        "x": 1140,
+        "y": 440,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "25d4d16cb52441f1",
+        "type": "function",
+        "z": "4d524a0c3754f0d5",
+        "name": "S7 - Connector",
+        "func": "const snap7 = global.get('snap7') || require('node-snap7');\n\n// Funktion: S7 - Connector\n// Verantwortlich für die Verbindung zu S7-Geräten, das Lesen von Datenpunkten und das Weiterleiten an den MQTT-Publisher\n\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = new snap7.S7Client();\n\nconst connectionParams = {\n    ip: mqttSettings.s7.ip,\n    rack: mqttSettings.s7.rack,\n    slot: mqttSettings.s7.slot\n};\n\nclient.on('error', function (err) {\n    node.error(`S7 Connection Error: ${err.message}`);\n});\n\nclient.on('connect', function () {\n    // Verbunden, lese den Datenpunkt\n    client.readFloat(datapoints.db, datapoints.start, function (err, value) {\n        if (err) {\n            node.error(`S7 Read Error: ${err.message}`);\n        } else {\n            const topic = `data/${procData.deviceName}/${datapoints.name}`;\n            const timestamp = new Date().toISOString();\n\n            // Erstelle die MQTT-Nachricht\n            const mqttMsg = {\n                topic: topic,\n                payload: JSON.stringify({\n                    value: value,\n                    timestamp: timestamp\n                }),\n                mqttSettings: mqttSettings\n            };\n\n            node.send(mqttMsg);\n        }\n\n        client.disconnect();\n    });\n});\n\n// Verbinde mit dem S7-Gerät\nclient.connect(connectionParams);\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": "10",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1120,
+        "y": 480,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0842b69206031968",
+        "type": "function",
+        "z": "4d524a0c3754f0d5",
+        "name": "MQTT - Connector",
+        "func": "// Funktion: MQTT - Connector\n// Verantwortlich für das Empfangen von MQTT-Nachrichten und das Weiterleiten an den MQTT-Publisher\n\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = mqtt.connect(mqttSettings.broker, {\n    username: mqttSettings.username,\n    password: mqttSettings.password\n});\n\nclient.on('connect', function () {\n    // Subscribe auf das spezifische Topic\n    client.subscribe(`data/${procData.deviceName}/${datapoints.name}`, function (err) {\n        if (err) {\n            node.error(`MQTT Subscribe Error: ${err.message}`);\n        }\n    });\n});\n\nclient.on('message', function (topic, message) {\n    const value = message.toString();\n    const timestamp = new Date().toISOString();\n\n    // Erstelle die MQTT-Nachricht\n    const mqttMsg = {\n        topic: topic,\n        payload: JSON.stringify({\n            value: value,\n            timestamp: timestamp\n        }),\n        mqttSettings: mqttSettings\n    };\n\n    node.send(mqttMsg);\n\n    client.end();\n});\n\nclient.on('error', function (err) {\n    node.error(`MQTT Connection Error: ${err.message}`);\n    client.end();\n});\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": "10",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "mqtt",
+                "module": "node-mqtt"
+            }
+        ],
+        "x": 1130,
+        "y": 520,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cea2bae3c5d96c92",
+        "type": "function",
+        "z": "4d524a0c3754f0d5",
+        "d": true,
+        "name": "MODBUS - Connector",
+        "func": "// Funktion: MODBUS - Connector (Modbus-TCP)\nconst procData = msg.payload;\nconst mqttSettings = procData.mqttSettings;\nconst datapoints = JSON.parse(procData.datapoint); // Annahme: Ein einzelner Datenpunkt als JSON\n\nconst client = new modbus.client.TCP(mqttSettings.modbus.host, mqttSettings.modbus.port || 502);\n\n// Optional: Timeout und andere Optionen können hier gesetzt werden\nconst options = {\n    // Beispiel: Timeout in Millisekunden\n    timeout: 1000\n};\n\n// Verbinde mit dem Modbus-TCP Server\nclient.readHoldingRegisters(datapoints.address, 1)\n    .then(function (resp) {\n        const value = resp.register[0]; // Annahme: Ein Holding Register\n        const timestamp = new Date().toISOString();\n        const topic = `data/${procData.deviceName}/${datapoints.name}`;\n\n        // Erstelle die MQTT-Nachricht\n        const mqttMsg = {\n            topic: topic,\n            payload: JSON.stringify({\n                value: value,\n                timestamp: timestamp\n            }),\n            mqttSettings: mqttSettings\n        };\n\n        node.send(mqttMsg);\n    })\n    .catch(function (err) {\n        node.error(`Modbus-TCP Error: ${err.message}`);\n    });\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": "10",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "modbus",
+                "module": "node-red-contrib-modbus/modbus"
+            }
+        ],
+        "x": 1140,
+        "y": 560,
         "wires": [
             []
         ]

@@ -7,6 +7,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	opcua "github.com/gopcua/opcua"
+	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -137,10 +138,10 @@ func handleMqttDataUpdate(client mqtt.Client, message mqtt.Message) {
 //	if err != nil {
 //	    fmt.Println(err)
 //	}
-func pubData(data map[string]interface{}, deviceName string) error {
-	if mqttClient == nil {
-		return fmt.Errorf("OPC-UA: MQTT client not initialized")
-	}
+func pubData(data map[string]interface{}, deviceName string, deviceId string, server *MQTT.Server) error {
+	// if mqttClient == nil {
+	// 	return fmt.Errorf("OPC-UA: MQTT client not initialized")
+	// }
 
 	for name, value := range data {
 		payload, err := json.Marshal(value)
@@ -148,12 +149,12 @@ func pubData(data map[string]interface{}, deviceName string) error {
 			return fmt.Errorf("OPC-UA: Failed to marshal data for node-name %s: %v", name, err)
 		}
 
-		topic := fmt.Sprintf("data/opcua/%s/%s", deviceName, name)
-		token := mqttClient.Publish(topic, 1, false, payload)
-		token.Wait()
-		if token.Error() != nil {
-			return fmt.Errorf("OPC-UA: Failed to publish data for node-name %s: %v", name, token.Error())
+		topic := fmt.Sprintf("data/opcua/%s/%s", deviceId, name)
+		err = server.Publish(topic, []byte(payload), false, 1)
+		if err != nil {
+			return fmt.Errorf("OPC-UA: Failed to publish data for node-name %s: %v", name, err)
 		}
+
 	}
 
 	return nil

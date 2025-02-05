@@ -33,7 +33,7 @@ func main() {
 	nodeRedURL = "http://localhost:7777"
 
 	// Start MQTT-Broker
-	mqtt_broker.StartBroker(db)
+	server := mqtt_broker.StartBroker(db)
 	logrus.Info("MAIN: Broker started.")
 
 	// User Management für den MQTT-Broker + Listening for changes
@@ -50,7 +50,7 @@ func main() {
 		time.Sleep(100 * time.Millisecond)
 	}
 	// Web-UI
-	go webui.Main(db, nodeRedURL)
+	go webui.Main(db, server)
 	// defer webui.Stop()
 	logrus.Info("MAIN: Web-UI-server started.")
 
@@ -60,7 +60,7 @@ func main() {
 
 	// DRIVER
 	// Initial all driver start if the configuration exists
-	// logic.StartAllDrivers(db)
+	go logic.StartAllDrivers(db, server)
 
 	// Zwischenspeicherung aller in den letzten empfangen Werte und start der jeweiligen Data Routes zum Forwarding
 	// go dataforwarding.CacheMqttData(db, cacheDuration)

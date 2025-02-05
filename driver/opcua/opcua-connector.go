@@ -60,20 +60,20 @@ func InitClient(address, securityPolicy string, securityMode ua.MessageSecurityM
 	return client, nil
 }
 
-func ReadData(client *opcua.Client, selectedNodes []string) ([]*ua.DataValue, error) {
+func ReadData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 	if client == nil {
 		return nil, errors.New("OPC-UA: client not connected")
 	}
 
 	readRequest := &ua.ReadRequest{
-		NodesToRead:        make([]*ua.ReadValueID, len(selectedNodes)),
+		NodesToRead:        make([]*ua.ReadValueID, len(nodes)),
 		TimestampsToReturn: ua.TimestampsToReturnBoth,
 	}
 
-	for i, nodeID := range selectedNodes {
-		parsedNodeID, err := ua.ParseNodeID(nodeID)
+	for i, dn := range nodes {
+		parsedNodeID, err := ua.ParseNodeID(dn.Node)
 		if err != nil {
-			logrus.Errorf("OPC-UA: failed to parse node ID '%s': %v", nodeID, err)
+			logrus.Errorf("OPC-UA: failed to parse node ID '%s': %v", dn.Node, err)
 			return nil, errors.New("failed to parse node ID")
 		}
 		readRequest.NodesToRead[i] = &ua.ReadValueID{
@@ -94,7 +94,7 @@ func ReadData(client *opcua.Client, selectedNodes []string) ([]*ua.DataValue, er
 
 	for i, result := range readResponse.Results {
 		if result.Status != ua.StatusOK {
-			logrus.Errorf("OPC-UA: reading node '%s' failed with status: %v", selectedNodes[i], result.Status)
+			logrus.Errorf("OPC-UA: reading node '%s' failed with status: %v", nodes[i], result.Status)
 			continue
 		}
 		successfulResults = append(successfulResults, result)

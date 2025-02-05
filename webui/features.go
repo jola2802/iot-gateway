@@ -259,12 +259,6 @@ func addImageProcess(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Image processing started successfully"})
 }
 
-func getNodeRedURL(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"nodeRedURL": nodeRedURL})
-
-	logrus.Info("Node-RED URL sent to client:", nodeRedURL)
-}
-
 func listImgCapProcesses(c *gin.Context) {
 	// Datenbankverbindung holen
 	db, err := getDBConnection(c)

@@ -11,6 +11,7 @@ import (
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
 	"github.com/gopcua/opcua/uatest"
+	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,13 +34,14 @@ type MqttConfig struct {
 // Gerätekonfigurationsstruktur
 
 type DeviceConfig struct {
+	ID              string      `json:"id"`
 	Type            string      `json:"type"`
 	Name            string      `json:"name"`
 	Address         string      `json:"address"`
 	SecurityMode    string      `json:"securityMode,omitempty"`   // Only for OPC UA
 	SecurityPolicy  string      `json:"securityPolicy,omitempty"` // Only for OPC UA
 	Datapoint       []Datapoint `json:"datapoints,omitempty"`     // Only for S7
-	DataNode        []string    `json:"dataNodes,omitempty"`      // Only for OPC UA
+	DataNode        []DataNode  `json:"dataNodes,omitempty"`      // Only for OPC UA
 	AcquisitionTime int         `json:"acquisitionTime"`
 	CertFile        string      `json:"certificate,omitempty"` // Only for OPC UA
 	KeyFile         string      `json:"key,omitempty"`         // Only for OPC UA
@@ -53,6 +55,11 @@ type Datapoint struct {
 	Name     string `json:"name"`
 	Datatype string `json:"datatype"`
 	Address  string `json:"address"`
+}
+
+type DataNode struct {
+	Name string `json:"name"`
+	Node string `json:"node"`
 }
 
 // GetSecurityMode converts a security mode string to a ua.MessageSecurityMode type.
@@ -91,18 +98,19 @@ func GetSecurityMode(mode string) ua.MessageSecurityMode {
 //	client, _ := InitClient("opc.tcp://localhost:4840", ua.MessageSecurityModeNone, "MySecurityPolicy")
 //	stopChan := make(chan struct{})
 //	collectAndPublishData(device, client, stopChan)
-func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan chan struct{}) error {
-	nodes := device.DataNode
+func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan chan struct{}, server *MQTT.Server) error {
+	dataNodes := device.DataNode
+
 	sleeptime := time.Duration(time.Duration(device.AcquisitionTime) * time.Millisecond)
-	maxAttempts := 10 // Maximale Anzahl von Versuchen
-	attempts := 0     // Zählt die Fehlversuche
+	maxAttempts := 1000 // Maximale Anzahl von Versuchen
+	attempts := 0       // Zählt die Fehlversuche
 
 	for {
 		select {
 		case <-stopChan:
 			return nil
 		default:
-			data, err := ReadData(client, nodes)
+			data, err := ReadData(client, dataNodes)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Error reading data from %v: %s", device.Name, err)
 				attempts++
@@ -114,7 +122,7 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 				continue
 			}
 
-			convData, err := ConvData(client, data, nodes)
+			convData, err := ConvData(client, data, dataNodes)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Error converting data from %v: %s", device.Name, err)
 				attempts++
@@ -126,7 +134,7 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 				continue
 			}
 
-			err = pubData(convData, device.Name)
+			err = pubData(convData, device.Name, device.ID, server)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Error publishing data from %v: %s", device.Name, err)
 				attempts++
@@ -185,21 +193,21 @@ func LoadMqttConfigFromDB(db *sql.DB, username string) (*MqttConfig, error) {
 //	device (DeviceConfig): The device configuration.
 //	db (*sql.DB): The database connection.
 //	stopChan (chan struct{}): The stop channel.
-func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}) error {
+func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
 	// MQTT-Client initialisieren
-	mqttConfig, err := LoadMqttConfigFromDB(db, device.Name)
-	if err != nil {
-		mqttConfig, err = LoadMqttConfigFromDB(db, "admin")
-		if err != nil {
-			logrus.Errorf("OPC-UA: Error loading MQTT config from DB: %v", err)
-			return fmt.Errorf("failed to load MQTT config for device %v: %v", device.Name, err)
-		}
-	}
-	initMqttClient(*mqttConfig)
+	// mqttConfig, err := LoadMqttConfigFromDB(db, device.Name)
+	// if err != nil {
+	// 	mqttConfig, err = LoadMqttConfigFromDB(db, "admin")
+	// 	if err != nil {
+	// 		logrus.Errorf("OPC-UA: Error loading MQTT config from DB: %v", err)
+	// 		return fmt.Errorf("failed to load MQTT config for device %v: %v", device.Name, err)
+	// 	}
+	// }
+	// initMqttClient(*mqttConfig)
 
 	// OPC-UA-Client initialisieren
 	// Zertifikate und Schlüssel für den OPC-UA-Client setzen
-	if device.SecurityPolicy != "None" {
+	if device.SecurityPolicy != "None" || device.SecurityPolicy != "none" {
 		device.CertFile = "server.crt" // Setze den Pfad zu deinem Zertifikat
 		device.KeyFile = "server.key"  // Setze den Pfad zu deinem Schlüssel
 	}
@@ -222,10 +230,10 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}) error {
 	addOpcuaClient(device.Name, client)
 
 	// Start MQTT data update listener
-	startMqttDataUpdateListener("data/opcua/update/#")
+	// startMqttDataUpdateListener("data/opcua/update/#")
 
 	// Daten vom OPC-UA-Client sammeln und veröffentlichen
-	err = collectAndPublishData(device, client, stopChan)
+	err = collectAndPublishData(device, client, stopChan, server)
 	if err != nil {
 		return err
 	}

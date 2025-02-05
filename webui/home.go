@@ -64,7 +64,7 @@ func RestartGateway(input interface{}) {
 	// Restart All Drivers
 	logic.RestartAllDrivers(db)
 
-	logic.RestartMqttListener(db)
+	// logic.RestartMqttListener(db)
 
 	logrus.Info("Gateway restarted successfully")
 

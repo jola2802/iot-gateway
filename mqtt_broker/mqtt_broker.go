@@ -33,48 +33,42 @@ type Config struct {
 	Listeners []ListenerConfig `json:"listeners"`
 }
 
-// StartBroker startet den Mochi MQTT Broker
-func StartBroker(db *sql.DB) {
+// StartBroker initialisiert den Broker synchron und startet den blockierenden Serve-Loop asynchron.
+func StartBroker(db *sql.DB) *mqtt.Server {
 	once.Do(func() {
-		go startBrokerInstance(db)
+		// Synchronously initialisieren und das Serverobjekt zuweisen.
+		server = startBrokerInstance(db)
+
+		// Starten des blockierenden Serve-Loops in einer eigenen Goroutine.
+		go func() {
+			if err := server.Serve(); err != nil {
+				logrus.Fatalf("MQTT-Broker: Serve error: %v", err)
+			}
+		}()
 	})
+	return server
 }
 
-// startBrokerInstance startet den MQTT Broker und verwendet Authentifizierungsdaten aus SQLite
-func startBrokerInstance(db *sql.DB) {
-	// Signal-Handler für das Beenden des Brokers
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		done <- true
-	}()
-
-	// Add Admin User
-	err := logic.AddAdminUser(db)
-	if err != nil {
+// startBrokerInstance erstellt und konfiguriert den MQTT Broker und gibt ihn synchron zurück.
+func startBrokerInstance(db *sql.DB) *mqtt.Server {
+	// Verwaltung des Admin-Zugangs und der Benutzer-/Driver-Zugriffe.
+	if err := logic.AddAdminUser(db); err != nil {
 		logrus.Fatal("Failed to manage Admin access: ", err)
 	}
-
-	// Funktionen aus dem logic-Package aufrufen, um Benutzer zu erstellen
-	err = logic.WebUIAccessManagement(db)
-	if err != nil {
+	if err := logic.WebUIAccessManagement(db); err != nil {
 		logrus.Fatal("Failed to manage Web-UI access: ", err)
 	}
-
-	err = logic.DriverAccessManagement(db)
-	if err != nil {
+	if err := logic.DriverAccessManagement(db); err != nil {
 		logrus.Fatal("Failed to manage driver access: ", err)
 	}
 
-	// Authentifizierungsdaten aus der Datenbank laden
+	// Authentifizierungsdaten aus der Datenbank laden.
 	authData, err := loadAuthDataFromDB(db)
 	if err != nil {
 		logrus.Fatal("Failed to load auth data from the database: ", err)
 	}
 
-	// Generiere ein selbstsigniertes Zertifikat für TLS
+	// Generierung eines selbstsignierten Zertifikats für TLS.
 	cert, err := logic.GenerateSelfSignedCert()
 	if err != nil {
 		logrus.Fatalf("MQTT-Broker: Failed to generate self-signed certificate: %v", err)
@@ -83,34 +77,32 @@ func startBrokerInstance(db *sql.DB) {
 		Certificates: []tls.Certificate{cert},
 	}
 
-	// Erstelle den neuen MQTT-Server
-	server = mqtt.New(nil)
-
-	// Füge den Authentifizierungs-Hook hinzu, der die geladenen Daten verwendet
-	err = server.AddHook(new(auth.Hook), &auth.Options{
-		Data: authData, // Authentifizierungsdaten aus der Datenbank
+	// Erzeugen des neuen MQTT-Servers.
+	s := mqtt.New(&mqtt.Options{
+		InlineClient: true,
 	})
-	if err != nil {
-		logrus.Fatalf("MQTT-Broker: Failed to add auth hook: %v", err)
+
+	// Hinzufügen des Authentifizierungs-Hooks mit den geladenen Daten.
+	if err := s.AddHook(new(auth.Hook), &auth.Options{Data: authData}); err != nil {
+		logrus.Fatal("MQTT-Broker: Failed to add auth hook: ", err)
 	}
 
-	// Erstelle die verschiedenen Listener
-	createListeners(server, tlsConfig)
+	// Listener anhand der Konfiguration hinzufügen.
+	if err := createListeners(s, tlsConfig); err != nil {
+		logrus.Fatal("MQTT-Broker: Error adding listeners: ", err)
+	}
 
-	// Starte den Server
+	// Signal-Handler in einer separaten Goroutine, um bei SIGINT/SIGTERM den Broker (und die DB) sauber zu schließen.
 	go func() {
-		err := server.Serve()
-		if err != nil {
-			logrus.Fatal(err)
-		}
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		<-sigs
+		s.Close()
+		db.Close()
+		logrus.Info("MQTT Broker shutdown triggered by signal")
 	}()
 
-	// Warte auf das Beenden-Signal
-	<-done
-
-	// Cleanup
-	server.Close()
-	db.Close()
+	return s
 }
 
 func loadConfig(filename string) (*Config, error) {

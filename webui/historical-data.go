@@ -53,7 +53,16 @@ func queryDataHandler(c *gin.Context) {
 
 	queryAPI := client.QueryAPI(influxOrg)
 
-	startTime, err := parseCustomTime(requestData.Start)
+	location, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		logrus.Errorf("Failed to load location: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load location"})
+		return
+	}
+
+	// Startzeit mit dem erwarteten Format (ISO-8601 mit T) parsen
+	const inputFormat = "2006-01-02T15:04" // Format des Eingabewerts
+	startTime, err := time.ParseInLocation(inputFormat, requestData.Start, location)
 	if err != nil {
 		logrus.Errorf("Failed to parse start time: %s. Ensure it is in the correct format.", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start time format. Expected format (e.g., 2025-01-26T15:50)."})
@@ -75,7 +84,7 @@ func queryDataHandler(c *gin.Context) {
 		from(bucket: "%s")
 		|> range(start: %s, stop: %s)
 		|> filter(fn: (r) => r["_measurement"] == %q and r["_field"] == "value")
-	`, influxBucket, startTime.Format(time.RFC3339), stopTime.Format(time.RFC3339), requestData.Measurement)
+	`, influxBucket, startTime.UTC().Format(time.RFC3339), stopTime.UTC().Format(time.RFC3339), requestData.Measurement)
 
 	// Query ausführen
 	result, err := queryAPI.Query(c, query)
@@ -173,15 +182,4 @@ func getMeasurements(c *gin.Context) {
 
 	// Measurements zurückgeben
 	c.JSON(http.StatusOK, gin.H{"measurements": measurements})
-}
-
-// Funktion zur Verarbeitung von unvollständigen Zeitangaben und Rückgabe eines RFC3339-konformen Strings
-func parseCustomTime(input string) (time.Time, error) {
-	// Unvollständiges Zeitformat `YYYY-MM-DDTHH:MM`
-	customFormat := "2006-01-02T15:04"
-	parsedTime, err := time.Parse(customFormat, input)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return parsedTime, nil
 }

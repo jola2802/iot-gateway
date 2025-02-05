@@ -9,6 +9,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func showBrokerPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "broker.html", nil)
+}
+
 // Gibt User und deren ACL-Einträge zurück
 func getBrokerUsers(c *gin.Context) {
 	db, err := getDBConnection(c)

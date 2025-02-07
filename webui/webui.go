@@ -31,8 +31,8 @@ type Config struct {
 var server *MQTT.Server
 
 // Main function to start the web server
-func Main(db *sql.DB, server *MQTT.Server) {
-	server = server
+func Main(db *sql.DB, serverF *MQTT.Server) {
+	server = serverF
 
 	if db == nil {
 		logrus.Fatal("Database connection is not initalized.")
@@ -53,6 +53,7 @@ func Main(db *sql.DB, server *MQTT.Server) {
 	// Store the db connection in the context, so it can be accessed in route handlers
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
+		c.Set("server", server)
 		c.Next()
 	})
 

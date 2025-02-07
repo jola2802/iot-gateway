@@ -349,7 +349,7 @@ function initializeEditDeviceModal(device_id) {
                 });
 
             }
-            datapointsTableBody.appendChild(createEmptyRow());
+            datapointsTableBody.appendChild(createEmptyRow(deviceData.deviceType));
 
         } catch (error) {
             console.error(`Error fetching device details: ${error.message}`);
@@ -568,10 +568,10 @@ function initializeEditDeviceModal(device_id) {
     localStorage.setItem('device_id', device_id);
 }
 
-function createEmptyRow() {
+function createEmptyRow(deviceType) {
     const emptyRow = document.createElement('tr');
 
-    // Leere Felder für Datapoint ID
+    // Spalte: Datapoint ID
     const idCell = document.createElement('td');
     const idInput = document.createElement('input');
     idInput.type = 'text';
@@ -580,7 +580,7 @@ function createEmptyRow() {
     idCell.appendChild(idInput);
     emptyRow.appendChild(idCell);
 
-    // Leere Felder für Name
+    // Spalte: Datapoint Name
     const nameCell = document.createElement('td');
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
@@ -589,20 +589,37 @@ function createEmptyRow() {
     nameCell.appendChild(nameInput);
     emptyRow.appendChild(nameCell);
 
-    // Dropdown für Datatype
+    // Spalte: Datatype – nur bei s7 als Dropdown; bei opc-ua statisch oder leer
     const datatypeCell = document.createElement('td');
-    const datatypeSelect = document.createElement('select');
-    datatypeSelect.className = 'form-select';
-    ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
-        const option = document.createElement('option');
-        option.value = type;
-        option.textContent = type;
-        datatypeSelect.appendChild(option);
-    });
-    datatypeCell.appendChild(datatypeSelect);
+    if (deviceType === 's7') {
+        const datatypeSelect = document.createElement('select');
+        datatypeSelect.className = 'form-select';
+        ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            datatypeSelect.appendChild(option);
+        });
+        datatypeCell.appendChild(datatypeSelect);
+    } else if (deviceType === 'opc-ua') {
+        // Bei OPC-UA ist die Auswahl des Datentyps nicht relevant.
+        // Wir können hier einen statischen Text anzeigen oder das Feld leer lassen.
+        datatypeCell.textContent = 'N/A';
+    } else {
+        // Fallback: Dropdown erstellen
+        const datatypeSelect = document.createElement('select');
+        datatypeSelect.className = 'form-select';
+        ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            datatypeSelect.appendChild(option);
+        });
+        datatypeCell.appendChild(datatypeSelect);
+    }
     emptyRow.appendChild(datatypeCell);
 
-    // Leere Felder für Address / Node ID
+    // Spalte: Address / Node ID
     const addressCell = document.createElement('td');
     const addressInput = document.createElement('input');
     addressInput.type = 'text';
@@ -611,13 +628,20 @@ function createEmptyRow() {
     addressCell.appendChild(addressInput);
     emptyRow.appendChild(addressCell);
 
-    // Action Cell mit Speicher-Button
+    // Spalte: Aktion (Save-Button)
     const actionCell = document.createElement('td');
     const saveButton = document.createElement('button');
     saveButton.className = 'btn btn-success';
     saveButton.textContent = 'Save';
     saveButton.addEventListener('click', () => {
-        saveDatapoint(idInput.value, nameInput.value, datatypeSelect.value, addressInput.value);
+        // Bei s7 wird der ausgewählte Datentyp übergeben,
+        // bei opc-ua kann ein fester Wert oder null übergeben werden.
+        let datatypeValue = null;
+        if (deviceType === 's7') {
+            // Hier nehmen wir den Wert aus dem select-Feld
+            datatypeValue = emptyRow.querySelector('select').value;
+        }
+        saveDatapoint(idInput.value, nameInput.value, datatypeValue, addressInput.value, deviceType);
     });
     actionCell.appendChild(saveButton);
     emptyRow.appendChild(actionCell);
@@ -625,8 +649,9 @@ function createEmptyRow() {
     return emptyRow;
 }
 
-function saveDatapoint(id, name, datatype, address) {
-    if (!name || !address || !datatype) {
+
+function saveDatapoint(id, name, datatype, address, deviceType) {
+    if (!name || !address || !datatype && deviceType === 's7') {
         alert('Please fill all fields before saving!');
         return;
     }
@@ -675,4 +700,26 @@ function saveDatapoint(id, name, datatype, address) {
 
     const inputs = lastRow.querySelectorAll('input, select');
     inputs.forEach(input => (input.value = ''));
+}
+
+// Ergänze diese Hilfsfunktion irgendwo im selben Skript (z. B. unterhalb von fetchAndPopulateDevices)
+function confirmDeleteDevice(deviceId) {
+    // Einfaches Bestätigungs-Dialogfenster
+    if (confirm(`Möchten Sie das Gerät mit der ID ${deviceId} wirklich löschen?`)) {
+        // API-Aufruf an das Backend zum Löschen (per DELETE oder POST, je nach Server-Implementierung)
+        fetch(`/api/delete-device/${deviceId}`, { method: 'DELETE' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Fehler beim Löschen (HTTP ${response.status}).`);
+                }
+                alert('Gerät erfolgreich gelöscht!');
+                // Seite aktualisieren oder Tabelle neu laden, damit das gelöschte Gerät nicht mehr angezeigt wird
+                // fetchAndPopulateDevices();
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Fehler beim Löschen des Geräts:', error);
+                alert('Ein unbekannter Fehler ist aufgetreten.');
+            });
+    }
 }

@@ -1,6 +1,3 @@
-// const BASE_PATH = 'http://localhost:7777';
-// const WS_PATH = 'ws://localhost:7777';
-
 initWebSocket(WS_PATH);
 
 // Funktion zum Aktualisieren der Device-Tabellen
@@ -112,13 +109,19 @@ async function fetchAndPopulateDevices() {
             statusIcon.style.borderRadius = '50%';
             statusIcon.style.marginRight = '5px';
 
-            if (device.status === 'running') {
+            if (device.status === '1 (running)') {
                 statusIcon.style.backgroundColor = 'green';
                 statusIcon.title = 'running';
             } else if (device.status === 'stopped') {
                 statusIcon.style.backgroundColor = 'orange';
                 statusIcon.title = 'stopped';
             } else if (device.status === 'error') {
+                statusIcon.style.backgroundColor = 'red';
+                statusIcon.title = 'error';
+            } else if (device.status === '2 (initializing)') {
+                statusIcon.style.backgroundColor = 'gray';
+                statusIcon.title = 'initializing';
+            } else {
                 statusIcon.style.backgroundColor = 'red';
                 statusIcon.title = 'error';
             }
@@ -148,9 +151,16 @@ async function fetchAndPopulateDevices() {
             const deleteButton = document.createElement('a');
             deleteButton.className = 'btn btnMaterial btn-flat accent btnNoBorders checkboxHover';
             deleteButton.style.marginLeft = '5px';
-            deleteButton.setAttribute('data-bs-toggle', 'modal');
-            deleteButton.setAttribute('data-bs-target', '#delete-modal');
+            // deleteButton.setAttribute('data-bs-toggle', 'modal');
+            // deleteButton.setAttribute('data-bs-target', '#delete-modal');
             deleteButton.innerHTML = '<i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>';
+
+            // Klickevent-Listener, der die oben definierte Löschfunktion aufruft
+            deleteButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                confirmDeleteDevice(device.id); // Hier wird das jeweilige Gerät anhand seiner ID gelöscht
+            });
+
             actionsCell.appendChild(deleteButton);
 
             row.appendChild(actionsCell);

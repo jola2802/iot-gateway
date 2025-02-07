@@ -579,15 +579,11 @@ func addDevice(c *gin.Context) {
 	}
 
 	// Extrahiere die Datenbankverbindung aus dem Context
-	db, exists := c.Get("db")
-	if !exists {
-		logrus.Println("Error retrieving database connection from context")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving database connection"})
-		return
-	}
+	db, _ := getDBConnection(c)
 
+	var exists bool
 	// Überprüfen, ob der Gerätename bereits existiert
-	err := db.(*sql.DB).QueryRow("SELECT EXISTS(SELECT 1 FROM devices WHERE name = ?)", deviceData.DeviceName).Scan(&exists)
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM devices WHERE name = ?)", deviceData.DeviceName).Scan(&exists)
 	if err != nil {
 		logrus.Println("Error checking if device name exists:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error checking if device name exists"})
@@ -604,43 +600,33 @@ func addDevice(c *gin.Context) {
 		INSERT INTO devices (type, name, address, acquisition_time, security_mode, security_policy, rack, slot, username, password, status)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	_, err = db.(*sql.DB).Exec(query, deviceData.DeviceType, deviceData.DeviceName, deviceData.Address,
-		deviceData.AcquisitionTime, deviceData.SecurityMode, deviceData.SecurityPolicy, deviceData.Rack, deviceData.Slot, deviceData.Username, deviceData.Password, "running")
+	_, err = db.Exec(query, deviceData.DeviceType, deviceData.DeviceName, deviceData.Address,
+		deviceData.AcquisitionTime, deviceData.SecurityMode, deviceData.SecurityPolicy, deviceData.Rack, deviceData.Slot, deviceData.Username, deviceData.Password, "init")
 	if err != nil {
 		logrus.Println("Error inserting device data into the database:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting device data"})
 		return
 	}
 
-	// Hole einen MQTT-Client aus dem Pool
-	mqttClient := getPooledMQTTClient(mqttClientPool, db.(*sql.DB))
-	defer releaseMQTTClient(mqttClientPool, mqttClient) // Gib den Client nach der Nutzung zurück
-
 	// Erstelle das MQTT-Topic
 	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceData.DeviceType, deviceData.DeviceName)
-	token := mqttClient.Publish(topic, 0, false, "2 (initializing)")
-	token.Wait()
+	server.Publish(topic, []byte("2 (initializing)"), false, 1)
 
-	// RestartGateway(db)
+	RestartGateway(db)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Device added successfully"})
 }
 
 func deleteDevice(c *gin.Context) {
-	deviceName := c.Param("deviceName")
+	device_id := c.Param("device_id")
 
-	// Extrahiere die Datenbankverbindung aus dem Context
-	db, exists := c.Get("db")
-	if !exists {
-		logrus.Println("Error retrieving database connection from context")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving database connection"})
-		return
-	}
+	db, _ := getDBConnection(c)
+	server, _ := getMQTTServer(c)
 
 	// Gerätetyp aus der Datenbank abrufen
 	var deviceType string
-	query := ` SELECT type FROM devices WHERE name = ?`
-	err := db.(*sql.DB).QueryRow(query, deviceName).Scan(&deviceType)
+	query := ` SELECT type FROM devices WHERE id = ?`
+	err := db.QueryRow(query, device_id).Scan(&deviceType)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Device not found"})
@@ -652,22 +638,18 @@ func deleteDevice(c *gin.Context) {
 	}
 
 	// Lösche das Gerät direkt aus der 'devices'-Tabelle
-	query = `DELETE FROM devices WHERE name = ?`
-	_, err = db.(*sql.DB).Exec(query, deviceName)
+	query = `DELETE FROM devices WHERE id = ?`
+	_, err = db.Exec(query, device_id)
 	if err != nil {
 		logrus.Println("Error deleting device from the database:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting device"})
 		return
 	}
 
-	// Hole einen MQTT-Client aus dem Pool
-	mqttClient := getPooledMQTTClient(mqttClientPool, db.(*sql.DB))
-	defer releaseMQTTClient(mqttClientPool, mqttClient) // Gib den Client nach der Nutzung zurück
-
 	// Erstelle das MQTT-Topic
-	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceType, deviceName)
-	token := mqttClient.Publish(topic, 0, false, "9 (deleted)")
-	token.Wait()
+	payload := ""
+	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceType, device_id)
+	server.Publish(topic, []byte(payload), false, 1)
 
 	RestartGateway(db)
 
@@ -690,13 +672,9 @@ func updateDeviceStatus(c *gin.Context) {
 	}
 
 	// Hole die Datenbankverbindung aus dem Context
-	db, exists := c.Get("db")
-	if !exists {
-		logrus.Println("Error retrieving database connection from context")
-		return
-	}
+	db, _ := getDBConnection(c)
 
-	err := sendMQTTControlMessage(controlData.DeviceType, deviceName, controlData.Action, db.(*sql.DB))
+	err := sendMQTTControlMessage(controlData.DeviceType, deviceName, controlData.Action, db)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error sending MQTT message"})
 		return
@@ -741,16 +719,11 @@ func updateDevice(c *gin.Context) {
 	logrus.Infof("Recieved data:  %+v", updatedDevice)
 
 	// Extrahiere die Datenbankverbindung aus dem Context
-	db, exists := c.Get("db")
-	if !exists {
-		logrus.Println("Error retrieving database connection from context")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving database connection"})
-		return
-	}
+	db, _ := getDBConnection(c)
 
 	// Aktualisiere die allgemeinen Gerätedaten
 	query := `UPDATE devices SET address = ?, acquisition_time = ? WHERE id = ?`
-	_, err := db.(*sql.DB).Exec(query, updatedDevice.Address, updatedDevice.AcquisitionTime, device_id)
+	_, err := db.Exec(query, updatedDevice.Address, updatedDevice.AcquisitionTime, device_id)
 	if err != nil {
 		logrus.Println("Error updating device data:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating device data"})
@@ -761,7 +734,7 @@ func updateDevice(c *gin.Context) {
 	if updatedDevice.DeviceType == "s7" {
 		// Aktualisiere die S7-spezifischen Felder
 		query = `UPDATE devices SET rack = ?, slot = ? WHERE id = ?`
-		_, err := db.(*sql.DB).Exec(query, updatedDevice.Rack, updatedDevice.Slot, device_id)
+		_, err := db.Exec(query, updatedDevice.Rack, updatedDevice.Slot, device_id)
 		if err != nil {
 			logrus.Println("Error updating S7-specific fields:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating S7-specific fields"})
@@ -769,7 +742,7 @@ func updateDevice(c *gin.Context) {
 		}
 
 		// Aktualisiere die S7-Datapoints
-		_, err = db.(*sql.DB).Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
+		_, err = db.Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 		if err != nil {
 			logrus.Println("Error clearing old datapoints:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old datapoints"})
@@ -781,14 +754,14 @@ func updateDevice(c *gin.Context) {
 			if dp.DatapointId == "" && dp.Address != "" && dp.Name != "" {
 				// Hole die device_id
 				var deviceId int
-				err := db.(*sql.DB).QueryRow(`SELECT id FROM devices WHERE id = ?`, device_id).Scan(&deviceId)
+				err := db.QueryRow(`SELECT id FROM devices WHERE id = ?`, device_id).Scan(&deviceId)
 				if err != nil {
 					logrus.Println("Error retrieving device_id:", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device_id"})
 					return
 				}
 				var nextId int
-				err = db.(*sql.DB).QueryRow(`SELECT COALESCE(MAX(CAST(id AS INTEGER)), 0) + 1 FROM s7_datapoints WHERE device_id = ?`, deviceId).Scan(&nextId)
+				err = db.QueryRow(`SELECT COALESCE(MAX(CAST(id AS INTEGER)), 0) + 1 FROM s7_datapoints WHERE device_id = ?`, deviceId).Scan(&nextId)
 				if err != nil {
 					logrus.Println("Error finding next datapoint ID:", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
@@ -803,7 +776,7 @@ func updateDevice(c *gin.Context) {
 				continue
 			}
 
-			_, err = db.(*sql.DB).Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`, device_id, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
+			_, err = db.Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`, device_id, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
 			if err != nil {
 				logrus.Println("Error inserting new datapoints:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new datapoints"})
@@ -816,7 +789,7 @@ func updateDevice(c *gin.Context) {
 	if updatedDevice.DeviceType == "opc-ua" {
 		// Aktualisiere die OPC-UA-spezifischen Felder
 		query = `UPDATE devices SET security_mode = ?, security_policy = ? WHERE id = ?`
-		_, err := db.(*sql.DB).Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, device_id)
+		_, err := db.Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, device_id)
 		if err != nil {
 			logrus.Println("Error updating OPC-UA-specific fields:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating OPC-UA-specific fields"})
@@ -824,7 +797,7 @@ func updateDevice(c *gin.Context) {
 		}
 
 		// Lösche alte OPC-UA DataNodes
-		_, err = db.(*sql.DB).Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
+		_, err = db.Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 		if err != nil {
 			logrus.Println("Error clearing old OPC-UA nodes:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old OPC-UA nodes"})
@@ -839,7 +812,7 @@ func updateDevice(c *gin.Context) {
 			// Automatische Generierung der DatapointId, falls leer
 			if node.DatapointId == "" && node.Address != "" && node.Name != "" {
 				var nextId int
-				err = db.(*sql.DB).QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, device_id).Scan(&nextId)
+				err = db.QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, device_id).Scan(&nextId)
 				if err != nil {
 					logrus.Println("Error finding next datapoint ID:", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
@@ -856,7 +829,7 @@ func updateDevice(c *gin.Context) {
 			query = `
 				INSERT INTO opcua_datanodes (device_id, datapointId, name, node_identifier)
 				VALUES ( ?, ?, ?, ?)`
-			_, err = db.(*sql.DB).Exec(query, dev_id, node.DatapointId, node.Name, node.Address)
+			_, err = db.Exec(query, dev_id, node.DatapointId, node.Name, node.Address)
 			if err != nil {
 				logrus.Println("Error inserting new OPC-UA nodes:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new OPC-UA nodes"})
@@ -866,12 +839,10 @@ func updateDevice(c *gin.Context) {
 	}
 
 	if updatedDevice.DeviceType == "mqtt" {
-		// Extrahiere die Datenbankverbindung aus dem Context
-		dbConn := db.(*sql.DB)
 
 		// Schritt 1: Überprüfen, ob der Benutzer bereits existiert
 		var existingUser bool
-		err := dbConn.QueryRow("SELECT EXISTS(SELECT 1 FROM auth WHERE username = ?)", updatedDevice.DeviceName).Scan(&existingUser)
+		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM auth WHERE username = ?)", updatedDevice.DeviceName).Scan(&existingUser)
 		if err != nil {
 			logrus.Println("Error checking if user exists:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error checking if user exists"})
@@ -880,7 +851,7 @@ func updateDevice(c *gin.Context) {
 
 		if existingUser {
 			// Schritt 2: Benutzer existiert, Passwort aktualisieren
-			_, err = dbConn.Exec("UPDATE auth SET password = ? WHERE username = ?", updatedDevice.Password, updatedDevice.DeviceName)
+			_, err = db.Exec("UPDATE auth SET password = ? WHERE username = ?", updatedDevice.Password, updatedDevice.DeviceName)
 			if err != nil {
 				logrus.Println("Error updating password:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating password"})
@@ -888,7 +859,7 @@ func updateDevice(c *gin.Context) {
 			}
 		} else {
 			// Schritt 3: Benutzer existiert nicht, neuen Benutzer erstellen
-			_, err = dbConn.Exec("INSERT INTO auth (username, password, allow) VALUES (?, ?, ?)", updatedDevice.DeviceName, updatedDevice.Password, 1)
+			_, err = db.Exec("INSERT INTO auth (username, password, allow) VALUES (?, ?, ?)", updatedDevice.DeviceName, updatedDevice.Password, 1)
 			if err != nil {
 				logrus.Println("Error adding new MQTT user:", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error adding new MQTT user"})
@@ -900,7 +871,7 @@ func updateDevice(c *gin.Context) {
 		deviceTopic := fmt.Sprintf("data/mqtt/%s/#", updatedDevice.DeviceName)
 
 		// Lösche vorhandene ACL-Einträge für diesen Benutzer und dieses Topic
-		_, err = dbConn.Exec("DELETE FROM acl WHERE username = ? ", updatedDevice.DeviceName)
+		_, err = db.Exec("DELETE FROM acl WHERE username = ? ", updatedDevice.DeviceName)
 		if err != nil {
 			logrus.Println("Error deleting existing ACL entries:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting existing ACL entries"})
@@ -908,8 +879,8 @@ func updateDevice(c *gin.Context) {
 		}
 
 		// Schritt 5: Füge neuen ACL-Eintrag für diesen Benutzer hinzu
-		_, err1 := dbConn.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, "#", 0)
-		_, err2 := dbConn.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, deviceTopic, 3)
+		_, err1 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, "#", 0)
+		_, err2 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, deviceTopic, 3)
 		if err1 != nil || err2 != nil {
 			logrus.Println("Error adding ACL entry:", err1, err2)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error adding ACL entry"})
@@ -920,6 +891,8 @@ func updateDevice(c *gin.Context) {
 
 		logrus.Infof("MQTT device and user updated successfully for %s", updatedDevice.DeviceName)
 	}
+
+	RestartGateway(db)
 
 	// Erfolgreiche Antwort senden
 	c.JSON(http.StatusOK, gin.H{"message": "success"})

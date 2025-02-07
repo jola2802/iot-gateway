@@ -228,19 +228,24 @@
         "id": "972ccc72943d2074",
         "type": "group",
         "z": "1728e7a0cbf4dbd0",
-        "name": "Weitergeben und Visualisieren der Live-Daten",
+        "name": "Speichern und Visualisieren der Live-Daten",
         "style": {
-            "label": true
+            "label": true,
+            "fill": "#92d04f",
+            "label-position": "n",
+            "color": "#000000"
         },
         "nodes": [
             "dee49bb2a91064b4",
             "958671caf54728ea",
-            "e2b68dcc1b60ff4d"
+            "e2b68dcc1b60ff4d",
+            "07fa8726ccff723c",
+            "9e011b41b28a9ec5"
         ],
-        "x": 1074,
-        "y": 919,
-        "w": 572,
-        "h": 82
+        "x": 274,
+        "y": 859,
+        "w": 692,
+        "h": 142
     },
     {
         "id": "3cb4c7902fc85732",
@@ -765,6 +770,7 @@
         "id": "65281cc92705c4f5",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
+        "d": true,
         "g": "f8a672ffc785a741",
         "name": "GET Data from SQLite",
         "func": "const loadAllProcessData = async () => {\n    return new Promise((resolve, reject) => {\n        const query = `\n            SELECT endpoint, datapoints, device_id, deviceName, acquisition_time, security_policy, security_mode, username, password, updated\n            FROM opcua\n            WHERE active = \"true\"\n        `;\n\n        const db = new sqlite3.Database('/tmp/process.db', (err) => {\n            if (err) {\n                reject(`Fehler beim Öffnen der SQLite-Datenbank: ${err.message}`);\n            }\n        });\n\n        db.all(query, [], (err, rows) => {\n            if (err) {\n                reject(`Fehler beim Abrufen der Daten: ${err.message}`);\n            } else if (rows.length > 0) {\n                resolve(rows);\n            } else {\n                reject('Keine aktiven Prozesse gefunden.');\n            }\n        });\n\n        db.close((err) => {\n            if (err) {\n                node.error(`Fehler beim Schließen der SQLite-Datenbank: ${err.message}`);\n            } else {\n                node.log('Datenbankverbindung geschlossen.');\n            }\n        });\n    });\n};\n\nconst transformDatapoints = (datapoints) => {\n    return datapoints.map((point) => ({\n        name: point.name,\n        nodeId: point.address,\n        datapoint_id: point.datapoint_id,\n    }));\n};\n\n(async () => {\n    try {\n        node.log(\"Lade Gerätedaten aus SQLite...\");\n        const devices = await loadAllProcessData();\n\n        // Transformiere die Datapoints und bereite die Geräte-Daten vor\n        devices.forEach((device) => {\n            device.datapoints = JSON.parse(device.datapoints || \"[]\").map((point) => ({\n                name: point.name,\n                nodeId: point.address,\n                datapoint_id: point.datapoint_id,\n            }));\n        });\n\n        // Geräte-Daten an den Cycle Manager senden\n        msg.payload = devices;\n        node.send(msg);\n\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Gerätedaten gesendet\" });\n    } catch (error) {\n        node.error(`Fehler beim Abrufen der Gerätedaten: ${error.message}`);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Fehler\" });\n    }\n})();\n",
@@ -1188,11 +1194,12 @@
         "rap": true,
         "rh": 0,
         "inputs": 0,
-        "x": 1150,
-        "y": 960,
+        "x": 350,
+        "y": 900,
         "wires": [
             [
-                "e2b68dcc1b60ff4d"
+                "e2b68dcc1b60ff4d",
+                "9e011b41b28a9ec5"
             ]
         ]
     },
@@ -1204,8 +1211,8 @@
         "name": "",
         "server": "01834dd3df2ce705",
         "client": "",
-        "x": 1540,
-        "y": 960,
+        "x": 860,
+        "y": 900,
         "wires": []
     },
     {
@@ -1213,7 +1220,7 @@
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
         "g": "972ccc72943d2074",
-        "name": "convert-data",
+        "name": "convert-data-for-live-show",
         "func": "// Initialisierung: Aggregationsspeicher und Timer (wird nur einmal eingerichtet)\nif (!context.get(\"init\")) {\n    // Aggregationsobjekt zum Speichern der Daten pro device_id\n    context.set(\"aggregated\", {});\n\n    // Timer, der alle 500ms prüft, ob aggregierte Daten vorliegen und diese dann als Block weitergibt\n    var timer = setInterval(function () {\n        var aggregated = context.get(\"aggregated\") || {};\n        var outputArray = [];\n\n        // Für jedes aggregierte Gerät wird ein Objekt erstellt, sofern Messwerte vorhanden sind\n        for (var device in aggregated) {\n            if (aggregated[device].datapoints.length > 0) {\n                outputArray.push(aggregated[device]);\n            }\n        }\n        if (outputArray.length > 0) {\n            // Sende die aggregierten Daten als msg.payload weiter\n            node.send({ payload: outputArray });\n            // Leere den Aggregationsspeicher, um im nächsten Intervall neu zu sammeln\n            context.set(\"aggregated\", {});\n        }\n    }, 500);\n\n    context.set(\"timer\", timer);\n    context.set(\"init\", true);\n}\n\n// Bearbeitung jeder eingehenden Nachricht\n// Beispielhafte Topics: \"data/opcua/1/Hum_1\", \"data/opcua/1/Hum_2\", \"data/s7/3/var1\"\nvar topic = msg.topic;\nvar parts = topic.split(\"/\");\n\n// Überprüfe, ob das Topic das erwartete Format hat: mind. 4 Segmente\nif (parts.length < 4) {\n    node.warn(\"Ungültiges Topic-Format: \" + topic);\n    return null;\n}\n\n// Extrahiere device_id und den Messbezeichner (measurement)\n// parts[0] = \"data\", parts[1] = Gerätetyp (z. B. \"opcua\" oder \"s7\")\n// parts[2] = device_id, parts[3] = measurement (z. B. \"Hum_1\")\nvar device_id = parts[2];\nvar measurement = parts[3];\n\n// Erstelle den Datapoint im gewünschten Format\nvar datapoint = {};\ndatapoint.id = measurement || \"unknown\";\ndatapoint.name = measurement || \"unknown\";\nif (typeof msg.payload === \"number\") {\n    datapoint.value = msg.payload.toFixed(2);\n} else if (!isNaN(Number(msg.payload))) {\n    datapoint.value = Number(msg.payload).toFixed(2);\n} else {\n    datapoint.value = msg.payload || \"unknown\";\n}\n\n// Aggregiere die Daten in einem Kontextobjekt, gruppiert nach device_id\nvar aggregated = context.get(\"aggregated\") || {};\n\n// Falls für das Gerät noch kein Eintrag existiert, anlegen:\nif (!aggregated[device_id]) {\n    aggregated[device_id] = {\n        device_id: device_id,\n        datapoints: []\n    };\n}\n\n// Falls bereits ein Datapoint für das jeweilige measurement existiert, diesen aktualisieren;\n// ansonsten den neuen Datapoint anhängen.\nvar updated = false;\nfor (var i = 0; i < aggregated[device_id].datapoints.length; i++) {\n    if (aggregated[device_id].datapoints[i].id === measurement) {\n        aggregated[device_id].datapoints[i].value = datapoint.value;\n        updated = true;\n        break;\n    }\n}\nif (!updated) {\n    aggregated[device_id].datapoints.push(datapoint);\n}\n\n// Speichere das aktualisierte Aggregationsobjekt zurück in den Kontext\ncontext.set(\"aggregated\", aggregated);\n\n// Es wird kein unmittelbarer Output erzeugt – die Ausgabe erfolgt zyklisch über den Timer\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
@@ -1221,11 +1228,50 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 1330,
-        "y": 960,
+        "x": 650,
+        "y": 900,
         "wires": [
             [
                 "958671caf54728ea"
+            ]
+        ]
+    },
+    {
+        "id": "07fa8726ccff723c",
+        "type": "influxdb batch",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "972ccc72943d2074",
+        "influxdb": "99e16a6e858bbbfe",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "InfluxDB",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "idpm",
+        "bucket": "iot-data",
+        "x": 880,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "9e011b41b28a9ec5",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "972ccc72943d2074",
+        "name": "convert-data-to-store-in-influx-db",
+        "func": "/**\n * Diese Node-RED-Funktion nimmt die von einem MQTT-Broker kommenden Daten\n * (z. B. über ein MQTT-In-Node mit dem Topic \"data/#\") entgegen, extrahiert\n * die device_id (3. Part des Topics) und den eigentlichen Messpunktnamen (letzter Part des Topics).\n * Anschließend wird der Messpunktname so angepasst, dass aus device_id und\n * Name ein gemeinsamer Bezeichner wird (z. B. \"1_Hum_1\").\n * \n * Beispielhafter MQTT-Topic:  data/opcua/1/Hum_1\n *   -> device_id = \"1\"         (topicParts[2])\n *   -> Variablenname = \"Hum_1\" (topicParts[3])\n *   -> Kombinierter Name = \"1_Hum_1\"\n *   -> Wert (Payload) = msg.payload\n * \n * Zusätzlich wird eine feste Datapoint-ID hinzugefügt (dies kann nach Belieben\n * geändert oder dynamisch erzeugt werden).\n * \n * Voraussetzungen:\n * - Das MQTT-In-Node ist auf \"Topic: data/#\" konfiguriert\n * - msg.topic enthält den Topic (z. B. \"data/opcua/1/Hum_1\")\n * - msg.payload enthält den eigentlichen Messwert\n * - Dieses Function Node leitet die umgewandelten Daten an ein InfluxDB-Out-Node weiter\n */\n\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Verarbeite MQTT-Daten...\" });\n\n// Aufteilen des Topics in Segmente\nconst topicParts = msg.topic.split(\"/\");\n\n// Für das Beispiel erwarten wir mindestens 4 Parts: data / <irgendwas> / device_id / name\nif (topicParts.length < 4) {\n    node.error(\"Topic-Format unzureichend. Erwartet wird mindestens data/.../.../....\", msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Fehler beim Topic-Format\" });\n    return null;\n}\n\n// device_id ist der 3. Part (Index 2)\nconst device_id = topicParts[2];\n\n// Der ursprüngliche Variablenname ist das letzte Segment\nconst originalName = topicParts[topicParts.length - 1];\n\n// Kombinierter Name aus device_id und originalName\nconst name = device_id + \"_\" + originalName;\n\n// Der eigentliche Messwert ist in msg.payload\nconst value = msg.payload;\n\n// Falls kein gültiger Payload ankommt, abbrechen\nif (typeof value === \"undefined\") {\n    node.error(\"Kein gültiger Payload im MQTT-Datenpaket.\", msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Fehlerhafter Payload\" });\n    return null;\n}\n\n// Feste Datapoint-ID (Beispielwert)\nconst datapoint_id = \"12312\";\n\n// Objekt für InfluxDB vorbereiten\n// Influx erwartet typischerweise ein Array von Messpunkten\n// Jeder Eintrag enthält \"measurement\" und \"fields\".\nconst influxData = [];\n\n// Ein Messpunkt: measurement = name, fields = { value, datapoint_id }\nconst influxPoint = {\n    measurement: name,\n    fields: {\n        value: value,\n        datapoint_id: datapoint_id\n    }\n};\n\ninfluxData.push(influxPoint);\n\n// In Node-RED übergeben wir die Daten an msg.payload\nmsg.payload = influxData;\n\n// Statusmeldung\nnode.status({ fill: \"green\", shape: \"dot\", text: \"Daten für InfluxDB bereit\" });\n\n// Rückgabe des modifizierten msg-Objekts an den Flow\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 960,
+        "wires": [
+            [
+                "07fa8726ccff723c"
             ]
         ]
     },

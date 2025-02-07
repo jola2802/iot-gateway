@@ -8,38 +8,45 @@ import (
 	opcua "iot-gateway/driver/opcua"
 	s7 "iot-gateway/driver/s7"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
 
 // Define detailed device states
 const (
-	Stopped      = "0 (stopped)"
-	Running      = "1 (running)"
-	Initializing = "2 (initializing)"
-	Error        = "3 (error)"
-	Paused       = "4 (paused)"
-	deleted      = "9 (deleted)"
+	Stopped       = "0 (stopped)"
+	Running       = "1 (running)"
+	Initializing  = "2 (initializing)"
+	Error         = "3 (error)"
+	No_Datapoints = "4 (no datapoints)"
+	Paused        = "4 (paused)"
+	deleted       = "9 (deleted)"
 )
 
 var (
-	opcuaStopChans = make(map[string]chan struct{})
-	s7StopChans    = make(map[string]chan struct{})
-)
-
-// Individuelle Zustände für OPC-UA und S7-Geräte
-var (
+	opcuaStopChans    = make(map[string]chan struct{})
+	s7StopChans       = make(map[string]chan struct{})
 	opcuaDeviceStates = make(map[string]*DeviceState)
 	s7DeviceStates    = make(map[string]*DeviceState)
+	server            *MQTT.Server
+	db                *sql.DB
 )
 
-// General
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Handling-All-Driver %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-func StartAllDrivers(db *sql.DB, server *MQTT.Server) {
+func StartAllDrivers(dbF *sql.DB, serverF *MQTT.Server) {
+	server = serverF
+	db = dbF
 	logrus.Info("DM: Starting all drivers...")
 
-	// Lade die Gerätedaten aus der Datenbank
+	// Setze für alle Geräte initialen Status in der DB
+	if _, err := db.Exec("UPDATE devices SET status = ?", Initializing); err != nil {
+		logrus.Errorf("DM: Error updating devices to initializing: %v", err)
+	}
+
+	// Alle Gerätedaten zwischenlesen und in einem Slice speichern
 	query := `SELECT id, type, name, address, acquisition_time FROM devices`
 	rows, err := db.Query(query)
 	if err != nil {
@@ -47,83 +54,104 @@ func StartAllDrivers(db *sql.DB, server *MQTT.Server) {
 	}
 	defer rows.Close()
 
-	// mqttClient := getPooledMQTTClient(mqttClientPool, db)
-	// defer releaseMQTTClient(mqttClientPool, mqttClient)
-
+	// Verwende ein Slice von []interface{} pro Zeile
+	var devicesData [][]interface{}
 	for rows.Next() {
-		var deviceID, deviceType, deviceName, deviceAddress string
-		var acquisitionTime int
-		if err := rows.Scan(&deviceID, &deviceType, &deviceName, &deviceAddress, &acquisitionTime); err != nil {
+		var id, devType, name, address string
+		var acqTime int
+		if err := rows.Scan(&id, &devType, &name, &address, &acqTime); err != nil {
 			logrus.Errorf("DM: Error scanning device data: %v", err)
 			continue
 		}
+		// Speichere die Zeile als Slice – ohne extra Struct
+		devicesData = append(devicesData, []interface{}{id, devType, name, address, acqTime})
+	}
+	// Jetzt ist der DB-Query abgeschlossen und die DB-Sperre freigegeben
 
-		// Starte den entsprechenden Treiber basierend auf dem Gerätetyp
+	// Treiber anhand der im Slice gespeicherten Daten starten
+	for _, d := range devicesData {
+		// Da wir wissen, dass id, devType, name, address und acqTime in dieser Reihenfolge kommen:
+		deviceID := d[0].(string)
+		deviceType := d[1].(string)
+		deviceName := d[2].(string)
+		// deviceAddress := d[3].(string) // falls benötigt
+		// acquisitionTime := d[4].(int)   // falls benötigt
+
 		switch deviceType {
 		case "opc-ua":
-			StartOPCUADriver(db, deviceName, server)
+			StartOPCUADriver(db, deviceID)
 		case "s7":
-			// StartS7Driver(db, deviceName)
+			StartS7Driver(db, deviceID)
 		case "mqtt":
-			// state := getOrCreateDeviceState(deviceName, opcuaDeviceStates)
-			// state.mu.Lock()
-			// defer state.mu.Unlock()
-
-			// state.status = Running
-			// publishDeviceState(mqttClient, deviceType, deviceName, state.status)
+			// MQTT-Treiber starten, falls erforderlich
 		default:
 			logrus.Warnf("DM: Unknown device type %s for device %s", deviceType, deviceName)
 		}
 	}
+
+	// Aktualisiere in der DB den Status auf Running, sofern noch Initializing gesetzt ist
+	if _, err := db.Exec("UPDATE devices SET status = ? WHERE status = ?", Running, Initializing); err != nil {
+		logrus.Errorf("DM: Error updating devices to running: %v", err)
+	}
+
 	logrus.Info("DM: All drivers started.")
 }
 
 func StopAllDrivers() {
 	logrus.Info("DM: Stopping all drivers...")
 
-	for deviceName := range opcuaDeviceStates {
-		stopOPCUADriver(deviceName)
+	for deviceID := range opcuaDeviceStates {
+		stopOPCUADriver(deviceID)
 	}
 
-	for deviceName := range s7DeviceStates {
-		stopS7Driver(deviceName)
+	for deviceID := range s7DeviceStates {
+		stopS7Driver(deviceID)
 	}
 
 	logrus.Info("DM: All drivers have been stopped.")
 }
 
 func RestartAllDrivers(db *sql.DB) {
-	// logrus.Info("DM: Restarting all drivers...")
-	// StopAllDrivers()
-	// time.Sleep(200 * time.Millisecond)
-	// StartAllDrivers(db)
+	logrus.Info("DM: Restarting all drivers...")
+	StopAllDrivers()
+	time.Sleep(200 * time.Millisecond)
+	StartAllDrivers(db, server)
 }
 
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPC-UA-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 // OPC-UA-Part START
-func StartOPCUADriver(db *sql.DB, deviceName string, server *MQTT.Server) {
-	state := getOrCreateDeviceState(deviceName, opcuaDeviceStates)
+func StartOPCUADriver(db *sql.DB, deviceID string) {
+	state := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
-	// mqttClient := getPooledMQTTClient(mqttClientPool, db)
-	// defer releaseMQTTClient(mqttClientPool, mqttClient)
-
 	state.status = Initializing
-	publishDeviceState(server, "opc-ua", deviceName, state.status)
+	publishDeviceState(server, "opc-ua", deviceID, state.status)
 
 	// Verwende sql.NullString für Felder, die NULL sein könnten
-	var deviceAddress, deviceID string
+	var deviceAddress, deviceName string
 	var securityMode, securityPolicy, certificate, key, username, password sql.NullString
 	var acquisitionTime int
 
 	// Lade die Gerätedaten inklusive Sicherheitsdaten aus der `devices`-Tabelle
-	deviceQuery := `SELECT id, address, acquisition_time, security_mode, security_policy, certificate, key, username, password FROM devices WHERE name = ?`
-	err := db.QueryRow(deviceQuery, deviceName).Scan(&deviceID, &deviceAddress, &acquisitionTime, &securityMode, &securityPolicy, &certificate, &key, &username, &password)
+	deviceQuery := `SELECT name, address, acquisition_time, security_mode, security_policy, certificate, key, username, password FROM devices WHERE id = ?`
+	err := db.QueryRow(deviceQuery, deviceID).Scan(&deviceName, &deviceAddress, &acquisitionTime, &securityMode, &securityPolicy, &certificate, &key, &username, &password)
 	if err != nil {
 		state.status = Error
 		logrus.Errorf("DM: Error querying device data from devices table: %v", err)
-		publishDeviceState(server, "opcua", deviceName, state.status)
+		publishDeviceState(server, "opc-ua", deviceID, state.status)
 		return
+	}
+
+	// Konfiguration für OPC-UA-Gerät erstellen
+	opcuaConfig := opcua.DeviceConfig{
+		ID:              deviceID,
+		Name:            deviceName,
+		Address:         deviceAddress,
+		AcquisitionTime: acquisitionTime,
 	}
 
 	// Lade die OPC-UA-Knoten basierend auf der device_id aus der `opcua_datanodes`-Tabelle
@@ -132,17 +160,35 @@ func StartOPCUADriver(db *sql.DB, deviceName string, server *MQTT.Server) {
 	if err != nil {
 		state.status = Error
 		logrus.Errorf("DM: Error querying OPC-UA nodes from opcua_datanodes table: %v", err)
-		publishDeviceState(server, "opcua", deviceName, state.status)
+		publishDeviceState(server, "opc-ua", deviceID, state.status)
 		return
 	}
 	defer rows.Close()
 
-	// Konfiguration für OPC-UA-Gerät erstellen
-	opcuaConfig := opcua.DeviceConfig{
-		ID:              deviceID,
-		Name:            deviceName,
-		Address:         deviceAddress,
-		AcquisitionTime: acquisitionTime,
+	found := false
+
+	// Iteriere über alle gefundenen Zeilen
+	for rows.Next() {
+		found = true
+		var nodeName, nodeIdentifier string
+		if err := rows.Scan(&nodeName, &nodeIdentifier); err != nil {
+			state.status = No_Datapoints
+			logrus.Errorf("DM: Error scanning OPC-UA node data: %v", err)
+			publishDeviceState(server, "opc-ua", deviceID, state.status)
+			return
+		}
+		opcuaConfig.DataNode = append(opcuaConfig.DataNode, opcua.DataNode{
+			Name: nodeName,
+			Node: nodeIdentifier,
+		})
+	}
+
+	// Falls keine Zeilen gefunden wurden, gib einen Fehler aus und verlasse die Funktion
+	if !found {
+		state.status = No_Datapoints
+		logrus.Errorf("DM: No OPC-UA nodes found for device %s", deviceName)
+		publishDeviceState(server, "opc-ua", deviceID, state.status)
+		return
 	}
 
 	// Nur die nicht-null Werte übernehmen
@@ -169,7 +215,7 @@ func StartOPCUADriver(db *sql.DB, deviceName string, server *MQTT.Server) {
 		if err := rows.Scan(&nodeName, &nodeIdentifier); err != nil {
 			state.status = Error
 			logrus.Errorf("DM: Error scanning OPC-UA node data: %v", err)
-			publishDeviceState(server, "opcua", deviceName, state.status)
+			publishDeviceState(server, "opc-ua", deviceID, state.status)
 			return
 		}
 		// Füge die Knoten zur Konfiguration hinzu
@@ -181,25 +227,25 @@ func StartOPCUADriver(db *sql.DB, deviceName string, server *MQTT.Server) {
 
 	// Starte den OPC-UA-Treiber mit den geladenen Daten
 	stopChan := make(chan struct{})
-	opcuaStopChans[deviceName] = stopChan
+	opcuaStopChans[deviceID] = stopChan
 
 	// Starte den OPC-UA-Treiber mit den geladenen Daten
 	go func() {
 		err := opcua.Run(opcuaConfig, db, stopChan, server)
 		if err != nil {
 			// Setze den Gerätestatus auf Error, wenn ein Fehler auftritt
-			state := getOrCreateDeviceState(deviceName, opcuaDeviceStates)
+			state := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
 			state.mu.Lock()
 			defer state.mu.Unlock()
 			state.status = Error
-			publishDeviceState(server, "opcua", deviceName, state.status)
+			publishDeviceState(server, "opc-ua", deviceID, state.status)
 			logrus.Errorf("DM: Error running OPC-UA driver for device %s: %v", deviceName, err)
 		}
 	}()
 
 	state.running = true
 	state.status = Running
-	publishDeviceState(server, "opcua", deviceName, state.status)
+	publishDeviceState(server, "opc-ua", deviceID, state.status)
 	logrus.Infof("DM: OPC-UA driver started for device %s.", deviceName)
 }
 
@@ -211,24 +257,28 @@ func StartOPCUADriver(db *sql.DB, deviceName string, server *MQTT.Server) {
 // Example:
 //
 //	stopOPCUADriver("device-123")
-func stopOPCUADriver(deviceName string) {
-	// state := getOrCreateDeviceState(deviceName, opcuaDeviceStates)
-	// state.mu.Lock()
-	// defer state.mu.Unlock()
+func stopOPCUADriver(deviceID string) {
+	state := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
+	state.mu.Lock()
+	defer state.mu.Unlock()
 
-	// if !state.running {
-	// 	logrus.Warnf("DM: OPC-UA driver for device %s is not running.", deviceName)
-	// 	return
-	// }
+	// Falls der Treiber nicht läuft, ist nichts zu tun.
+	if !state.running {
+		logrus.Warnf("DM: OPC-UA driver for device %s is not running.", deviceID)
+		return
+	}
 
-	// mqttClient := getPooledMQTTClient(mqttClientPool)
-	// defer releaseMQTTClient(mqttClientPool, mqttClient)
+	// Stop-Channel schließen, falls vorhanden.
+	if stopChan, ok := opcuaStopChans[deviceID]; ok && stopChan != nil {
+		close(stopChan)
+		delete(opcuaStopChans, deviceID)
+	}
 
-	// close(opcuaStopChans[deviceName])
-	// state.running = false
-	// state.status = Stopped
-	// publishDeviceState(server, "opcua", deviceName, state.status)
-	// logrus.Infof("DM: Stopped OPC-UA driver for device %s.", deviceName)
+	// Aktualisiere den Gerätestatus
+	state.running = false
+	state.status = Stopped
+	publishDeviceState(server, "opc-ua", deviceID, state.status)
+	logrus.Infof("DM: Stopped OPC-UA driver for device %s.", deviceID)
 }
 
 // RestartOPCUADriver restarts the OPC-UA driver for a given device.
@@ -239,196 +289,122 @@ func stopOPCUADriver(deviceName string) {
 //
 //	db, _ := sql.Open("mysql", "user:password@tcp(localhost:3306)/database")
 //	restartOPCUADriver(db, "device-123")
-func restartOPCUADriver(db *sql.DB, deviceName string) {
-	// logrus.Infof("DM: Restarting OPC-UA driver for device %s...", deviceName)
-	// stopOPCUADriver(deviceName)
-	// time.Sleep(1 * time.Second)
-	// StartOPCUADriver(db, deviceName)
+func restartOPCUADriver(db *sql.DB, deviceID string) {
+	logrus.Infof("DM: Restarting OPC-UA driver for device %s...", deviceID)
+	stopOPCUADriver(deviceID)
+	time.Sleep(1 * time.Second)
+	StartOPCUADriver(db, deviceID)
 }
 
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S7-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 // S7-PART
-func StartS7Driver(db *sql.DB, deviceName string) {
-	state := getOrCreateDeviceState(deviceName, s7DeviceStates)
+func StartS7Driver(db *sql.DB, deviceID string) {
+	state := getOrCreateDeviceState(deviceID, s7DeviceStates)
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
-	mqttClient := getPooledMQTTClient(mqttClientPool, db)
-	defer releaseMQTTClient(mqttClientPool, mqttClient)
-
 	state.status = Initializing
-	// publishDeviceState(server, "s7", deviceName, state.status)
+	publishDeviceState(server, "s7", deviceID, state.status)
 
-	// 1. Lade die Hauptgerätekonfiguration (z.B. Name, Adresse, Rack, Slot) aus der devices-Tabelle
+	// 1. Lade die Hauptgerätekonfiguration aus der devices-Tabelle
 	var s7Config opcua.DeviceConfig
-	var deviceID int
 	var rack, slot string
-	deviceQuery := `SELECT id, name, address, rack, slot, acquisition_time FROM devices WHERE name = ?`
-	err := db.QueryRow(deviceQuery, deviceName).Scan(&deviceID, &s7Config.Name, &s7Config.Address, &rack, &slot, &s7Config.AcquisitionTime)
-	s7Config.Rack, err = strconv.Atoi(rack)
-	s7Config.Slot, err = strconv.Atoi(slot)
+	deviceQuery := `SELECT name, address, rack, slot, acquisition_time FROM devices WHERE id = ?`
+	err := db.QueryRow(deviceQuery, deviceID).Scan(&s7Config.Name, &s7Config.Address, &rack, &slot, &s7Config.AcquisitionTime)
 	if err != nil {
 		state.status = Error
 		logrus.Errorf("DM: Error querying S7 device config from devices table: %v", err)
-		// publishDeviceState(server, "s7", deviceName, state.status)
+		publishDeviceState(server, "s7", deviceID, state.status)
 		return
 	}
+	s7Config.Rack, _ = strconv.Atoi(rack)
+	s7Config.Slot, _ = strconv.Atoi(slot)
 
-	// 2. Lade die S7-Datenpunkte (name und address) aus der s7_datapoints-Tabelle
+	// 2. Lade die S7-Datenpunkte aus der s7_datapoints-Tabelle in ein Slice ein
 	datapointQuery := `SELECT name, datatype, address FROM s7_datapoints WHERE device_id = ?`
 	rows, err := db.Query(datapointQuery, deviceID)
 	if err != nil {
 		state.status = Error
 		logrus.Errorf("DM: Error querying S7 datapoints from s7_datapoints table: %v", err)
-		// publishDeviceState(server, "s7", deviceName, state.status)
+		publishDeviceState(server, "s7", deviceID, state.status)
 		return
 	}
-	defer rows.Close()
 
-	// 3. Füge die Datenpunkte zur Konfiguration hinzu
+	var datapoints []opcua.Datapoint
 	for rows.Next() {
 		var dpName, dpDatatype, dpAddress string
 		if err := rows.Scan(&dpName, &dpDatatype, &dpAddress); err != nil {
 			state.status = Error
 			logrus.Errorf("DM: Error scanning S7 datapoint data: %v", err)
-			// publishDeviceState(server, "s7", deviceName, state.status)
+			publishDeviceState(server, "s7", deviceID, state.status)
+			rows.Close()
 			return
 		}
-		// Füge den Datenpunkt zur Konfiguration hinzu
-		s7Config.Datapoint = append(s7Config.Datapoint, opcua.Datapoint{
+		datapoints = append(datapoints, opcua.Datapoint{
 			Name:     dpName,
 			Datatype: dpDatatype,
 			Address:  dpAddress,
 		})
 	}
+	rows.Close()
+
+	// Falls keine Datenpunkte gefunden wurden, Abbruch
+	if len(datapoints) == 0 {
+		state.status = No_Datapoints
+		logrus.Errorf("DM: No S7 datapoints found for device %s", s7Config.Name)
+		publishDeviceState(server, "s7", deviceID, state.status)
+		return
+	}
+
+	// Setze die eingelesenen Datenpunkte in die Konfiguration
+	s7Config.Datapoint = datapoints
 
 	// 4. Starte den S7-Treiber mit den geladenen Daten
 	stopChan := make(chan struct{})
-	s7StopChans[deviceName] = stopChan
+	s7StopChans[deviceID] = stopChan
 
-	// Starte den S7-Treiber mit den geladenen Daten
 	go func() {
 		err := s7.Run(s7Config, db, stopChan)
 		if err != nil {
 			// Setze den Gerätestatus auf Error, wenn ein Fehler auftritt
-			state := getOrCreateDeviceState(deviceName, s7DeviceStates)
+			state := getOrCreateDeviceState(deviceID, s7DeviceStates)
 			state.mu.Lock()
 			defer state.mu.Unlock()
 			state.status = Error
-			// publishDeviceState(server, "s7", deviceName, state.status)
-			logrus.Errorf("DM: Error running S7 driver for device %s: %v", deviceName, err)
+			publishDeviceState(server, "s7", deviceID, state.status)
+			logrus.Errorf("DM: Error running S7 driver for device %s: %v", s7Config.Name, err)
 		}
 	}()
 
 	state.running = true
 	state.status = Running
-	// publishDeviceState(server, "s7", deviceName, state.status)
-	logrus.Infof("DM: S7 driver started for device %s.", deviceName)
+	publishDeviceState(server, "s7", deviceID, state.status)
+	logrus.Infof("DM: S7 driver started for device %s.", s7Config.Name)
 }
 
-func stopS7Driver(deviceName string) {
-	state := getOrCreateDeviceState(deviceName, s7DeviceStates)
+func stopS7Driver(deviceID string) {
+	state := getOrCreateDeviceState(deviceID, s7DeviceStates)
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
-	mqttClient := getPooledMQTTClient(mqttClientPool)
-	defer releaseMQTTClient(mqttClientPool, mqttClient)
-
 	if !state.running {
-		logrus.Warnf("DM: S7 driver for device %s is not running.", deviceName)
+		logrus.Warnf("DM: S7 driver for device %s is not running.", deviceID)
 		return
 	}
 
-	close(s7StopChans[deviceName])
+	close(s7StopChans[deviceID])
 	state.running = false
 	state.status = Stopped
-	// publishDeviceState(server, "s7", deviceName, state.status)
-	logrus.Infof("DM: Stopped S7 driver for device %s.", deviceName)
+	publishDeviceState(server, "s7", deviceID, state.status)
+	logrus.Infof("DM: Stopped S7 driver for device %s.", deviceID)
 }
 
-func restartS7Driver(db *sql.DB, deviceName string) {
-	logrus.Infof("DM: Restarting S7 driver for device %s...", deviceName)
-	stopS7Driver(deviceName)
+func restartS7Driver(db *sql.DB, deviceID string) {
+	logrus.Infof("DM: Restarting S7 driver for device %s...", deviceID)
+	stopS7Driver(deviceID)
 	time.Sleep(1 * time.Second)
-	StartS7Driver(db, deviceName)
+	StartS7Driver(db, deviceID)
 }
-
-func handleCommand(db *sql.DB, job DeviceCommand) {
-	// topic := job.Topic
-	// command := job.Command
-	// deviceType, deviceName := parseTopic(topic)
-
-	// switch command {
-	// case "start":
-	// 	if deviceType == "opcua" {
-	// 		StartOPCUADriver(db, deviceName)
-	// 	} else if deviceType == "s7" {
-	// 		StartS7Driver(db, deviceName)
-	// 	}
-	// case "stop":
-	// 	if deviceType == "opcua" {
-	// 		stopOPCUADriver(deviceName)
-	// 	} else if deviceType == "s7" {
-	// 		stopS7Driver(deviceName)
-	// 	}
-	// case "restart":
-	// 	if deviceType == "opcua" {
-	// 		restartOPCUADriver(db, deviceName)
-	// 	} else if deviceType == "s7" {
-	// 		restartS7Driver(db, deviceName)
-	// 	}
-	// case "1 (running)", "0 (stopped)", "2 (initializing)", "9 (deleted)", "3 (error)", "4 (paused)":
-	// 	return
-	// default:
-	// 	logrus.Warnf("DM: Received unknown command for device %s: %s", deviceName, command)
-	// }
-
-	// logrus.Infof("received command %s for device %s", command, deviceName)
-}
-
-func handleMqttDriverCommands(message mqtt.Message, db *sql.DB) {
-	client := getPooledMQTTClient(mqttClientPool, db)
-	defer releaseMQTTClient(mqttClientPool, client)
-
-	job := DeviceCommand{
-		Topic:   message.Topic(),
-		Command: string(message.Payload()),
-	}
-	handleCommand(db, job)
-}
-
-// // Dynamischer Worker Pool
-// var jobQueue chan DeviceCommand
-// var workers sync.WaitGroup
-// var stopChan []chan struct{}
-// var stopWorkers = make(chan struct{})
-
-// // Worker function modified to support graceful shutdown
-// func worker(id int, jobs <-chan DeviceCommand, db *sql.DB, stopCh <-chan struct{}) {
-// 	defer workers.Done()
-// 	logrus.Infof("Worker %d started.", id)
-// 	for {
-// 		select {
-// 		case job := <-jobs:
-// 			logrus.Info("worker %d: received job %v", id, job)
-// 			handleCommand(db, job)
-// 		case <-stopCh:
-// 			logrus.Errorf("Worker %d stopping.", id)
-// 			return
-// 		}
-// 	}
-// }
-
-// func initWorkerPool(numWorkers int, db *sql.DB) {
-// 	jobQueue = make(chan DeviceCommand, 10000)
-// 	workers.Add(numWorkers)
-// 	for i := 1; i <= numWorkers; i++ {
-// 		go worker(i, jobQueue, db, stopWorkers)
-// 	}
-// }
-
-// // Stopping all workers
-// func stopAllWorkers() {
-// 	close(stopWorkers)
-// 	workers.Wait()
-// 	logrus.Info("All workers stopped")
-// }

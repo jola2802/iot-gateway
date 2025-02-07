@@ -3,7 +3,6 @@ package opcua
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	opcua "github.com/gopcua/opcua"
@@ -12,49 +11,12 @@ import (
 )
 
 var mqttClient mqtt.Client
-var opcuaClients = make(map[string]*opcua.Client) // Map to store OPC-UA clients by device name
-
-// InitMqttClient initialisiert den MQTT-Client
-//
-// Args:
-//
-//   - mqttConfig(MqttConfig): The configuration for the MQTT client.
-//
-// Returns:
-//
-//	None
-//
-// Example:
-//
-//		mqttConfig := MqttConfig{
-//	      Broker:   "tcp://localhost:1883",
-//	      Username: "username",
-//	      Password: "password",
-//	  }
-//	  initMqttClient(mqttConfig)
-func initMqttClient(mqttConfig MqttConfig) {
-	opts := mqtt.NewClientOptions().
-		AddBroker(mqttConfig.Broker).
-		SetUsername(mqttConfig.Username).
-		SetPassword(mqttConfig.Password).
-		SetPingTimeout(10 * time.Second).
-		SetAutoReconnect(true)
-
-	mqttClient = mqtt.NewClient(opts)
-	token := mqttClient.Connect()
-	token.Wait()
-	if token.Error() != nil {
-		logrus.Warnf("OPC-UA: Failed to connect to MQTT broker: %v", token.Error())
-	} else {
-		//fmt.Println("OPC-UA: Connected to MQTT broker")
-	}
-}
 
 // AddOpcuaClient adds an OPC-UA client to the map of clients.
 //
 // Args:
 //
-//   - devicename (string): The name of the device.
+//   - deviceID (string): The id of the device.
 //   - client (*opcua.Client): The OPC-UA client.
 //
 // Returns:
@@ -64,9 +26,9 @@ func initMqttClient(mqttConfig MqttConfig) {
 // Example:
 //
 //	client := opcua.NewClient("opc.tcp://localhost:4840")
-//	addOpcuaClient("device1", client)
-func addOpcuaClient(devicename string, client *opcua.Client) {
-	opcuaClients[devicename] = client
+//	addOpcuaClient("1", client)
+func addOpcuaClient(deviceID string, client *opcua.Client) {
+	opcuaClients[deviceID] = client
 }
 
 // StartMqttDataUpdateListener starts the MQTT listener for data point updates.
@@ -139,10 +101,6 @@ func handleMqttDataUpdate(client mqtt.Client, message mqtt.Message) {
 //	    fmt.Println(err)
 //	}
 func pubData(data map[string]interface{}, deviceName string, deviceId string, server *MQTT.Server) error {
-	// if mqttClient == nil {
-	// 	return fmt.Errorf("OPC-UA: MQTT client not initialized")
-	// }
-
 	for name, value := range data {
 		payload, err := json.Marshal(value)
 		if err != nil {

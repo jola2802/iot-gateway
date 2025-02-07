@@ -51,6 +51,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/api/get-measurements", getMeasurements)
 		authorized.POST("api/add-device", addDevice)
 		authorized.PUT("api/update-device/:device_id", updateDevice)
+		authorized.DELETE("api/delete-device/:device_id", deleteDevice)
 		/// #############
 		// Show the pages
 		authorized.GET("/", showDashboard)
@@ -83,7 +84,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.PUT("/devices/:deviceName", updateDevice)             // Update a single device
 		authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
 		// authorized.POST("/devices", addDevice)                           // Add a new device
-		authorized.DELETE("/devices/:deviceName", deleteDevice) // Delete a device
+		// authorized.DELETE("/devices/:deviceName", deleteDevice) // Delete a device
 		authorized.GET("/browseNodes/:deviceName", browseNodes) // Get device attributes
 
 		//websocket for device status and data

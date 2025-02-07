@@ -28,7 +28,7 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
         const deviceData = {
             deviceName: document.getElementById('device-name').value,
             deviceType: document.getElementById('select-device-type').value,
-            address: document.getElementById('address')?.value || '',
+            address: document.getElementById('address')?.value || document.querySelector('#s7-config [placeholder="192.168.2.100:102"]')?.value ||'',
             securityPolicy: document.getElementById('select-security-policy')?.value || '',
             securityMode: document.getElementById('select-security-mode')?.value || '',
             acquisitionTime: parseInt(document.getElementById('acquisition-time-opc-ua')?.value || 
@@ -58,8 +58,9 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
         alert('Gerät erfolgreich hinzugefügt!');
 
         // Modal schließen und Seite aktualisieren
-        document.getElementById('modal-new-device').modal('hide');
+        // document.getElementById('modal-new-device').modal('hide');
         location.reload(); // Alternativ: Nur die Tabelle aktualisieren
+        
     } catch (error) {
         console.error('Fehler beim Speichern des Geräts:', error);
         alert('Fehler beim Hinzufügen des Geräts. Bitte versuchen Sie es erneut.');
@@ -131,8 +132,15 @@ async function saveEditDevice() {
         alert('Gerät erfolgreich aktualisiert!');
 
         // Modal schließen und Seite aktualisieren
-        const modal = document.getElementById('modal-edit-device');
-        modal.modal('hide');
+        const modalEl = document.getElementById('modal-edit-device');
+        // Versuche, eine bestehende Instanz abzurufen
+        let modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (!modalInstance) {
+            // Falls keine Instanz existiert, erstelle eine neue
+            modalInstance = new bootstrap.Modal(modalEl);
+        }
+        modalInstance.hide();
+
 
         // document.getElementById('modal-edit-device').modal('hide');
         location.reload(); // Alternativ: Nur die Tabelle aktualisieren

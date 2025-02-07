@@ -196,22 +196,22 @@ func InitDB(dbPath string) (*sql.DB, error) {
 
 	// Check if there are any users in the database
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 
 	// If no users are found, create a default admin user
 	if count == 0 {
-		_, err = db.Exec(`
+		db.Exec(`
             INSERT INTO users (username, password, name, address, company)
             VALUES (?, ?, ?, ?, ?)
         `, "admin", "password", "Admin", "Admin Street", "Admin Corp.")
 	}
 
 	// Check if there are any broker settings in the database
-	err = db.QueryRow("SELECT COUNT(*) FROM broker_settings").Scan(&count)
+	db.QueryRow("SELECT COUNT(*) FROM broker_settings").Scan(&count)
 
 	// If no broker settings are found, create a default setting
 	if count == 0 {
-		_, err = db.Exec(`
+		db.Exec(`
             INSERT INTO broker_settings (address, username, password)
             VALUES (?, ?, ?)
         `, "ws://127.0.0.1:5001", "admin", "abc+1247")

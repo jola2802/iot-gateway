@@ -3,67 +3,12 @@ package logic
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	_ "github.com/glebarez/go-sqlite" // Import für SQLite
 	"github.com/sirupsen/logrus"
 )
-
-// commandsUserManagement führt Benutzerverwaltungsbefehle aus, die über MQTT empfangen werden
-func commandsUserManagement(db *sql.DB, msg mqtt.Message) {
-	var cmd Command
-
-	err := json.Unmarshal(msg.Payload(), &cmd)
-	if err != nil {
-		logrus.Warnf("User Manager: Failed to unmarshal command: %v", err)
-		return
-	}
-
-	switch cmd.Action {
-	case "addUser":
-		err = addUser(db, cmd.Username, cmd.Password, cmd.Allow, cmd.Filters)
-	case "deleteUser":
-		err = deleteUser(db, cmd.Username)
-	case "changeUser":
-		err = changeUser(db, cmd.Username, cmd.Password, cmd.Allow, cmd.Filters)
-	default:
-		logrus.Infof("User Manager: Unknown action: %s", cmd.Action)
-		return
-	}
-
-	if err != nil {
-		logrus.Errorf("User Manager: Failed to execute command: %v", err)
-	} else {
-		logrus.Errorf("User Manager: Successfully executed command: %s", cmd.Action)
-	}
-}
-
-// ManageUser verwaltet Benutzer auf Basis von MQTT-Nachrichten
-func ManageUser(topic string, db *sql.DB) {
-	mqttBroker, err := LoadMqttConfigFromDB(db)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	opts := mqtt.NewClientOptions().AddBroker(mqttBroker.Broker).SetClientID("gateway-user-manager").
-		SetUsername(mqttBroker.Username).SetPassword(mqttBroker.Password)
-
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		logrus.Warnf("User Manager: Error connecting to MQTT broker: %v", token.Error())
-		return
-	}
-
-	if token := client.Subscribe(topic, 2, func(client mqtt.Client, msg mqtt.Message) {
-		commandsUserManagement(db, msg)
-	}); token.Wait() && token.Error() != nil {
-		logrus.Warnf("User Manager: Error subscribing to topic: %v", token.Error())
-		return
-	}
-}
 
 func userExists(db *sql.DB, username string) (bool, error) {
 	var userCount int

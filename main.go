@@ -17,7 +17,6 @@ var (
 	dbPath      = "./iot_gateway.db"
 	influxDBURL = "http://localhost:8086"
 	// cacheDuration             = 5 * time.Minute
-	nodeRedURL = ""
 )
 
 func main() {
@@ -30,8 +29,6 @@ func main() {
 	}
 	defer db.Close()
 
-	nodeRedURL = "http://localhost:7777"
-
 	// Start MQTT-Broker
 	server := mqtt_broker.StartBroker(db)
 	logrus.Info("MAIN: Broker started.")
@@ -43,12 +40,8 @@ func main() {
 	// logic.StartMqttListener(topicCommandsMqttListener, db)
 	// defer logic.StopMqttListener()
 
-	// time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 
-	// Wait until nodeRedURL is not empty
-	for nodeRedURL == "" {
-		time.Sleep(100 * time.Millisecond)
-	}
 	// Web-UI
 	go webui.Main(db, server)
 	// defer webui.Stop()

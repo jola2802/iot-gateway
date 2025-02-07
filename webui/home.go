@@ -4,11 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 	"runtime"
-	"time"
 
-	dataforwarding "iot-gateway/data-forwarding"
 	"iot-gateway/logic"
-	"iot-gateway/mqtt_broker"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/glebarez/go-sqlite"
@@ -59,12 +56,10 @@ func RestartGateway(input interface{}) {
 	}
 
 	// Restart MQTT Broker
-	mqtt_broker.RestartBroker(db)
+	// mqtt_broker.RestartBroker(db)
 
 	// Restart All Drivers
 	logic.RestartAllDrivers(db)
-
-	// logic.RestartMqttListener(db)
 
 	logrus.Info("Gateway restarted successfully")
 
@@ -76,12 +71,4 @@ func RestartGateway(input interface{}) {
 	if context != nil {
 		context.JSON(http.StatusOK, gin.H{"message": "Gateway restarted successfully"})
 	}
-
-	// Cleanup when the function is no longer called
-	dataforwarding.StopCache(db)
-
-	go func() {
-		// logrus.Info("Start with chae mqtt data")
-		dataforwarding.CacheMqttData(db, 5*time.Minute)
-	}()
 }

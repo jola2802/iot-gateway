@@ -12,6 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var opcuaClients = make(map[string]*opcua.Client) // Map to store OPC-UA clients by device name
+
 // InitClient initialisiert den OPC-UA-Client
 func InitClient(address, securityPolicy string, securityMode ua.MessageSecurityMode, certFile string, keyFile string, username, password string) (*opcua.Client, error) {
 	// Optionen initialisieren
@@ -20,7 +22,7 @@ func InitClient(address, securityPolicy string, securityMode ua.MessageSecurityM
 		opcua.SecurityPolicy(securityPolicy),
 		opcua.AutoReconnect(true),
 		opcua.ReconnectInterval(15 * time.Second),
-		opcua.RequestTimeout(10 * time.Second),
+		opcua.RequestTimeout(30 * time.Second),
 	}
 
 	// Zertifikat und Private Key für Sicherheit einbinden, wenn nötig

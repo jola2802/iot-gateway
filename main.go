@@ -55,9 +55,5 @@ func main() {
 	// Initial all driver start if the configuration exists
 	go logic.StartAllDrivers(db, server)
 
-	// Zwischenspeicherung aller in den letzten empfangen Werte und start der jeweiligen Data Routes zum Forwarding
-	// go dataforwarding.CacheMqttData(db, cacheDuration)
-	// defer dataforwarding.StopCache(db)
-
 	select {}
 }

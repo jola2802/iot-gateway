@@ -26,7 +26,7 @@ function initializeNewDeviceModal() {
 
             // Falls OPC-UA ausgewählt wurde, initialisiere Sicherheitsrichtlinie und -modus
             if (selectedType === 'opc-ua') {
-                initializeOpcUaSecuritySettings();
+                initializeOpcUaSecuritySettings('');
             }
         }
     }
@@ -51,147 +51,35 @@ function initializeNewDeviceModal() {
     }
 
     selectDeviceType.addEventListener('change', handleDeviceTypeChange);
-
-    // Funktion zur Initialisierung der Sicherheitsrichtlinien und -modi für OPC-UA
-    function initializeOpcUaSecuritySettings() {
-        const opcUaConfig = document.getElementById('opc-ua-config');
-        if (!opcUaConfig) {
-            console.error('Element mit der ID "opc-ua-config" wurde nicht gefunden.');
-            return;
-        }
-
-        const selectSecurityPolicy = document.getElementById('select-security-policy');
-        const selectAuthenticationSettings = document.getElementById('select-authentication-settings');
-        const selectSecurityMode = document.getElementById('select-security-mode');
-
-        // Funktion zum Hinzufügen der Username- und Password-Felder
-        function showCredentials() {
-            // Erste Spalte (links)
-            const firstCol = opcUaConfig.querySelectorAll('.row .col')[0];
-            if (!firstCol) {
-                console.error('Erste Spalte nicht gefunden.');
-                return;
-            }
-
-            // Zweite Spalte (rechts)
-            const secondCol = opcUaConfig.querySelectorAll('.row .col')[1];
-            if (!secondCol) {
-                console.error('Zweite Spalte nicht gefunden.');
-                return;
-            }
-
-            // Prüfe, ob das Username-Feld bereits existiert
-            const existingUsernameGroup = firstCol.querySelector('#username-group');
-            if (!existingUsernameGroup) {
-                // Erstelle die Username-Feldgruppe
-                const usernameGroup = document.createElement('div');
-                usernameGroup.className = 'form-group mb-3';
-                usernameGroup.id = 'username-group';
-
-                const usernameLabel = document.createElement('label');
-                usernameLabel.className = 'form-label';
-                usernameLabel.setAttribute('for', 'username');
-                usernameLabel.innerHTML = '<strong>Username</strong>';
-
-                const usernameInput = document.createElement('input');
-                usernameInput.className = 'form-control';
-                usernameInput.type = 'text';
-                usernameInput.id = 'username';
-                usernameInput.placeholder = 'Enter username here';
-
-                usernameGroup.appendChild(usernameLabel);
-                usernameGroup.appendChild(usernameInput);
-
-                // Füge das Username-Feld nach dem Address-Feld ein
-                const addressGroup = firstCol.querySelector('.form-group');
-                if (addressGroup) {
-                    addressGroup.parentNode.insertBefore(usernameGroup, addressGroup.nextSibling);
-                } else {
-                    // Falls das Address-Feld nicht gefunden wird, füge es am Ende ein
-                    firstCol.appendChild(usernameGroup);
-                }
-            }
-
-            // Prüfe, ob das Password-Feld bereits existiert
-            const existingPasswordGroup = secondCol.querySelector('#password-group');
-            if (!existingPasswordGroup) {
-                // Erstelle die Password-Feldgruppe
-                const passwordGroup = document.createElement('div');
-                passwordGroup.className = 'form-group mb-3';
-                passwordGroup.id = 'password-group';
-
-                const passwordLabel = document.createElement('label');
-                passwordLabel.className = 'form-label';
-                passwordLabel.setAttribute('for', 'password');
-                passwordLabel.innerHTML = '<strong>Password</strong>';
-
-                const passwordInput = document.createElement('input');
-                passwordInput.className = 'form-control';
-                passwordInput.type = 'password';
-                passwordInput.id = 'password';
-                passwordInput.placeholder = 'Enter password';
-
-                passwordGroup.appendChild(passwordLabel);
-                passwordGroup.appendChild(passwordInput);
-
-                // Füge das Password-Feld nach dem Authentication Settings-Feld ein
-                const authSettingsGroup = secondCol.querySelector('#select-authentication-settings').parentElement;
-                if (authSettingsGroup) {
-                    console.log("inserBefore");
-                    authSettingsGroup.parentNode.insertBefore(passwordGroup, authSettingsGroup.nextSibling);
-                } else {
-                    console.log("appendChild");
-                    // Falls das Authentication Settings-Feld nicht gefunden wird, füge es am Ende ein
-                    secondCol.appendChild(passwordGroup);
-                }
-
-                // Füge das Username-Feld nach dem Address-Feld ein
-                // const addressGroup = firstCol.querySelector('.form-group');
-                // if (addressGroup) {
-                //     addressGroup.parentNode.insertBefore(usernameGroup, addressGroup.nextSibling);
-                // } else {
-                //     // Falls das Address-Feld nicht gefunden wird, füge es am Ende ein
-                //     firstCol.appendChild(usernameGroup);
-                // }
-            }
-        }
-
-        // Funktion zum Entfernen der Username- und Password-Felder
-        function hideCredentials() {
-            // Entferne das Username-Feld
-            const usernameGroup = opcUaConfig.querySelector('#username-group');
-            if (usernameGroup) {
-                usernameGroup.remove();
-            }
-
-            // Entferne das Password-Feld
-            const passwordGroup = opcUaConfig.querySelector('#password-group');
-            if (passwordGroup) {
-                passwordGroup.remove();
-            }
-        }
-
-        // Funktion zur Behandlung der Änderung der Authentifizierungseinstellungen
-        function handleAuthenticationSettingsChange() {
-            const selectedAuth = selectAuthenticationSettings.value;
-            // console.log(`Authentication Settings changed to: ${selectedAuth}`);
-            if (selectedAuth === 'user-pw') {
-                showCredentials();
-            } else {
-                hideCredentials();
-            }
-        }
-
-        // Initiale Behandlung basierend auf der aktuellen Auswahl
-        handleAuthenticationSettingsChange();
-
-        // Entferne vorherige Event Listener, um doppelte Listener zu vermeiden
-        selectAuthenticationSettings.removeEventListener('change', handleAuthenticationSettingsChange);
-
-        // Füge Event Listener hinzu
-        selectAuthenticationSettings.addEventListener('change', handleAuthenticationSettingsChange);
-    }
 }
+
+// Funktion zur Initialisierung der Sicherheitsrichtlinien und -modi für OPC-UA
+function initializeOpcUaSecuritySettings(prefix = '') {
+    // Für das New Device Modal: 'select-authentication-settings'
+    // Für das Edit Device Modal: 'select-authentication-settings-1'
+    const selectAuthenticationSettings = document.getElementById('select-authentication-settings' + prefix);
+    if (!selectAuthenticationSettings) {
+        console.error('select-authentication-settings' + prefix + ' nicht gefunden.');
+        return;
+    }
+    
+    function handleAuthenticationSettingsChange() {
+        if (selectAuthenticationSettings.value === 'user-pw') {
+            showCredentials();
+        } else {
+            hideCredentials();
+        }
+    }
+    
+    // Binden Sie den Listener nur einmal
+    if (!selectAuthenticationSettings.dataset.listenerBound) {
+        selectAuthenticationSettings.addEventListener('change', handleAuthenticationSettingsChange);
+        selectAuthenticationSettings.dataset.listenerBound = 'true';
+    }
+    
+    // Lösen Sie den Change-Event aus, damit der initiale Zustand übernommen wird
+    selectAuthenticationSettings.dispatchEvent(new Event('change'));
+}    
 
 function initializeEditDeviceModal(device_id) {
     // // Selektiere das Dropdown-Menü für den Gerätetyp
@@ -215,7 +103,7 @@ function initializeEditDeviceModal(device_id) {
 
             // Falls OPC-UA ausgewählt wurde, initialisiere Sicherheitsrichtlinie und -modus
             if (selectedType === 'opc-ua') {
-                initializeOpcUaSecuritySettings();
+                initializeOpcUaSecuritySettings('-1');
                 document.querySelectorAll('.datatype-column').forEach(col => col.classList.add('hidden'));
                 document.querySelectorAll('td:nth-child(3)').forEach(cell => cell.classList.add('hidden')); // Verstecke alle Zellen in der Spalte
             } else {
@@ -266,8 +154,6 @@ function initializeEditDeviceModal(device_id) {
                 // username und password darf kein sql nullstring sein
                 if (deviceData.username.String !== '' && deviceData.password.String !== '') {
                     // Create Username- and password-groups
-
-
                     if (usernameGroup && passwordGroup) {
                         usernameGroup.style.display = 'block';
                         passwordGroup.style.display = 'block';
@@ -317,6 +203,7 @@ function initializeEditDeviceModal(device_id) {
 
                 deviceData.datapoint.forEach(datapoint => {
                     const row = document.createElement('tr');
+                    row.setAttribute('datapoint-id', datapoint.datapointId);
 
                     const idCell = document.createElement('td');
                     idCell.textContent = datapoint.datapointId;
@@ -339,9 +226,11 @@ function initializeEditDeviceModal(device_id) {
 
                     const actionCell = document.createElement('td');
                     actionCell.innerHTML = `
-                        <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" style="margin-left: 5px;" data-bs-toggle="modal" data-bs-target="#delete-modal">
-                            <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
-                        </a>
+                    <a href="#" class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" 
+                        style="margin-left: 5px;" 
+                        onclick="confirmDeleteDatapoint('${datapoint.datapointId}', event)">
+                        <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
+                    </a>
                     `;
                     row.appendChild(actionCell);
 
@@ -357,59 +246,41 @@ function initializeEditDeviceModal(device_id) {
     }
 
     // Funktion zum Hinzufügen der Username- und Password-Felder
-    function createCredentialsFields() {
-        const opcUaConfig = document.getElementById('opc-ua-config-1');
-        if (!opcUaConfig) {
-            console.error('OPC-UA Config not found in DOM');
-            return;
+    function createCredentialsFields(prefix = '') {
+        // Verwenden Sie den Container, in den die Felder eingefügt werden sollen.
+        // Für das New Device Modal muss im HTML <div id="opc-ua-credentials"></div> vorhanden sein.
+        // Für das Edit Device Modal muss im HTML <div id="opc-ua-credentials-1"></div> vorhanden sein.
+        const container = document.getElementById('opc-ua-credentials' + prefix);
+        if (!container) {
+          console.error('Credentials container not found: opc-ua-credentials' + prefix);
+          return;
         }
-    
-        // Erste Spalte (links)
-        const firstCol = opcUaConfig.querySelectorAll('.row .col')[0];
-        if (firstCol && !document.getElementById('username-group')) {
-            const usernameGroup = document.createElement('div');
-            usernameGroup.className = 'form-group mb-3';
-            usernameGroup.id = 'username-group';
-    
-            const usernameLabel = document.createElement('label');
-            usernameLabel.className = 'form-label';
-            usernameLabel.setAttribute('for', 'username');
-            usernameLabel.innerHTML = '<strong>Username</strong>';
-    
-            const usernameInput = document.createElement('input');
-            usernameInput.className = 'form-control';
-            usernameInput.type = 'text';
-            usernameInput.id = 'username';
-            usernameInput.placeholder = 'Enter username';
-    
-            usernameGroup.appendChild(usernameLabel);
-            usernameGroup.appendChild(usernameInput);
-            firstCol.appendChild(usernameGroup);
+        
+        // Falls noch nicht vorhanden, erstellen Sie die Username-Feldgruppe.
+        if (!document.getElementById('username-group' + prefix)) {
+          const usernameGroup = document.createElement('div');
+          usernameGroup.id = 'username-group' + prefix;
+          usernameGroup.className = 'form-group mb-3';
+          usernameGroup.innerHTML = `
+            <label class="form-label" for="username${prefix}"><strong>Username</strong></label>
+            <input type="text" class="form-control" id="username${prefix}" placeholder="Enter username">
+          `;
+          container.appendChild(usernameGroup);
         }
-    
-        // Zweite Spalte (rechts)
-        const secondCol = opcUaConfig.querySelectorAll('.row .col')[1];
-        if (secondCol && !document.getElementById('password-group')) {
-            const passwordGroup = document.createElement('div');
-            passwordGroup.className = 'form-group mb-3';
-            passwordGroup.id = 'password-group';
-    
-            const passwordLabel = document.createElement('label');
-            passwordLabel.className = 'form-label';
-            passwordLabel.setAttribute('for', 'password');
-            passwordLabel.innerHTML = '<strong>Password</strong>';
-    
-            const passwordInput = document.createElement('input');
-            passwordInput.className = 'form-control';
-            passwordInput.type = 'password';
-            passwordInput.id = 'password';
-            passwordInput.placeholder = 'Enter password';
-    
-            passwordGroup.appendChild(passwordLabel);
-            passwordGroup.appendChild(passwordInput);
-            secondCol.appendChild(passwordGroup);
+        
+        // Falls noch nicht vorhanden, erstellen Sie die Password-Feldgruppe.
+        if (!document.getElementById('password-group' + prefix)) {
+          const passwordGroup = document.createElement('div');
+          passwordGroup.id = 'password-group' + prefix;
+          passwordGroup.className = 'form-group mb-3';
+          passwordGroup.innerHTML = `
+            <label class="form-label" for="password${prefix}"><strong>Password</strong></label>
+            <input type="password" class="form-control" id="password${prefix}" placeholder="Enter password">
+          `;
+          container.appendChild(passwordGroup);
         }
-    }
+      }
+      
     
     // Initiales Ausblenden aller Konfigurationskarten
     hideAllConfigs();
@@ -436,137 +307,75 @@ function initializeEditDeviceModal(device_id) {
     selectDeviceType.addEventListener('change', handleDeviceTypeChange);
 
     // Funktion zur Initialisierung der Sicherheitsrichtlinien und -modi für OPC-UA
-    function initializeOpcUaSecuritySettings() {
-        const opcUaConfig = document.getElementById('opc-ua-config-1');
-        if (!opcUaConfig) {
-            console.error('Element mit der ID "opc-ua-config" wurde nicht gefunden.');
-            return;
+    function initializeOpcUaSecuritySettings(prefix = '') {
+        // Für New Device: id="select-authentication-settings"
+        // Für Edit Device: id="select-authentication-settings-1"
+        const authSelect = document.getElementById('select-authentication-settings' + prefix);
+        if (!authSelect) {
+          console.error('Authentication select not found: select-authentication-settings' + prefix);
+          return;
         }
-
-        const selectSecurityPolicy = document.getElementById('select-security-policy-1');
-        const selectAuthenticationSettings = document.getElementById('select-authentication-settings-1');
-        const selectSecurityMode = document.getElementById('select-security-mode-1');
-
-        // Funktion zum Hinzufügen der Username- und Password-Felder
-        function showCredentials() {
-            // Erste Spalte (links)
-            const firstCol = opcUaConfig.querySelectorAll('.row .col')[0];
-            if (!firstCol) {
-                console.error('Erste Spalte nicht gefunden.');
-                return;
-            }
-
-            // Zweite Spalte (rechts)
-            const secondCol = opcUaConfig.querySelectorAll('.row .col')[1];
-            if (!secondCol) {
-                console.error('Zweite Spalte nicht gefunden.');
-                return;
-            }
-
-            // Prüfe, ob das Username-Feld bereits existiert
-            const existingUsernameGroup = firstCol.querySelector('#username-group');
-            if (!existingUsernameGroup) {
-                // Erstelle die Username-Feldgruppe
-                const usernameGroup = document.createElement('div');
-                usernameGroup.className = 'form-group mb-3';
-                usernameGroup.id = 'username-group';
-
-                const usernameLabel = document.createElement('label');
-                usernameLabel.className = 'form-label';
-                usernameLabel.setAttribute('for', 'username');
-                usernameLabel.innerHTML = '<strong>Username</strong>';
-
-                const usernameInput = document.createElement('input');
-                usernameInput.className = 'form-control';
-                usernameInput.type = 'text';
-                usernameInput.id = 'username';
-                usernameInput.placeholder = 'Enter username';
-
-                usernameGroup.appendChild(usernameLabel);
-                usernameGroup.appendChild(usernameInput);
-
-                // Füge das Username-Feld nach dem Address-Feld ein
-                const addressGroup = firstCol.querySelector('.form-group');
-                if (addressGroup) {
-                    addressGroup.parentNode.insertBefore(usernameGroup, addressGroup.nextSibling);
-                } else {
-                    // Falls das Address-Feld nicht gefunden wird, füge es am Ende ein
-                    firstCol.appendChild(usernameGroup);
-                }
-            }
-
-            // Prüfe, ob das Password-Feld bereits existiert
-            const existingPasswordGroup = secondCol.querySelector('#password-group');
-            if (!existingPasswordGroup) {
-                // Erstelle die Password-Feldgruppe
-                const passwordGroup = document.createElement('div');
-                passwordGroup.className = 'form-group mb-3';
-                passwordGroup.id = 'password-group';
-
-                const passwordLabel = document.createElement('label');
-                passwordLabel.className = 'form-label';
-                passwordLabel.setAttribute('for', 'password');
-                passwordLabel.innerHTML = '<strong>Password</strong>';
-
-                const passwordInput = document.createElement('input');
-                passwordInput.className = 'form-control';
-                passwordInput.type = 'password';
-                passwordInput.id = 'password';
-                passwordInput.placeholder = 'Enter password';
-
-                passwordGroup.appendChild(passwordLabel);
-                passwordGroup.appendChild(passwordInput);
-
-                // Füge das Password-Feld nach dem Authentication Settings-Feld ein
-                const authSettingsGroup = secondCol.querySelector('#select-authentication-settings-1').parentElement;
-                if (authSettingsGroup) {
-                    authSettingsGroup.parentNode.insertBefore(passwordGroup, authSettingsGroup.nextSibling);
-                } else {
-                    // Falls das Authentication Settings-Feld nicht gefunden wird, füge es am Ende ein
-                    secondCol.appendChild(passwordGroup);
-                }
-            }
+        function handleAuthChange() {
+          if (authSelect.value === 'user-pw') {
+            showCredentials(prefix);
+          } else {
+            hideCredentials(prefix);
+          }
         }
-
-        // Funktion zum Entfernen der Username- und Password-Felder
-        function hideCredentials() {
-            // Entferne das Username-Feld
-            const usernameGroup = opcUaConfig.querySelector('#username-group');
-            if (usernameGroup) {
-                usernameGroup.remove();
-            }
-
-            // Entferne das Password-Feld
-            const passwordGroup = opcUaConfig.querySelector('#password-group');
-            if (passwordGroup) {
-                passwordGroup.remove();
-            }
+        // Binden Sie den Listener nur einmal, um Mehrfachbindungen zu vermeiden.
+        if (!authSelect.dataset.listenerBound) {
+          authSelect.addEventListener('change', handleAuthChange);
+          authSelect.dataset.listenerBound = 'true';
         }
-
-        // Funktion zur Behandlung der Änderung der Authentifizierungseinstellungen
-        function handleAuthenticationSettingsChange() {
-            const selectedAuth = selectAuthenticationSettings.value;
-            // console.log(`Authentication Settings changed to: ${selectedAuth}`);
-            if (selectedAuth === 'user-pw') {
-                showCredentials();
-            } else {
-                hideCredentials();
-            }
-        }
-
-        // Initiale Behandlung basierend auf der aktuellen Auswahl
-        handleAuthenticationSettingsChange();
-
-        // Entferne vorherige Event Listener, um doppelte Listener zu vermeiden
-        selectAuthenticationSettings.removeEventListener('change', handleAuthenticationSettingsChange);
-
-        // Füge Event Listener hinzu
-        selectAuthenticationSettings.addEventListener('change', handleAuthenticationSettingsChange);
-    }
+        // Lösen Sie den Change-Event aus, damit der aktuelle Zustand übernommen wird.
+        authSelect.dispatchEvent(new Event('change'));
+      }
 
     // Save device_id in web storage
     localStorage.setItem('device_id', device_id);
 }
+
+// Funktion zum Hinzufügen der Username- und Password-Felder
+function showCredentials(prefix = '') {
+    // Der Container, in den die dynamischen Felder eingefügt werden sollen.
+    // Für New Device: id="opc-ua-credentials"
+    // Für Edit Device: id="opc-ua-credentials-1"
+    const container = document.getElementById('opc-ua-credentials' + prefix);
+    if (!container) {
+      console.error('Credentials container not found: opc-ua-credentials' + prefix);
+      return;
+    }
+    // Falls noch nicht vorhanden, erstellen Sie die Username-Feldgruppe.
+    if (!document.getElementById('username' + prefix)) {
+      const usernameGroup = document.createElement('div');
+      usernameGroup.id = 'username-group' + prefix;
+      usernameGroup.className = 'form-group mb-3';
+      usernameGroup.innerHTML = `
+        <label class="form-label" for="username${prefix}"><strong>Username</strong></label>
+        <input type="text" class="form-control" id="username${prefix}" placeholder="Enter username">
+      `;
+      container.appendChild(usernameGroup);
+    }
+    // Falls noch nicht vorhanden, erstellen Sie die Password-Feldgruppe.
+    if (!document.getElementById('password' + prefix)) {
+      const passwordGroup = document.createElement('div');
+      passwordGroup.id = 'password-group' + prefix;
+      passwordGroup.className = 'form-group mb-3';
+      passwordGroup.innerHTML = `
+        <label class="form-label" for="password${prefix}"><strong>Password</strong></label>
+        <input type="password" class="form-control" id="password${prefix}" placeholder="Enter password">
+      `;
+      container.appendChild(passwordGroup);
+    }
+  }
+  
+function hideCredentials(prefix = '') {
+const usernameGroup = document.getElementById('username-group' + prefix);
+const passwordGroup = document.getElementById('password-group' + prefix);
+if (usernameGroup) usernameGroup.remove();
+if (passwordGroup) passwordGroup.remove();
+}
+  
 
 function createEmptyRow(deviceType) {
     const emptyRow = document.createElement('tr');
@@ -631,6 +440,7 @@ function createEmptyRow(deviceType) {
     // Spalte: Aktion (Save-Button)
     const actionCell = document.createElement('td');
     const saveButton = document.createElement('button');
+    saveButton.type = 'button';
     saveButton.className = 'btn btn-success';
     saveButton.textContent = 'Save';
     saveButton.addEventListener('click', () => {
@@ -648,7 +458,6 @@ function createEmptyRow(deviceType) {
 
     return emptyRow;
 }
-
 
 function saveDatapoint(id, name, datatype, address, deviceType) {
     if (!name || !address || !datatype && deviceType === 's7') {
@@ -688,9 +497,11 @@ function saveDatapoint(id, name, datatype, address, deviceType) {
 
     const actionCell = document.createElement('td');
     actionCell.innerHTML = `
-        <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" style="margin-left: 5px;" data-bs-toggle="modal" data-bs-target="#delete-modal">
-            <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
-        </a>
+      <a href="#" class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" 
+         style="margin-left: 5px;" 
+         onclick="confirmDeleteDatapoint('${datapointId}', event)">
+          <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
+      </a>
     `;
     newRow.appendChild(actionCell);
 
@@ -700,6 +511,21 @@ function saveDatapoint(id, name, datatype, address, deviceType) {
 
     const inputs = lastRow.querySelectorAll('input, select');
     inputs.forEach(input => (input.value = ''));
+}
+
+function confirmDeleteDatapoint(datapointId, event) {
+    // Standardverhalten verhindern (z. B. Absenden eines Formulars)
+    if (event) {
+        event.preventDefault();
+    }
+    
+    if (confirm(`Möchten Sie den Datapoint mit der ID ${datapointId} wirklich löschen?`)) {
+        // Entfernen Sie nur die entsprechende Zeile aus der Tabelle.
+        const row = document.querySelector(`tr[datapoint-id="${datapointId}"]`); 
+        if (row) {
+            row.remove();
+        }
+    }
 }
 
 // Ergänze diese Hilfsfunktion irgendwo im selben Skript (z. B. unterhalb von fetchAndPopulateDevices)

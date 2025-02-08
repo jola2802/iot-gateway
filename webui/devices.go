@@ -649,7 +649,7 @@ func deleteDevice(c *gin.Context) {
 	// Erstelle das MQTT-Topic
 	payload := ""
 	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceType, device_id)
-	server.Publish(topic, []byte(payload), false, 1)
+	server.Publish(topic, []byte(payload), true, 1)
 
 	RestartGateway(db)
 

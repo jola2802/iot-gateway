@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/gopcua/opcua"
@@ -67,8 +68,8 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 
 	// Zertifikate und Schlüssel für den OPC-UA-Client setzen
 	if device.SecurityPolicy != "None" && device.SecurityPolicy != "none" {
-		device.CertFile = "server.crt" // Setze den Pfad zu deinem Zertifikat
-		device.KeyFile = "server.key"  // Setze den Pfad zu deinem Schlüssel
+		device.CertFile = "./server.crt" // Setze den Pfad zu deinem Zertifikat
+		device.KeyFile = "./server.key"  // Setze den Pfad zu deinem Schlüssel
 	}
 
 	// Optionen für den OPC-UA Client festlegen
@@ -97,16 +98,14 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 	return nil
 }
 
-// GetSecurityMode converts a security mode string to a ua.MessageSecurityMode type.
-func GetSecurityMode(mode string) ua.MessageSecurityMode {
+// getSecurityMode converts a security mode string to a ua.MessageSecurityMode type.
+func getSecurityMode(mode string) ua.MessageSecurityMode {
 	switch mode {
-	case "None":
+	case "None", "none":
 		return ua.MessageSecurityModeNone
-	case "none":
-		return ua.MessageSecurityModeNone
-	case "Sign":
+	case "Sign", "sign":
 		return ua.MessageSecurityModeSign
-	case "SignAndEncrypt":
+	case "SignAndEncrypt", "signandencrypt":
 		return ua.MessageSecurityModeSignAndEncrypt
 	default:
 		return ua.MessageSecurityModeNone
@@ -172,46 +171,55 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 func clientOptsFromFlags(device DeviceConfig) ([]opcua.Option, error) {
 	opts := []opcua.Option{}
 
-	// Setze Sicherheitsmodus und -richtlinie
-	securityMode := GetSecurityMode(device.SecurityMode)
-	securityPolicy := device.SecurityPolicy
+	// Sicherheitsmodus und -richtlinie setzen
+	securityMode := getSecurityMode(device.SecurityMode)
+	securityPolicy := getSecurityPolicy(device.SecurityPolicy)
 	opts = append(opts, opcua.SecurityMode(securityMode))
 	opts = append(opts, opcua.SecurityPolicy(securityPolicy))
 
-	// Lade Zertifikate, falls erforderlich
-	if securityMode != ua.MessageSecurityModeNone && securityPolicy != "None" {
+	// Falls ein Zertifikat benötigt wird (Sicherheitsmodus ungleich None):
+	if securityMode != ua.MessageSecurityModeNone {
+		var cert tls.Certificate
+		var err error
+		// Falls in der Konfiguration bereits Zertifikatspfad und Schlüsselpfad hinterlegt sind,
+		// versuchen wir, diese zu laden. Andernfalls wird automatisch ein neues Zertifikat generiert.
 		if device.CertFile != "" && device.KeyFile != "" {
-			cert, err := tls.LoadX509KeyPair(device.CertFile, device.KeyFile)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load client certificate and key: %v", err)
+			cert, err = tls.LoadX509KeyPair(device.CertFile, device.KeyFile)
+			if err == nil {
+				logrus.Warnf("failed to load provided certificate and key for device %v: %v; generating new certificate", device.Name, err)
+				cert, err = generateNewCertificateForDevice(device)
+				if err != nil {
+					return nil, fmt.Errorf("failed to generate new RSA certificate for device %v: %v", device.Name, err)
+				}
 			}
-
-			// Typüberprüfung des PrivateKeys, um sicherzustellen, dass es ein *rsa.PrivateKey ist
-			privateKey, ok := cert.PrivateKey.(*rsa.PrivateKey)
-			if !ok {
-				return nil, fmt.Errorf("unexpected type of private key, expected *rsa.PrivateKey")
-			}
-
-			opts = append(opts, opcua.PrivateKey(privateKey), opcua.Certificate(cert.Certificate[0]))
 		} else {
-			// Optional: Generiere ein Zertifikat, wenn keines bereitgestellt wird
-			certPEM, keyPEM, err := uatest.GenerateCert(device.Address, 2048, 24*time.Hour)
+			cert, err = generateNewCertificateForDevice(device)
 			if err != nil {
-				return nil, fmt.Errorf("failed to generate cert: %v", err)
+				return nil, fmt.Errorf("failed to generate new RSA certificate for device %v: %v", device.Name, err)
 			}
-
-			cert, err := tls.X509KeyPair(certPEM, keyPEM)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse generated cert: %v", err)
-			}
-
-			privateKey, ok := cert.PrivateKey.(*rsa.PrivateKey)
-			if !ok {
-				return nil, fmt.Errorf("unexpected type of generated private key, expected *rsa.PrivateKey")
-			}
-
-			opts = append(opts, opcua.PrivateKey(privateKey), opcua.Certificate(cert.Certificate[0]))
 		}
+
+		// Prüfe, ob das Zertifikat gültig im PEM-Format vorliegt.
+		// block, _ := pem.Decode(cert.Certificate[0])
+		// if block == nil || block.Type != "CERTIFICATE" {
+		// 	return nil, fmt.Errorf("malformed certificate: PEM block invalid")
+		// }
+
+		// Überprüfe, ob der private Schlüssel vom Typ *rsa.PrivateKey ist.
+		privateKey, ok := cert.PrivateKey.(*rsa.PrivateKey)
+		if !ok {
+			logrus.Warnf("unexpected private key type for device %v; generating new RSA certificate", device.Name)
+			cert, err = generateNewCertificateForDevice(device)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate new RSA certificate for device %v: %v", device.Name, err)
+			}
+			privateKey, ok = cert.PrivateKey.(*rsa.PrivateKey)
+			if !ok {
+				return nil, fmt.Errorf("unexpected type of generated private key for device %v, expected *rsa.PrivateKey", device.Name)
+			}
+		}
+
+		opts = append(opts, opcua.PrivateKey(privateKey), opcua.Certificate(cert.Certificate[0]))
 	}
 
 	// Authentifizierungsmethode wählen
@@ -222,4 +230,55 @@ func clientOptsFromFlags(device DeviceConfig) ([]opcua.Option, error) {
 	}
 
 	return opts, nil
+}
+
+func getSecurityPolicy(policy string) string {
+	switch policy {
+	case "None", "none":
+		return ua.SecurityPolicyURINone
+	case "Basic128Rsa15", "basic128rsa15":
+		return ua.SecurityPolicyURIBasic128Rsa15
+	case "Basic256", "basic256":
+		return ua.SecurityPolicyURIBasic256
+	case "Basic256Sha256", "basic256sha256":
+		return ua.SecurityPolicyURIBasic256Sha256
+	default:
+		return ua.SecurityPolicyURINone
+	}
+}
+
+// getLocalIP ermittelt die erste nicht-Loopback IPv4-Adresse des Hosts.
+func getLocalIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+	for _, addr := range addrs {
+		// Prüfen, ob es sich um eine IP-Adresse handelt und ob sie nicht Loopback ist
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ip4 := ipNet.IP.To4(); ip4 != nil {
+				return ip4.String(), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("keine nicht-Loopback IP-Adresse gefunden")
+}
+
+// generateNewCertificateForDevice generiert ein neues RSA‑Zertifikat basierend auf der lokalen IP des Hosts.
+func generateNewCertificateForDevice(device DeviceConfig) (tls.Certificate, error) {
+	localIP, err := getLocalIP()
+	if err != nil || localIP == "" {
+		localIP = "localhost"
+	}
+	certPEM, keyPEM, err := uatest.GenerateCert(localIP, 2048, 24*time.Hour)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("failed to generate RSA certificate: %v", err)
+	}
+	// Optional: Ausgabe prüfen (zum Debuggen)
+	fmt.Println(string(certPEM))
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("failed to parse generated RSA certificate: %v", err)
+	}
+	return cert, nil
 }

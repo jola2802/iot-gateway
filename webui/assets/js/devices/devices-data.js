@@ -72,7 +72,6 @@ document.getElementById('btn-edit-device').onclick=async () => {
     await saveEditDevice();
 };
 
-
 async function saveEditDevice() {
     try {
         // Erfassung der Eingabewerte

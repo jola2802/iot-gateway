@@ -16,7 +16,7 @@ COPY . .
 # Build the Go application
 RUN go build -o iot-gateway main.go
 
-# # Stage 2: Set up the runtime environment
+# Stage 2: Set up the runtime environment
 FROM debian:bookworm-slim
 
 # WORKDIR /data
@@ -70,7 +70,7 @@ FROM debian:bookworm-slim
 WORKDIR /app
 
 # Copy the Go binary from the builder stage
-COPY --from=builder /app/iot-gateway /app/iot-gateway
+COPY --from=builder /app/iot-gateway .
 
 # Copy other required files
 COPY config.json ./

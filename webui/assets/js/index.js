@@ -1,6 +1,8 @@
 if (window.location.pathname === "/home" || window.location.pathname === "/") {
     // WebSocket-Verbindung initialisieren
-    const wsIndex = new WebSocket(`${WS_PATH}/dashboardData`);
+    // const wsIndex = new WebSocket(`${WS_PATH}/dashboardData`);
+    var hostname = window.location.hostname;
+    const wsIndex = new WebSocket(`wss://${hostname}/api/dashboardData`);
 
     // Funktion zum Aktualisieren der Dashboard-Daten
     function updateDashboardData(data) {

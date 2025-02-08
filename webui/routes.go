@@ -49,9 +49,13 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/getDevice/:device_id", getDevice)
 		authorized.POST("/api/query-data", queryDataHandler)
 		authorized.POST("/api/get-measurements", getMeasurements)
-		authorized.POST("api/add-device", addDevice)
-		authorized.PUT("api/update-device/:device_id", updateDevice)
-		authorized.DELETE("api/delete-device/:device_id", deleteDevice)
+		authorized.POST("/api/add-device", addDevice)
+		authorized.PUT("/api/update-device/:device_id", updateDevice)
+		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
+
+		// WSS for dashboard data
+		authorized.GET("/api/dashboardData", dashboardWS)
+
 		/// #############
 		// Show the pages
 		authorized.GET("/", showDashboard)

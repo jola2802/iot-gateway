@@ -202,7 +202,6 @@ document.getElementById("btn-save-new-user").addEventListener('click', () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // 'Authorization': 'Bearer IHR_ZUGRIFFSTOKEN' // Fügen Sie hier erforderliche Header hinzu, falls benötigt
             },
             body: JSON.stringify(userData)
         });

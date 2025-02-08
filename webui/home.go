@@ -72,3 +72,8 @@ func RestartGateway(input interface{}) {
 		context.JSON(http.StatusOK, gin.H{"message": "Gateway restarted successfully"})
 	}
 }
+
+// showDashboard gives the data to the dashboard page
+func dashboardWS(c *gin.Context) {
+
+}

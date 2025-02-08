@@ -15,12 +15,7 @@ func showBrokerPage(c *gin.Context) {
 
 // Gibt User und deren ACL-Einträge zurück
 func getBrokerUsers(c *gin.Context) {
-	db, err := getDBConnection(c)
-	if err != nil {
-		logrus.Error(err)
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+	db, _ := getDBConnection(c)
 
 	// Abfrage für alle Benutzer aus der auth-Tabelle
 	authQuery := `
@@ -150,7 +145,7 @@ func getBrokerUser(c *gin.Context) {
 
 // Funktion zum Erhalt der Broker Login-Daten für Broker Seite
 func getBrokerLogin(c *gin.Context) {
-	db, err := getDBConnection(c)
+	db, _ := getDBConnection(c)
 
 	// Hole Benutzerdaten
 	authQuery := `
@@ -161,7 +156,7 @@ func getBrokerLogin(c *gin.Context) {
 	var user User
 	user.Username = "admin"
 
-	err = db.QueryRow(authQuery, "admin").Scan(&user.Password)
+	err := db.QueryRow(authQuery, "admin").Scan(&user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			logrus.Error("No user found with username: admin")
@@ -181,7 +176,7 @@ func getBrokerLogin(c *gin.Context) {
 	}
 	brokerUrl := "wss://" + hostname + ":5101/ws"
 
-	brokerUrl = "wss://localhost:5101/ws" // sollte noch weggelassen werden...!!!!!!!!!!!!!!!######
+	// brokerUrl = "wss://localhost:5101/ws" // sollte noch weggelassen werden...!!!!!!!!!!!!!!!######
 
 	// User und BrokerUrl als JSON zurückgeben
 	c.JSON(http.StatusOK, gin.H{"username": user.Username, "password": user.Password, "brokerUrl": brokerUrl})

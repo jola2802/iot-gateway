@@ -240,12 +240,13 @@
             "958671caf54728ea",
             "e2b68dcc1b60ff4d",
             "07fa8726ccff723c",
-            "9e011b41b28a9ec5"
+            "9e011b41b28a9ec5",
+            "45f279708b50cb32"
         ],
         "x": 274,
         "y": 859,
-        "w": 692,
-        "h": 142
+        "w": 762,
+        "h": 242
     },
     {
         "id": "3cb4c7902fc85732",
@@ -1259,6 +1260,27 @@
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
         "g": "972ccc72943d2074",
+        "name": "convert-data-to-store-every-1-seconds-in-influx-db",
+        "func": "// Statusanzeige: Verarbeitung läuft\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Verarbeite MQTT-Daten...\" });\n\n// Aufteilen des Topics in Segmente\nvar topicParts = msg.topic.split(\"/\");\nif (topicParts.length < 4) {\n    node.error(\"Topic-Format unzureichend. Erwartet wird mindestens data/.../.../....\", msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Fehler beim Topic-Format\" });\n    return null;\n}\n\n// Extraktion der benötigten Daten\nvar device_id = topicParts[2];                     // 3. Teil des Topics\nvar originalName = topicParts[topicParts.length - 1];  // Letzter Teil des Topics\nvar name = device_id + \"_\" + originalName;       // Kombinierter Name\nvar value = msg.payload;                         // Messwert\n\nif (typeof value === \"undefined\") {\n    node.error(\"Kein gültiger Payload im MQTT-Datenpaket.\", msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Fehlerhafter Payload\" });\n    return null;\n}\n\n// Feste Datapoint-ID (Beispielwert)\nvar datapoint_id = \"12312\";\n\n// Aufbau des einzelnen InfluxDB-Datenpunkts\nvar influxPoint = {\n    measurement: name,\n    fields: {\n        value: value,\n        datapoint_id: datapoint_id\n    }\n};\n\n// Puffer (Buffer) aus dem Node-Kontext laden, oder initialisieren\nvar buffer = context.get(\"buffer\") || [];\nbuffer.push(influxPoint);\ncontext.set(\"buffer\", buffer);\n\n// Prüfen, ob die Anzahl der Nachrichten den Schwellenwert erreicht hat\nif (buffer.length >= 200) {\n    // Buffer sofort leeren und die gesammelten Daten weiterleiten\n    var outMsg = { payload: buffer };\n    context.set(\"buffer\", []); // Puffer zurücksetzen\n\n    // Bestehenden Timer löschen, da er nicht mehr benötigt wird\n    var timer = context.get(\"timer\");\n    if (timer) {\n        clearTimeout(timer);\n        context.set(\"timer\", null);\n    }\n    node.status({ fill: \"green\", shape: \"dot\", text: \"Daten gesendet (200 Nachrichten)\" });\n    return outMsg;\n} else {\n    // Falls noch kein Timer aktiv ist, einen neuen starten, der nach 5 Sekunden den Buffer leert\n    var timer = context.get(\"timer\");\n    if (!timer) {\n        timer = setTimeout(function () {\n            var buf = context.get(\"buffer\") || [];\n            if (buf.length > 0) {\n                // Senden der gesammelten Daten aus dem Timer-Callback\n                node.send({ payload: buf });\n                node.status({ fill: \"green\", shape: \"dot\", text: \"Daten gesendet (Timeout)\" });\n                context.set(\"buffer\", []); // Puffer zurücksetzen\n            }\n            context.set(\"timer\", null);\n        }, 1000); // 5000 ms = 5 Sekunden\n        context.set(\"timer\", timer);\n    }\n    // Rückgabe null, da die Nachricht später asynchron (durch den Timer) gesendet wird\n    return null;\n}\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 960,
+        "wires": [
+            [
+                "07fa8726ccff723c",
+                "45f279708b50cb32"
+            ]
+        ]
+    },
+    {
+        "id": "89100012940869dc",
+        "type": "function",
+        "z": "1728e7a0cbf4dbd0",
         "name": "convert-data-to-store-in-influx-db",
         "func": "/**\n * Diese Node-RED-Funktion nimmt die von einem MQTT-Broker kommenden Daten\n * (z. B. über ein MQTT-In-Node mit dem Topic \"data/#\") entgegen, extrahiert\n * die device_id (3. Part des Topics) und den eigentlichen Messpunktnamen (letzter Part des Topics).\n * Anschließend wird der Messpunktname so angepasst, dass aus device_id und\n * Name ein gemeinsamer Bezeichner wird (z. B. \"1_Hum_1\").\n * \n * Beispielhafter MQTT-Topic:  data/opcua/1/Hum_1\n *   -> device_id = \"1\"         (topicParts[2])\n *   -> Variablenname = \"Hum_1\" (topicParts[3])\n *   -> Kombinierter Name = \"1_Hum_1\"\n *   -> Wert (Payload) = msg.payload\n * \n * Zusätzlich wird eine feste Datapoint-ID hinzugefügt (dies kann nach Belieben\n * geändert oder dynamisch erzeugt werden).\n * \n * Voraussetzungen:\n * - Das MQTT-In-Node ist auf \"Topic: data/#\" konfiguriert\n * - msg.topic enthält den Topic (z. B. \"data/opcua/1/Hum_1\")\n * - msg.payload enthält den eigentlichen Messwert\n * - Dieses Function Node leitet die umgewandelten Daten an ein InfluxDB-Out-Node weiter\n */\n\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Verarbeite MQTT-Daten...\" });\n\n// Aufteilen des Topics in Segmente\nconst topicParts = msg.topic.split(\"/\");\n\n// Für das Beispiel erwarten wir mindestens 4 Parts: data / <irgendwas> / device_id / name\nif (topicParts.length < 4) {\n    node.error(\"Topic-Format unzureichend. Erwartet wird mindestens data/.../.../....\", msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Fehler beim Topic-Format\" });\n    return null;\n}\n\n// device_id ist der 3. Part (Index 2)\nconst device_id = topicParts[2];\n\n// Der ursprüngliche Variablenname ist das letzte Segment\nconst originalName = topicParts[topicParts.length - 1];\n\n// Kombinierter Name aus device_id und originalName\nconst name = device_id + \"_\" + originalName;\n\n// Der eigentliche Messwert ist in msg.payload\nconst value = msg.payload;\n\n// Falls kein gültiger Payload ankommt, abbrechen\nif (typeof value === \"undefined\") {\n    node.error(\"Kein gültiger Payload im MQTT-Datenpaket.\", msg);\n    node.status({ fill: \"red\", shape: \"dot\", text: \"Fehlerhafter Payload\" });\n    return null;\n}\n\n// Feste Datapoint-ID (Beispielwert)\nconst datapoint_id = \"12312\";\n\n// Objekt für InfluxDB vorbereiten\n// Influx erwartet typischerweise ein Array von Messpunkten\n// Jeder Eintrag enthält \"measurement\" und \"fields\".\nconst influxData = [];\n\n// Ein Messpunkt: measurement = name, fields = { value, datapoint_id }\nconst influxPoint = {\n    measurement: name,\n    fields: {\n        value: value,\n        datapoint_id: datapoint_id\n    }\n};\n\ninfluxData.push(influxPoint);\n\n// In Node-RED übergeben wir die Daten an msg.payload\nmsg.payload = influxData;\n\n// Statusmeldung\nnode.status({ fill: \"green\", shape: \"dot\", text: \"Daten für InfluxDB bereit\" });\n\n// Rückgabe des modifizierten msg-Objekts an den Flow\nreturn msg;\n",
         "outputs": 1,
@@ -1267,13 +1289,28 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 590,
-        "y": 960,
+        "x": 650,
+        "y": 1040,
         "wires": [
-            [
-                "07fa8726ccff723c"
-            ]
+            []
         ]
+    },
+    {
+        "id": "45f279708b50cb32",
+        "type": "debug",
+        "z": "1728e7a0cbf4dbd0",
+        "g": "972ccc72943d2074",
+        "name": "debug 8",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 930,
+        "y": 1060,
+        "wires": []
     },
     {
         "id": "2781ab5481c2061b",

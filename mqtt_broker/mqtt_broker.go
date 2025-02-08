@@ -58,9 +58,9 @@ func startBrokerInstance(db *sql.DB) *mqtt.Server {
 	if err := logic.WebUIAccessManagement(db); err != nil {
 		logrus.Fatal("Failed to manage Web-UI access: ", err)
 	}
-	if err := logic.DriverAccessManagement(db); err != nil {
-		logrus.Fatal("Failed to manage driver access: ", err)
-	}
+	// if err := logic.DriverAccessManagement(db); err != nil {
+	// 	logrus.Fatal("Failed to manage driver access: ", err)
+	// }
 
 	// Authentifizierungsdaten aus der Datenbank laden.
 	authData, err := loadAuthDataFromDB(db)

@@ -2,7 +2,6 @@ package logic
 
 import (
 	"database/sql"
-	"strconv"
 	"time"
 
 	opcua "iot-gateway/driver/opcua"
@@ -122,7 +121,7 @@ func RestartAllDrivers(db *sql.DB) {
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPC-UA-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-// OPC-UA-Part START
+// StartOPCUADriver-Funktion
 func StartOPCUADriver(db *sql.DB, deviceID string) {
 	state := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
 	state.mu.Lock()
@@ -131,122 +130,61 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 	state.status = Initializing
 	publishDeviceState(server, "opc-ua", deviceID, state.status)
 
-	// Verwende sql.NullString für Felder, die NULL sein könnten
-	var deviceAddress, deviceName string
-	var securityMode, securityPolicy, certificate, key, username, password sql.NullString
-	var acquisitionTime int
-
-	// Lade die Gerätedaten inklusive Sicherheitsdaten aus der `devices`-Tabelle
-	deviceQuery := `SELECT name, address, acquisition_time, security_mode, security_policy, certificate, key, username, password FROM devices WHERE id = ?`
-	err := db.QueryRow(deviceQuery, deviceID).Scan(&deviceName, &deviceAddress, &acquisitionTime, &securityMode, &securityPolicy, &certificate, &key, &username, &password)
+	// Lese die Basis-Gerätekonfiguration
+	opcuaConfig, err := readDeviceConfig(db, deviceID)
 	if err != nil {
 		state.status = Error
-		logrus.Errorf("DM: Error querying device data from devices table: %v", err)
+		logrus.Errorf("%v", err)
 		publishDeviceState(server, "opc-ua", deviceID, state.status)
 		return
 	}
 
-	// Konfiguration für OPC-UA-Gerät erstellen
-	opcuaConfig := opcua.DeviceConfig{
-		ID:              deviceID,
-		Name:            deviceName,
-		Address:         deviceAddress,
-		AcquisitionTime: acquisitionTime,
-	}
-
-	// Lade die OPC-UA-Knoten basierend auf der device_id aus der `opcua_datanodes`-Tabelle
-	nodeQuery := `SELECT name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
-	rows, err := db.Query(nodeQuery, deviceID)
+	// Lese optionale Sicherheitsdaten und wende diese an
+	secOpts, err := readSecurityOptions(db, deviceID)
 	if err != nil {
 		state.status = Error
-		logrus.Errorf("DM: Error querying OPC-UA nodes from opcua_datanodes table: %v", err)
+		logrus.Errorf("%v", err)
 		publishDeviceState(server, "opc-ua", deviceID, state.status)
 		return
 	}
-	defer rows.Close()
+	applySecurityOptions(&opcuaConfig, secOpts)
 
-	found := false
-
-	// Iteriere über alle gefundenen Zeilen
-	for rows.Next() {
-		found = true
-		var nodeName, nodeIdentifier string
-		if err := rows.Scan(&nodeName, &nodeIdentifier); err != nil {
-			state.status = No_Datapoints
-			logrus.Errorf("DM: Error scanning OPC-UA node data: %v", err)
-			publishDeviceState(server, "opc-ua", deviceID, state.status)
-			return
-		}
-		opcuaConfig.DataNode = append(opcuaConfig.DataNode, opcua.DataNode{
-			Name: nodeName,
-			Node: nodeIdentifier,
-		})
+	// Lese die zugehörigen OPC-UA-Knoten
+	nodes, err := readOPCUANodes(db, deviceID)
+	if err != nil {
+		state.status = Error
+		logrus.Errorf("%v", err)
+		publishDeviceState(server, "opc-ua", deviceID, state.status)
+		return
 	}
-
-	// Falls keine Zeilen gefunden wurden, gib einen Fehler aus und verlasse die Funktion
-	if !found {
+	if len(nodes) == 0 {
 		state.status = No_Datapoints
-		logrus.Errorf("DM: No OPC-UA nodes found for device %s", deviceName)
+		logrus.Errorf("DM: No OPC-UA nodes found for device %s", opcuaConfig.Name)
 		publishDeviceState(server, "opc-ua", deviceID, state.status)
 		return
 	}
+	opcuaConfig.DataNode = nodes
 
-	// Nur die nicht-null Werte übernehmen
-	if securityMode.Valid {
-		opcuaConfig.SecurityMode = securityMode.String
-	}
-	if securityPolicy.Valid {
-		opcuaConfig.SecurityPolicy = securityPolicy.String
-	}
-	if certificate.Valid {
-		opcuaConfig.CertFile = certificate.String
-		opcuaConfig.KeyFile = key.String
-	}
-	if username.Valid {
-		opcuaConfig.Username = username.String
-	}
-	if password.Valid {
-		opcuaConfig.Password = password.String
-	}
-
-	// Lade die node_identifiers in die OPC-UA-Konfiguration
-	for rows.Next() {
-		var nodeIdentifier, nodeName string
-		if err := rows.Scan(&nodeName, &nodeIdentifier); err != nil {
-			state.status = Error
-			logrus.Errorf("DM: Error scanning OPC-UA node data: %v", err)
-			publishDeviceState(server, "opc-ua", deviceID, state.status)
-			return
-		}
-		// Füge die Knoten zur Konfiguration hinzu
-		opcuaConfig.DataNode = append(opcuaConfig.DataNode, opcua.DataNode{
-			Name: nodeName,
-			Node: nodeIdentifier,
-		}) // hier wurde der nodeName entfernt
-	}
-
-	// Starte den OPC-UA-Treiber mit den geladenen Daten
+	// Treiber starten
 	stopChan := make(chan struct{})
 	opcuaStopChans[deviceID] = stopChan
 
-	// Starte den OPC-UA-Treiber mit den geladenen Daten
+	// Starte den OPC-UA-Treiber in einer separaten Goroutine
 	go func() {
-		err := opcua.Run(opcuaConfig, db, stopChan, server)
-		if err != nil {
-			// Setze den Gerätestatus auf Error, wenn ein Fehler auftritt
-			state := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
-			state.mu.Lock()
-			defer state.mu.Unlock()
-			state.status = Error
-			publishDeviceState(server, "opc-ua", deviceID, state.status)
-			logrus.Errorf("DM: Error running OPC-UA driver for device %s: %v", deviceName, err)
+		if err := opcua.Run(opcuaConfig, db, stopChan, server); err != nil {
+			st := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
+			st.mu.Lock()
+			defer st.mu.Unlock()
+			st.status = Error
+			publishDeviceState(server, "opc-ua", deviceID, st.status)
+			logrus.Errorf("DM: Error running OPC-UA driver for device %s: %v", opcuaConfig.Name, err)
 		}
 	}()
 
 	state.running = true
 	state.status = Running
 	publishDeviceState(server, "opc-ua", deviceID, state.status)
-	logrus.Infof("DM: OPC-UA driver started for device %s.", deviceName)
+	logrus.Infof("DM: OPC-UA driver started for device %s.", opcuaConfig.Name)
 }
 
 // StopOPCUADriver stops the OPC-UA driver for a given device.
@@ -300,7 +238,7 @@ func restartOPCUADriver(db *sql.DB, deviceID string) {
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S7-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-// S7-PART
+// Verbesserte StartS7Driver-Funktion
 func StartS7Driver(db *sql.DB, deviceID string) {
 	state := getOrCreateDeviceState(deviceID, s7DeviceStates)
 	state.mu.Lock()
@@ -309,75 +247,46 @@ func StartS7Driver(db *sql.DB, deviceID string) {
 	state.status = Initializing
 	publishDeviceState(server, "s7", deviceID, state.status)
 
-	// 1. Lade die Hauptgerätekonfiguration aus der devices-Tabelle
-	var s7Config opcua.DeviceConfig
-	var rack, slot string
-	deviceQuery := `SELECT name, address, rack, slot, acquisition_time FROM devices WHERE id = ?`
-	err := db.QueryRow(deviceQuery, deviceID).Scan(&s7Config.Name, &s7Config.Address, &rack, &slot, &s7Config.AcquisitionTime)
+	// 1. Geräte-Konfiguration laden
+	s7Config, err := readS7DeviceConfig(db, deviceID)
 	if err != nil {
 		state.status = Error
-		logrus.Errorf("DM: Error querying S7 device config from devices table: %v", err)
-		publishDeviceState(server, "s7", deviceID, state.status)
-		return
-	}
-	s7Config.Rack, _ = strconv.Atoi(rack)
-	s7Config.Slot, _ = strconv.Atoi(slot)
-
-	// 2. Lade die S7-Datenpunkte aus der s7_datapoints-Tabelle in ein Slice ein
-	datapointQuery := `SELECT name, datatype, address FROM s7_datapoints WHERE device_id = ?`
-	rows, err := db.Query(datapointQuery, deviceID)
-	if err != nil {
-		state.status = Error
-		logrus.Errorf("DM: Error querying S7 datapoints from s7_datapoints table: %v", err)
+		logrus.Errorf("%v", err)
 		publishDeviceState(server, "s7", deviceID, state.status)
 		return
 	}
 
-	var datapoints []opcua.Datapoint
-	for rows.Next() {
-		var dpName, dpDatatype, dpAddress string
-		if err := rows.Scan(&dpName, &dpDatatype, &dpAddress); err != nil {
-			state.status = Error
-			logrus.Errorf("DM: Error scanning S7 datapoint data: %v", err)
-			publishDeviceState(server, "s7", deviceID, state.status)
-			rows.Close()
-			return
-		}
-		datapoints = append(datapoints, opcua.Datapoint{
-			Name:     dpName,
-			Datatype: dpDatatype,
-			Address:  dpAddress,
-		})
+	// 2. S7-Datenpunkte laden
+	datapoints, err := readS7Datapoints(db, deviceID)
+	if err != nil {
+		state.status = Error
+		logrus.Errorf("%v", err)
+		publishDeviceState(server, "s7", deviceID, state.status)
+		return
 	}
-	rows.Close()
-
-	// Falls keine Datenpunkte gefunden wurden, Abbruch
 	if len(datapoints) == 0 {
 		state.status = No_Datapoints
 		logrus.Errorf("DM: No S7 datapoints found for device %s", s7Config.Name)
 		publishDeviceState(server, "s7", deviceID, state.status)
 		return
 	}
-
-	// Setze die eingelesenen Datenpunkte in die Konfiguration
 	s7Config.Datapoint = datapoints
 
-	// 4. Starte den S7-Treiber mit den geladenen Daten
+	// 3. Starte den S7-Treiber
 	stopChan := make(chan struct{})
 	s7StopChans[deviceID] = stopChan
 
-	go func() {
-		err := s7.Run(s7Config, db, stopChan)
-		if err != nil {
-			// Setze den Gerätestatus auf Error, wenn ein Fehler auftritt
+	// Starte den S7-Treiber in einer separaten Goroutine
+	go func(config opcua.DeviceConfig) {
+		if err := s7.Run(config, db, stopChan, server); err != nil {
 			state := getOrCreateDeviceState(deviceID, s7DeviceStates)
 			state.mu.Lock()
 			defer state.mu.Unlock()
 			state.status = Error
 			publishDeviceState(server, "s7", deviceID, state.status)
-			logrus.Errorf("DM: Error running S7 driver for device %s: %v", s7Config.Name, err)
+			logrus.Errorf("DM: Error running S7 driver for device %s: %v", config.Name, err)
 		}
-	}()
+	}(s7Config)
 
 	state.running = true
 	state.status = Running
@@ -385,6 +294,7 @@ func StartS7Driver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: S7 driver started for device %s.", s7Config.Name)
 }
 
+// StopS7Driver stops the S7 driver for a given device.
 func stopS7Driver(deviceID string) {
 	state := getOrCreateDeviceState(deviceID, s7DeviceStates)
 	state.mu.Lock()
@@ -402,6 +312,7 @@ func stopS7Driver(deviceID string) {
 	logrus.Infof("DM: Stopped S7 driver for device %s.", deviceID)
 }
 
+// RestartS7Driver restarts the S7 driver for a given device.
 func restartS7Driver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting S7 driver for device %s...", deviceID)
 	stopS7Driver(deviceID)

@@ -1,7 +1,6 @@
 package s7
 
 import (
-	"database/sql"
 	"encoding/binary"
 	"fmt"
 	"iot-gateway/driver/opcua"
@@ -27,8 +26,8 @@ import (
 //   - Returns an error if the S7 handler cannot be created or connected to the PLC.
 //   - Returns an error if the client cannot be created.
 //   - Returns an error if reading data from the PLC fails.
-func InitClient(device opcua.DeviceConfig) ([]map[string]interface{}, error) {
-	handler, err := NewS7Handler(device.Name, device.Address, device.Rack, device.Slot)
+func initClient(device opcua.DeviceConfig) ([]map[string]interface{}, error) {
+	handler, err := newS7Handler(device.Address, device.Rack, device.Slot)
 	if err != nil {
 		logrus.Errorf("S7: could not connect to PLC %s: %v", device.Name, err)
 		return nil, err
@@ -45,7 +44,7 @@ func InitClient(device opcua.DeviceConfig) ([]map[string]interface{}, error) {
 	}
 
 	// Lesen aller Variablenendpunkte entsprechend der Umwandlung
-	results, err := ReadData(client, device)
+	results, err := readData(client, device)
 	if err != nil {
 		logrus.Errorf("S7: failed to read data for PLC %s: %v", device.Name, err)
 		return nil, err
@@ -69,10 +68,9 @@ func InitClient(device opcua.DeviceConfig) ([]map[string]interface{}, error) {
 // Returns:
 //   - *s7.TCPClientHandler: A pointer to the initialized TCP client handler.
 //   - error: An error if the connection to the PLC fails, otherwise nil.
-func NewS7Handler(deviceName string, address string, rack int, slot int) (*s7.TCPClientHandler, error) {
+func newS7Handler(address string, rack int, slot int) (*s7.TCPClientHandler, error) {
 	handler := s7.NewTCPClientHandler(address, rack, slot)
-	handler.Timeout = 200 * time.Second
-	handler.IdleTimeout = 500 * time.Second
+	handler.Timeout = 20 * time.Second
 
 	if err := handler.Connect(); err != nil {
 		// logrus.Errorf("S7: Failed to connect to PLC %s: %v", deviceName, err)
@@ -99,8 +97,15 @@ const (
 	DataBlock
 )
 
-// Wandelt die Variablenadressen um in einzelne Byte und Bit-Werte sowie die entsprechenden Variablentypen
-func ParseAddress(address string) (ParsedAddress, error) {
+// parseAddress converts variable addresses into individual byte and bit values as well as the corresponding variable types.
+//
+// Parameters:
+//   - address: A string representing the address of the variable.
+//
+// Returns:
+//   - ParsedAddress: A struct containing the parsed address information.
+//   - error: An error if the address format is invalid.
+func parseAddress(address string) (ParsedAddress, error) {
 	var parsed ParsedAddress
 	var err error
 
@@ -171,26 +176,33 @@ func ParseAddress(address string) (ParsedAddress, error) {
 	return parsed, nil
 }
 
-// ReadData liest die Daten von den S7-Geräten
-func ReadData(client s7.Client, device opcua.DeviceConfig) ([]map[string]interface{}, error) {
+// readData reads all variable endpoints according to the conversion.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - device: An opcua.DeviceConfig struct containing the configuration for the PLC connection.
+//
+// Returns:
+//   - A slice of maps containing the read data, or an error if reading data from the PLC fails.
+func readData(client s7.Client, device opcua.DeviceConfig) ([]map[string]interface{}, error) {
 	results := make([]map[string]interface{}, len(device.Datapoint))
 	for i, dp := range device.Datapoint {
-		parsedAddr, err := ParseAddress(dp.Address)
+		parsedAddr, err := parseAddress(dp.Address)
 		if err != nil {
 			return nil, fmt.Errorf("S7: failed to parse address %s: %v", dp.Address, err)
 		}
 
-		var value interface{}
+		var value any
 
 		switch parsedAddr.Type {
 		case Input:
-			value, err = ReadInputValue(client, parsedAddr, dp.Datatype)
+			value, err = readInputValue(client, parsedAddr, dp.Datatype)
 		case Output:
-			value, err = ReadOutputValue(client, parsedAddr, dp.Datatype)
+			value, err = readOutputValue(client, parsedAddr, dp.Datatype)
 		case Merker:
-			value, err = ReadMerkerValue(client, parsedAddr, dp.Datatype)
+			value, err = readMerkerValue(client, parsedAddr, dp.Datatype)
 		case DataBlock:
-			value, err = ReadDBValue(client, parsedAddr, dp.Datatype)
+			value, err = readDBValue(client, parsedAddr, dp.Datatype)
 		default:
 			return nil, fmt.Errorf("S7: unsupported variable type %v", parsedAddr.Type)
 		}
@@ -208,7 +220,16 @@ func ReadData(client s7.Client, device opcua.DeviceConfig) ([]map[string]interfa
 	return results, nil
 }
 
-func ReadInputValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
+// readInputValue reads the value of an input from an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - datatype: A string representing the data type of the variable.
+//
+// Returns:
+//   - The read value as an interface{}, or an error if reading the value fails.
+func readInputValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
 	var size int
 	switch addr.DataType {
 	case "Byte":
@@ -251,7 +272,16 @@ func ReadInputValue(client s7.Client, addr ParsedAddress, datatype string) (inte
 	}
 }
 
-func WriteInputValue(client s7.Client, addr ParsedAddress, value interface{}) error {
+// writeInputValue writes a value to an input on an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - value: The value to be written.
+//
+// Returns:
+//   - An error if writing the value fails.
+func writeInputValue(client s7.Client, addr ParsedAddress, value interface{}) error {
 	buffer := make([]byte, 4)
 	err := client.AGReadEB(addr.ByteAddr, 1, buffer)
 	if err != nil {
@@ -279,7 +309,16 @@ func WriteInputValue(client s7.Client, addr ParsedAddress, value interface{}) er
 	return client.AGWriteEB(addr.ByteAddr, 1, buffer)
 }
 
-func ReadOutputValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
+// readOutputValue reads the value of an output from an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - datatype: A string representing the data type of the variable.
+//
+// Returns:
+//   - The read value as an interface{}, or an error if reading the value fails.
+func readOutputValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
 	var size int
 	switch addr.DataType {
 	case "Byte":
@@ -325,7 +364,16 @@ func ReadOutputValue(client s7.Client, addr ParsedAddress, datatype string) (int
 	}
 }
 
-func WriteOutputValue(client s7.Client, addr ParsedAddress, value interface{}) error {
+// writeOutputValue writes a value to an output on an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - value: The value to be written.
+//
+// Returns:
+//   - An error if writing the value fails.
+func writeOutputValue(client s7.Client, addr ParsedAddress, value interface{}) error {
 	var size int
 	switch addr.DataType {
 	case "Byte":
@@ -365,7 +413,16 @@ func WriteOutputValue(client s7.Client, addr ParsedAddress, value interface{}) e
 	return client.AGWriteAB(addr.ByteAddr, size, buffer)
 }
 
-func ReadMerkerValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
+// readMerkerValue reads the value of a marker from an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - datatype: A string representing the data type of the variable.
+//
+// Returns:
+//   - The read value as an interface{}, or an error if reading the value fails.
+func readMerkerValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
 	var size int
 	switch addr.DataType {
 	case "Byte":
@@ -407,7 +464,16 @@ func ReadMerkerValue(client s7.Client, addr ParsedAddress, datatype string) (int
 	}
 }
 
-func WriteMerkerValue(client s7.Client, addr ParsedAddress, value interface{}) error {
+// writeMerkerValue writes a value to a marker on an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - value: The value to be written.
+//
+// Returns:
+//   - An error if writing the value fails.
+func writeMerkerValue(client s7.Client, addr ParsedAddress, value interface{}) error {
 	var size int
 	switch addr.DataType {
 	case "Byte":
@@ -447,7 +513,16 @@ func WriteMerkerValue(client s7.Client, addr ParsedAddress, value interface{}) e
 	return client.AGWriteMB(addr.ByteAddr, size, buffer)
 }
 
-func ReadDBValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
+// readDBValue reads the value of a data block from an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - datatype: A string representing the data type of the variable.
+//
+// Returns:
+//   - The read value as an interface{}, or an error if reading the value fails.
+func readDBValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
 	var size int
 	switch addr.DataType {
 	case "Byte":
@@ -490,7 +565,16 @@ func ReadDBValue(client s7.Client, addr ParsedAddress, datatype string) (interfa
 	}
 }
 
-func WriteDBValue(client s7.Client, addr ParsedAddress, value interface{}) error {
+// writeDBValue writes a value to a data block on an S7 client.
+//
+// Parameters:
+//   - client: An s7.Client instance to communicate with the PLC.
+//   - addr: A ParsedAddress struct containing the parsed address information.
+//   - value: The value to be written.
+//
+// Returns:
+//   - An error if writing the value fails.
+func writeDBValue(client s7.Client, addr ParsedAddress, value interface{}) error {
 	var size int
 	switch addr.DataType {
 	case "Byte":
@@ -530,65 +614,17 @@ func WriteDBValue(client s7.Client, addr ParsedAddress, value interface{}) error
 	return client.AGWriteDB(addr.DBNum, addr.ByteAddr, size, buffer)
 }
 
-// GetConfigByName gibt die Gerätekonfiguration für einen Gerätenamen zurück
-func GetConfigByName(db *sql.DB, name string) (*DeviceConfig, error) {
-	var device DeviceConfig
-
-	// SQL-Abfrage, um das Gerät mit dem Namen aus der Tabelle devices zu holen
-	deviceQuery := `
-		SELECT id, type, name, address,  acquisition_time, rack, slot
-		FROM devices
-		WHERE name = ?
-		LIMIT 1
-	`
-
-	// Gerätedaten aus der Datenbank holen
-	err := db.QueryRow(deviceQuery, name).Scan(&device.ID, &device.Type, &device.Name, &device.Address, &device.AcquisitionTime, &device.Rack, &device.Slot)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("S7: device config for %s not found", name)
-		}
-		logrus.Errorf("S7: could not query device config for %s: %v", name, err)
-		return nil, err
-	}
-
-	// SQL-Abfrage, um die Datenpunkte des Geräts aus der Tabelle s7_datapoints zu holen
-	datapointQuery := `
-		SELECT name, datatype, address
-		FROM s7_datapoints
-		WHERE device_id = ?
-	`
-
-	// Datapoints laden
-	rows, err := db.Query(datapointQuery, device.ID)
-	if err != nil {
-		logrus.Errorf("S7: could not query datapoints for device %s: %v", name, err)
-		return nil, err
-	}
-	defer rows.Close()
-
-	// Datapoints zur Gerätkonfiguration hinzufügen
-	for rows.Next() {
-		var dp Datapoint
-		err := rows.Scan(&dp.Name, &dp.DataType, &dp.Address)
-		if err != nil {
-			logrus.Errorf("S7: failed to scan datapoint for device %s: %v", name, err)
-			return nil, err
-		}
-		device.Datapoint = append(device.Datapoint, dp)
-	}
-
-	if err := rows.Err(); err != nil {
-		logrus.Errorf("S7: error reading datapoints for device %s: %v", name, err)
-		return nil, err
-	}
-
-	return &device, nil
-}
-
-// UpdateDataPoint aktualisiert einen S7-Datenpunkt (wenn er eine entsprechende MQTT-Nachricht erhalten hat)
-func UpdateDataPoint(device *DeviceConfig, address string, value interface{}) error {
-	handler, err := NewS7Handler(device.Name, device.Address, device.Rack, device.Slot)
+// updateDataPoint updates an S7 data point when it receives a corresponding MQTT message.
+//
+// Parameters:
+//   - device: A pointer to a DeviceConfig struct containing the configuration for the PLC connection.
+//   - address: A string representing the address of the variable.
+//   - value: The value to be written.
+//
+// Returns:
+//   - An error if updating the data point fails.
+func updateDataPoint(device *DeviceConfig, address string, value interface{}) error {
+	handler, err := newS7Handler(device.Address, device.Rack, device.Slot)
 	if err != nil {
 		return fmt.Errorf("S7: could not connect to PLC %s: %v", device.Name, err)
 	}
@@ -599,20 +635,20 @@ func UpdateDataPoint(device *DeviceConfig, address string, value interface{}) er
 		return fmt.Errorf("S7: could not create client for PLC %s", device.Name)
 	}
 
-	parsedAddr, err := ParseAddress(address)
+	parsedAddr, err := parseAddress(address)
 	if err != nil {
 		return fmt.Errorf("S7: failed to parse address %s: %v", address, err)
 	}
 
 	switch parsedAddr.Type {
 	case Input:
-		return WriteInputValue(client, parsedAddr, value)
+		return writeInputValue(client, parsedAddr, value)
 	case Output:
-		return WriteOutputValue(client, parsedAddr, value)
+		return writeOutputValue(client, parsedAddr, value)
 	case Merker:
-		return WriteMerkerValue(client, parsedAddr, value)
+		return writeMerkerValue(client, parsedAddr, value)
 	case DataBlock:
-		return WriteDBValue(client, parsedAddr, value)
+		return writeDBValue(client, parsedAddr, value)
 	default:
 		return fmt.Errorf("S7: unknown variable type for address %s", address)
 	}

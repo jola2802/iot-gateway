@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	opcua "iot-gateway/driver/opcua"
+	"strconv"
 	"time"
 
 	MQTT "github.com/mochi-mqtt/server/v2"
@@ -94,4 +96,134 @@ func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRe
 		backoff *= 2 // Exponentielles Wachstum der Wartezeit
 	}
 	logrus.Errorf("Failed to publish message after %d retries", maxRetries)
+}
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPC-UA-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+// Hilfsfunktion: Lese Geräte–Konfiguration (ohne Sicherheitsdaten)
+func readDeviceConfig(db *sql.DB, deviceID string) (opcua.DeviceConfig, error) {
+	var config opcua.DeviceConfig
+	var deviceAddress, deviceName string
+	var acquisitionTime int
+	query := `SELECT name, address, acquisition_time FROM devices WHERE id = ?`
+	if err := db.QueryRow(query, deviceID).Scan(&deviceName, &deviceAddress, &acquisitionTime); err != nil {
+		return config, fmt.Errorf("DM: Error querying device config: %v", err)
+	}
+	config = opcua.DeviceConfig{
+		ID:              deviceID,
+		Name:            deviceName,
+		Address:         deviceAddress,
+		AcquisitionTime: acquisitionTime,
+	}
+	return config, nil
+}
+
+// Hilfsfunktion: Lese optionale Sicherheitsdaten
+func readSecurityOptions(db *sql.DB, deviceID string) (security struct {
+	Mode, Policy, Cert, Key, Username, Password sql.NullString
+}, err error) {
+	// Hier gehen wir davon aus, dass die Sicherheitsdaten in der devices-Tabelle enthalten sind.
+	query := `SELECT security_mode, security_policy, certificate, key, username, password FROM devices WHERE id = ?`
+	err = db.QueryRow(query, deviceID).Scan(
+		&security.Mode, &security.Policy,
+		&security.Cert, &security.Key,
+		&security.Username, &security.Password,
+	)
+	if err != nil {
+		return security, fmt.Errorf("DM: Error querying security options: %v", err)
+	}
+	return security, nil
+}
+
+// Hilfsfunktion: Lese alle OPC-UA-Knoten eines Gerätes
+func readOPCUANodes(db *sql.DB, deviceID string) ([]opcua.DataNode, error) {
+	nodeQuery := `SELECT name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
+	rows, err := db.Query(nodeQuery, deviceID)
+	if err != nil {
+		return nil, fmt.Errorf("DM: Error querying OPC-UA nodes: %v", err)
+	}
+	defer rows.Close()
+
+	var nodes []opcua.DataNode
+	for rows.Next() {
+		var nodeName, nodeIdentifier string
+		if err := rows.Scan(&nodeName, &nodeIdentifier); err != nil {
+			return nil, fmt.Errorf("DM: Error scanning node data: %v", err)
+		}
+		nodes = append(nodes, opcua.DataNode{
+			Name: nodeName,
+			Node: nodeIdentifier,
+		})
+	}
+	return nodes, nil
+}
+
+// Hilfsfunktion: Übernehme optionale Sicherheitswerte in die DeviceConfig
+func applySecurityOptions(config *opcua.DeviceConfig, sec struct {
+	Mode, Policy, Cert, Key, Username, Password sql.NullString
+}) {
+	if sec.Mode.Valid {
+		config.SecurityMode = sec.Mode.String
+	}
+	if sec.Policy.Valid {
+		config.SecurityPolicy = sec.Policy.String
+	}
+	if sec.Cert.Valid {
+		config.CertFile = sec.Cert.String
+	}
+	if sec.Key.Valid {
+		config.KeyFile = sec.Key.String
+	}
+	if sec.Username.Valid {
+		config.Username = sec.Username.String
+	}
+	if sec.Password.Valid {
+		config.Password = sec.Password.String
+	}
+}
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S7-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+// Liest die Hauptkonfiguration eines S7-Gerätes inklusive Rack/Slot-Konvertierung
+func readS7DeviceConfig(db *sql.DB, deviceID string) (opcua.DeviceConfig, error) {
+	var config opcua.DeviceConfig
+	var rackStr, slotStr string
+	query := `SELECT name, address, rack, slot, acquisition_time FROM devices WHERE id = ?`
+	err := db.QueryRow(query, deviceID).Scan(&config.Name, &config.Address, &rackStr, &slotStr, &config.AcquisitionTime)
+	if err != nil {
+		return config, fmt.Errorf("DM: Error querying S7 device config: %v", err)
+	}
+	config.Rack, err = strconv.Atoi(rackStr)
+	if err != nil {
+		return config, fmt.Errorf("DM: Error converting rack value: %v", err)
+	}
+	config.Slot, err = strconv.Atoi(slotStr)
+	if err != nil {
+		return config, fmt.Errorf("DM: Error converting slot value: %v", err)
+	}
+	config.ID = deviceID
+	return config, nil
+}
+
+// Liest die S7-Datenpunkte eines Gerätes aus der s7_datapoints-Tabelle
+func readS7Datapoints(db *sql.DB, deviceID string) ([]opcua.Datapoint, error) {
+	query := `SELECT name, datatype, address FROM s7_datapoints WHERE device_id = ?`
+	rows, err := db.Query(query, deviceID)
+	if err != nil {
+		return nil, fmt.Errorf("DM: Error querying S7 datapoints: %v", err)
+	}
+	defer rows.Close()
+
+	var datapoints []opcua.Datapoint
+	for rows.Next() {
+		var dp opcua.Datapoint
+		if err := rows.Scan(&dp.Name, &dp.Datatype, &dp.Address); err != nil {
+			return nil, fmt.Errorf("DM: Error scanning S7 datapoint: %v", err)
+		}
+		datapoints = append(datapoints, dp)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("DM: Error iterating S7 datapoints: %v", err)
+	}
+	return datapoints, nil
 }

@@ -14,7 +14,13 @@ import (
 
 // showDashboard shows the dashboard page (main-page)
 func showHomeContent(c *gin.Context) {
-	c.HTML(http.StatusOK, "index.html", nil)
+	//Call generate token function
+	token := generateToken()
+
+	// c.HTML(http.StatusOK, "index.html", nil)
+	c.HTML(http.StatusOK, "index.html", gin.H{
+		"token": token,
+	})
 }
 
 func restartGatewayHandler(c *gin.Context) {

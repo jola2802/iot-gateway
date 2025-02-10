@@ -3,6 +3,7 @@ package webui
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -75,9 +76,18 @@ func AuthRequired(c *gin.Context) {
 	session := sessions.Default(c)
 	user := session.Get("user")
 	if user == nil {
-		c.Redirect(http.StatusFound, "/login")
-		c.Abort()
+		if isWebSocketRequest(c.Request) {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		} else {
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+		}
 		return
 	}
 	c.Next()
+}
+
+func isWebSocketRequest(r *http.Request) bool {
+	upgrade := r.Header.Get("Upgrade")
+	return upgrade != "" && (strings.ToLower(upgrade) == "websocket")
 }

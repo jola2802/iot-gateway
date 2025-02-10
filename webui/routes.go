@@ -1,11 +1,22 @@
 package webui
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
+	"sync"
 	"text/template"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+var wsTokenStore = struct {
+	sync.RWMutex
+	tokens map[string]time.Time
+}{
+	tokens: make(map[string]time.Time),
+}
 
 // setupRoutes sets up the routes for the web interface.
 //
@@ -33,6 +44,7 @@ func setupRoutes(r *gin.Engine) {
 	r.GET("/login", showLoginPage)
 	r.POST("/login", performLogin)
 	r.GET("/logout", logout)
+	r.GET("/ws-broker-status", brokerStatusWebSocket)
 
 	// Protected routes
 	authorized := r.Group("/")
@@ -54,7 +66,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
 
 		// WSS for dashboard data
-		authorized.GET("/api/dashboardData", dashboardWS)
+		// authorized.GET("/api/dashboardData", generateToken)
 
 		/// #############
 		// Show the pages
@@ -67,9 +79,10 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/node-red", showNodeRedPage)
 		authorized.GET("/profile", showProfilePage)
 		authorized.GET("/settings", showSettingsPage)
+		// authorized.GET("/ws-token", generateToken)
 		// ############
 
-		// authorized.GET("/ws/broker/status", brokerStatusWebSocket)
+		authorized.GET("/ws-broker-status2", brokerStatusWebSocket)
 		authorized.POST("/restart", restartGatewayHandler)
 
 		authorized.POST("/profile", updateProfile)
@@ -133,4 +146,25 @@ func getPermissionText(permission int) string {
 
 func showNodeRedPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "node-red.html", nil)
+}
+
+func generateToken() string {
+	token, _ := generateRandomToken()
+
+	expiration := time.Now().Add(1 * time.Minute)
+
+	wsTokenStore.Lock()
+	wsTokenStore.tokens[token] = expiration
+	wsTokenStore.Unlock()
+
+	return token
+}
+
+// generateRandomToken erzeugt einen zufälligen Token als Hex-String.
+func generateRandomToken() (string, error) {
+	b := make([]byte, 32) // 256 Bit Token
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }

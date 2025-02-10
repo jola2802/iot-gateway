@@ -12,11 +12,8 @@ import (
 )
 
 var (
-	// topicUserMqttListener     = "iot-gateway/commands/user/#"
-	// topicCommandsMqttListener = "iot-gateway/driver/states/#"
 	dbPath      = "./iot_gateway.db"
-	influxDBURL = "http://localhost:8086"
-	// cacheDuration             = 5 * time.Minute
+	influxDBURL = "http://127.0.0.1:8086"
 )
 
 func main() {
@@ -33,26 +30,14 @@ func main() {
 	server := mqtt_broker.StartBroker(db)
 	logrus.Info("MAIN: Broker started.")
 
-	// User Management für den MQTT-Broker + Listening for changes
-	// logic.ManageUser(topicUserMqttListener, db)
-
-	// MQTT Commands Listener starten
-	// logic.StartMqttListener(topicCommandsMqttListener, db)
-	// defer logic.StopMqttListener()
-
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	// Web-UI
 	go webui.Main(db, server)
 	// defer webui.Stop()
 	logrus.Info("MAIN: Web-UI-server started.")
 
-	// Starten der Treiber
-
-	// time.Sleep(500 * time.Millisecond)
-
-	// DRIVER
-	// Initial all driver start if the configuration exists
+	// Start Driver
 	go logic.StartAllDrivers(db, server)
 
 	select {}

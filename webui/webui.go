@@ -3,16 +3,16 @@ package webui
 import (
 	"database/sql"
 	"net/http"
-	"strings"
-	"sync"
+	"strconv"
 	"time"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	_ "github.com/glebarez/go-sqlite"
+	"github.com/gorilla/websocket"
 	MQTT "github.com/mochi-mqtt/server/v2"
+	"github.com/mochi-mqtt/server/v2/packets"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,7 +50,7 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("mysession", store))
 
-	// Store the db connection in the context, so it can be accessed in route handlers
+	// Store the db connection and server in the context, so it can be accessed in route handlers
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
 		c.Set("server", server)
@@ -85,71 +85,37 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 	}
 }
 
-// var templatesFS embed.FS
-// var staticFS embed.FS
-// var tmpl *template.Template
-
-// Struktur für die MQTT-Metriken
+// Ändere die BrokerStatus-Struktur (falls noch nicht aktualisiert)
 type BrokerStatus struct {
-	BrokerUptime    string   `json:"brokerUptime"`
-	MessageCount    int      `json:"messageCount"`
-	ClientCount     int      `json:"clientCount"`
-	LastMessageTime string   `json:"lastMessageTime"`
-	Devices         []Device `json:"devices"`
+	Uptime            string `json:"uptime"`
+	NumberMessages    int    `json:"numberMessages"`
+	NumberDevices     int    `json:"numberDevices"`
+	NodeRedConnection bool   `json:"nodeRedConnection"`
 }
 
 // Variable zum Speichern der Nachrichtenanzahl
 var messageCount int
-var clientCount int
 var brokerUptime string
-var lastMessageTime time.Time
-
-// MQTT-Handler für das Empfangen von System-Metriken
-var sysTopicHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	topic := msg.Topic()
-	payload := string(msg.Payload())
-
-	switch topic {
-	case "$SYS/broker/messages/received":
-		messageCount = parseInt(payload)
-		lastMessageTime = time.Now()
-	case "$SYS/broker/clients/connected":
-		clientCount = parseInt(payload)
-	case "$SYS/broker/uptime":
-		brokerUptime = payload
-	}
-}
-
-var devicesMap = make(map[string]Device) // Key: "deviceType/deviceName"
-var devicesMapMutex sync.Mutex
-
-var deviceTopicHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	topic := msg.Topic()
-	payload := string(msg.Payload())
-
-	// Extrahiere deviceType und deviceName aus dem Topic
-	parts := strings.Split(topic, "/")
-	if len(parts) >= 4 {
-		deviceType := parts[2]
-		deviceName := parts[3]
-
-		// Bestimme, ob das Gerät verbunden ist ("running" bedeutet verbunden)
-		connected := (payload == "1 (running)")
-
-		// Erstelle oder aktualisiere das Gerät in der devicesMap
-		deviceKey := deviceType + "/" + deviceName
-		devicesMapMutex.Lock()
-		devicesMap[deviceKey] = Device{
-			DeviceType: deviceType,
-			DeviceName: deviceName,
-			Connected:  connected,
-		}
-		devicesMapMutex.Unlock()
-	}
-}
 
 // WebSocket-Endpunkt für den Broker-Status
 func brokerStatusWebSocket(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		logrus.Warn("No token provided for WebSocket connection")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// Überprüfe den Token
+	wsTokenStore.RLock()
+	expriation, exists := wsTokenStore.tokens[token]
+	wsTokenStore.RUnlock()
+	if !exists || expriation.Before(time.Now()) {
+		logrus.Warn("Invalid or expired token provided for WebSocket connection")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	// WebSocket-Verbindung herstellen
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -171,49 +137,81 @@ func brokerStatusWebSocket(c *gin.Context) {
 		}
 	}()
 
-	// Hole die Datenbankverbindung aus dem Context
-	db, exists := c.Get("db")
-	if !exists {
-		logrus.Println("Error retrieving database connection from context")
-		return
-	}
+	// get server from context
+	server := c.MustGet("server").(*MQTT.Server)
 
-	// Hole einen MQTT-Client aus dem Pool
-	mqttClient := getPooledMQTTClient(mqttClientPool, db.(*sql.DB))
-	defer releaseMQTTClient(mqttClientPool, mqttClient) // Gib den Client nach der Nutzung zurück
+	driverIDs := make(map[string]bool)
 
-	// Abonniere die relevanten $SYS-Topics für Metriken
-	sysTopics := []string{
-		"$SYS/broker/uptime",
-		"$SYS/broker/messages/received",
-		"$SYS/broker/clients/connected",
-	}
+	// Starte eine Goroutine, um den Broker-Status regelmäßig zu lesen
+	go func() {
 
-	for _, topic := range sysTopics {
-		mqttClient.Subscribe(topic, 1, sysTopicHandler)
-	}
+		// Subscribe to a filter and handle any received messages via a callback function.
+		callbackFn := func(cl *MQTT.Client, sub packets.Subscription, pk packets.Packet) {
+			topic := pk.TopicName
+			payload := string(pk.Payload)
 
-	// Abonniere das Wildcard-Topic für Geräte
-	mqttClient.Subscribe("iot-gateway/driver/#", 1, deviceTopicHandler)
-
-	// Ticker, um den Status regelmäßig zu senden
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		// Konvertiere die devicesMap in ein Slice, um es zu serialisieren
-		devices := make([]Device, 0, len(devicesMap))
-		for _, device := range devicesMap {
-			devices = append(devices, device)
+			switch topic {
+			case "$SYS/broker/uptime":
+				brokerUptime = payload
+			case "$SYS/broker/messages/received":
+				if count, err := strconv.Atoi(payload); err == nil {
+					messageCount = count
+				} else {
+					logrus.Errorf("Error converting message count (%s): %v", payload, err)
+				}
+			default:
+				// logrus.Infof("states Topic: %s mit Payload: %s", topic, payload)
+				const prefix = "iot-gateway/driver/states/"
+				if len(topic) >= len(prefix) && topic[:len(prefix)] == prefix {
+					// Extrahiere die Driver-ID aus dem Topic
+					driverID := topic[len(prefix):]
+					driverIDs[driverID] = true
+				} else {
+					logrus.Infof("Unbehandelte Topic: %s mit Payload: %s", topic, payload)
+				}
+			}
 		}
 
-		// Sende den Status an den Client
+		_ = server.Subscribe("$SYS/broker/messages/received", 1, callbackFn)
+		_ = server.Subscribe("iot-gateway/driver/states/#", 2, callbackFn)
+		_ = server.Subscribe("$SYS/broker/uptime", 3, callbackFn)
+	}()
+
+	// Ticker, um den Status regelmäßig zu senden
+	ticker := time.NewTicker(1000 * time.Millisecond)
+	defer ticker.Stop()
+
+	httpClient := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	for range ticker.C {
+		// Überprüfen, ob der Token noch gültig ist
+		wsTokenStore.RLock()
+		currentExp, exists := wsTokenStore.tokens[token]
+		wsTokenStore.RUnlock()
+		if !exists || currentExp.Before(time.Now()) {
+			logrus.Warn("Invalid or expired token provided for WebSocket connection")
+			closeMessage := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Token expired")
+			_ = conn.WriteMessage(websocket.CloseMessage, closeMessage)
+			return
+		}
+
+		noderedconnection := false
+		resp, err := httpClient.Get("http://127.0.0.1/nodered")
+		if err == nil {
+			if resp.StatusCode == 200 && resp.StatusCode < 300 {
+				noderedconnection = true
+			}
+			resp.Body.Close()
+		}
+
+		// Hier wird der Status an den Client gesendet, angepasst an das alte Format:
 		status := BrokerStatus{
-			BrokerUptime:    brokerUptime,
-			MessageCount:    messageCount,
-			ClientCount:     clientCount,
-			LastMessageTime: lastMessageTime.Format("2006-01-02 15:04:05"),
-			Devices:         devices,
+			Uptime:            brokerUptime,
+			NumberMessages:    messageCount,
+			NumberDevices:     len(driverIDs),
+			NodeRedConnection: noderedconnection, // Setze hier ggf. den gewünschten Standardwert
 		}
 
 		if err := conn.WriteJSON(status); err != nil {

@@ -2,6 +2,7 @@
 * text=auto
 # Ignoriere den Ordner ./data
 /data/
+/files/
 
 # Ignoriere den Ordner ./node-red-data
 /node-red-data/

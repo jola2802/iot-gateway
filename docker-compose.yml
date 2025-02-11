@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
 
   node-red:
-    image: nodered/node-red:latest
+    image: nodered/node-red:4.0.8-22-minimal
     expose:
       - "7777"
     volumes:

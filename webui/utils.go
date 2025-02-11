@@ -1,15 +1,20 @@
 package webui
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,4 +106,34 @@ func loadConfig(filename string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+func generateToken(c *gin.Context) {
+	token, _ := generateRandomToken()
+	expiration := time.Now().Add(10 * time.Minute)
+
+	wsTokenStore.Lock()
+	wsTokenStore.tokens[token] = expiration
+	wsTokenStore.Unlock()
+
+	c.JSON(http.StatusOK, gin.H{"token": token, "expiration": expiration})
+}
+
+func generateRandomToken() (string, error) {
+	b := make([]byte, 32) // 256 Bit Token
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+// monitorWebSocket überwacht die Verbindung und schließt sie bei Fehlern.
+func monitorWebSocket(conn *websocket.Conn) {
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			logrus.Warnf("WebSocket disconnected: %v", err)
+			gracefulShutdown(conn)
+			return
+		}
+	}
 }

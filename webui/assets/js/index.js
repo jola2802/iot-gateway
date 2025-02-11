@@ -3,13 +3,11 @@
         var hostname = window.location.hostname;
 
         // Zuerst den Token vom Server abrufen
-        await fetch(`/ws-token`)
+        await fetch(`/api/ws-token`)
             .then(response => {
                 if (!response.ok) {
-                    console.log('response:', response);
                     throw new Error("Token-Abruf fehlgeschlagen", response);
                 }
-                console.log('response:', response);
                 return response.json();
             })
             .then(data => {
@@ -19,10 +17,8 @@
                     throw new Error("Kein Token erhalten");
                 }
                 // WebSocket-URL mit dem Token als Query-Parameter aufbauen
-                const wsUrl = `/ws-broker-status?token=${encodeURIComponent(token)}`;
+                const wsUrl = `/api/ws-broker-status?token=${encodeURIComponent(token)}`;
                 const wsIndex = new WebSocket(wsUrl);
-
-                console.log('received token:', token);
 
                 // Funktion zum Aktualisieren der Dashboard-Daten
                 function updateDashboardData(data) {
@@ -51,7 +47,6 @@
                     try {
                         const data = JSON.parse(event.data);
                         updateDashboardData(data);
-                        console.log('WebSocket-Daten empfangen:', data);
                     } catch (error) {
                         console.error('Fehler beim Verarbeiten der WebSocket-Daten:', error);
                     }

@@ -1,8 +1,6 @@
 package webui
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"net/http"
 	"sync"
 	"text/template"
@@ -44,11 +42,10 @@ func setupRoutes(r *gin.Engine) {
 	r.GET("/login", showLoginPage)
 	r.POST("/login", performLogin)
 	r.GET("/logout", logout)
-	r.GET("/ws-broker-status", brokerStatusWebSocket)
 
 	// Protected routes
 	authorized := r.Group("/")
-	authorized.Use(AuthRequired)
+	authorized.Use(authRequired)
 	{
 		/// #############
 		// NEUE ROUTEN HIER
@@ -64,14 +61,17 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/api/add-device", addDevice)
 		authorized.PUT("/api/update-device/:device_id", updateDevice)
 		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
+		authorized.GET("/api/ws-token", generateToken)
 
 		// WSS for dashboard data
-		// authorized.GET("/api/dashboardData", generateToken)
+		authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
+		// WSS for device data
+		authorized.GET("/api/ws-device-data", deviceDataWebSocket)
 
 		/// #############
 		// Show the pages
 		authorized.GET("/", showDashboard)
-		authorized.GET("/home", showHomeContent)
+		authorized.GET("/home", showDashboard)
 		authorized.GET("/devices", showDevicesPage) // show devices page
 		authorized.GET("/historical-data", showHistoricalDataPage)
 		authorized.GET("/data-forwarding", showRoutingPage)
@@ -79,10 +79,8 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/node-red", showNodeRedPage)
 		authorized.GET("/profile", showProfilePage)
 		authorized.GET("/settings", showSettingsPage)
-		// authorized.GET("/ws-token", generateToken)
 		// ############
 
-		authorized.GET("/ws-broker-status2", brokerStatusWebSocket)
 		authorized.POST("/restart", restartGatewayHandler)
 
 		authorized.POST("/profile", updateProfile)
@@ -96,10 +94,10 @@ func setupRoutes(r *gin.Engine) {
 
 		//node-red
 
-		// Device routes with RESTful methods
-		authorized.GET("/devices/:deviceName", getDeviceStatus)          // Get a single device status
-		authorized.PUT("/devices/:deviceName", updateDevice)             // Update a single device
-		authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
+		// Device routes
+		// authorized.GET("/devices/:deviceName", getDeviceStatus)          // Get a single device status
+		// authorized.PUT("/devices/:deviceName", updateDevice)             // Update a single device
+		// authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
 		// authorized.POST("/devices", addDevice)                           // Add a new device
 		// authorized.DELETE("/devices/:deviceName", deleteDevice) // Delete a device
 		authorized.GET("/browseNodes/:deviceName", browseNodes) // Get device attributes
@@ -146,25 +144,4 @@ func getPermissionText(permission int) string {
 
 func showNodeRedPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "node-red.html", nil)
-}
-
-func generateToken() string {
-	token, _ := generateRandomToken()
-
-	expiration := time.Now().Add(1 * time.Minute)
-
-	wsTokenStore.Lock()
-	wsTokenStore.tokens[token] = expiration
-	wsTokenStore.Unlock()
-
-	return token
-}
-
-// generateRandomToken erzeugt einen zufälligen Token als Hex-String.
-func generateRandomToken() (string, error) {
-	b := make([]byte, 32) // 256 Bit Token
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }

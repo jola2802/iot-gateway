@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -53,6 +54,7 @@ func performLogin(c *gin.Context) {
 
 	session := sessions.Default(c)
 	session.Set("user", username)
+	session.Set("loginTime", time.Now())
 	session.Save()
 	c.Redirect(http.StatusFound, "/")
 }
@@ -72,7 +74,7 @@ func logout(c *gin.Context) {
 //
 // If the user is not authenticated, it redirects them to the login page.
 // Otherwise, it calls the next handler in the chain.
-func AuthRequired(c *gin.Context) {
+func authRequired(c *gin.Context) {
 	session := sessions.Default(c)
 	user := session.Get("user")
 	if user == nil {
@@ -84,6 +86,23 @@ func AuthRequired(c *gin.Context) {
 		}
 		return
 	}
+
+	// Prüfe den Anmeldezeitpunkt
+	loginTimeVal := session.Get("loginTime")
+	if loginTimeVal != nil {
+		// Annahme: Der Wert wurde als time.Time gespeichert
+		if loginTime, ok := loginTimeVal.(time.Time); ok {
+			if time.Since(loginTime) > 2*time.Second {
+				// Session löschen und Redirect zu /login
+				session.Clear()
+				session.Save()
+				c.Redirect(http.StatusFound, "/login")
+				c.Abort()
+				return
+			}
+		}
+	}
+
 	c.Next()
 }
 

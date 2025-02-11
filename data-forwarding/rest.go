@@ -85,7 +85,7 @@ func sendDataToREST(destinationURL string, dataPoints []DeviceData, headers []He
 	for _, point := range dataPoints {
 		readings = append(readings, DataReading{
 			DatapointId: point.DatapointId,
-			Value:       point.Value,
+			Value:       fmt.Sprintf("%v", point.Value),
 			Timestamp:   point.Timestamp,
 		})
 	}

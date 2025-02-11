@@ -1,13 +1,5 @@
 [
     {
-        "id": "a6c53714143ca763",
-        "type": "tab",
-        "label": "Dashboard Data",
-        "disabled": false,
-        "info": "",
-        "env": []
-    },
-    {
         "id": "1728e7a0cbf4dbd0",
         "type": "tab",
         "label": "Devices",
@@ -228,7 +220,7 @@
         "id": "972ccc72943d2074",
         "type": "group",
         "z": "1728e7a0cbf4dbd0",
-        "name": "Speichern und Visualisieren der Live-Daten",
+        "name": "Speichern Live-Daten",
         "style": {
             "label": true,
             "fill": "#92d04f",
@@ -463,83 +455,6 @@
         "sessionExpiry": ""
     },
     {
-        "id": "be0b5caf806a5436",
-        "type": "websocket out",
-        "z": "a6c53714143ca763",
-        "name": "",
-        "server": "992a6b8d3e508e45",
-        "client": "",
-        "x": 780,
-        "y": 200,
-        "wires": []
-    },
-    {
-        "id": "412b9a3a4e751a69",
-        "type": "function",
-        "z": "a6c53714143ca763",
-        "name": "MQTT to Dashboard",
-        "func": "// Basiswerte initialisieren\nlet uptime = null;\nlet numberMessages = null;\nlet numberDevices = null;\nlet nodeRedConnection = null;\n\n// Werte basierend auf dem empfangenen Topic und Payload setzen\nif (msg.topic === \"$SYS/broker/uptime\") {\n    uptime = msg.payload;\n} else if (msg.topic === \"$SYS/broker/messages/sent\") {\n    numberMessages = parseInt(msg.payload, 10) || 0;\n} else if (msg.topic === \"$SYS/broker/clients/connected\") {\n    numberDevices = parseInt(msg.payload, 10) || 0;\n}\n\n// Testanfrage an Node-RED\nconst testNodeRedConnection = async () => {\n    try {\n        const response = await axios.get('https://node-red:7777', { timeout: 5000 });\n        // HTTP-Status 200: Verbindung erfolgreich\n        nodeRedConnection = response.status === 200;\n    } catch (error) {\n        // Verbindung fehlgeschlagen\n        nodeRedConnection = false;\n    }\n\n    // MQTT-Daten formatieren und senden\n    const outputData = {\n        uptime: uptime || 0,\n        numberMessages: numberMessages || 0,\n        numberDevices: numberDevices || 0,\n        nodeRedConnection: nodeRedConnection || false,\n    };\n\n    // Nachricht weiterleiten\n    node.send({ payload: outputData });\n};\n\n// Prüfen, ob Node-RED-Testabfrage nötig ist\nif (uptime !== null || numberMessages !== null || numberDevices !== null) {\n    testNodeRedConnection();\n} else {\n    // Keine relevanten Daten empfangen\n    node.warn(\"Kein gültiges MQTT-Topic erkannt.\");\n}\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "axios",
-                "module": "axios"
-            }
-        ],
-        "x": 520,
-        "y": 180,
-        "wires": [
-            [
-                "be0b5caf806a5436",
-                "c15fda370b51e40f"
-            ]
-        ],
-        "icon": "font-awesome/fa-send"
-    },
-    {
-        "id": "bc919d90f33c294d",
-        "type": "mqtt in",
-        "z": "a6c53714143ca763",
-        "d": true,
-        "name": "",
-        "topic": "$SYS/broker/#",
-        "qos": "0",
-        "datatype": "auto-detect",
-        "broker": "0b7c7515b1c6aa53",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 220,
-        "y": 140,
-        "wires": [
-            [
-                "c15fda370b51e40f",
-                "412b9a3a4e751a69"
-            ]
-        ]
-    },
-    {
-        "id": "c15fda370b51e40f",
-        "type": "debug",
-        "z": "a6c53714143ca763",
-        "name": "debug 3",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 650,
-        "y": 100,
-        "wires": []
-    },
-    {
         "id": "baa42ee3c884bd41",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
@@ -761,7 +676,6 @@
         "y": 440,
         "wires": [
             [
-                "9ed8a01f651a92e6",
                 "a632f585947343f8"
             ]
         ],
@@ -903,7 +817,6 @@
         "y": 600,
         "wires": [
             [
-                "9ed8a01f651a92e6",
                 "a632f585947343f8"
             ]
         ],
@@ -1045,7 +958,6 @@
         "y": 760,
         "wires": [
             [
-                "9ed8a01f651a92e6",
                 "a632f585947343f8"
             ]
         ],
@@ -1078,18 +990,6 @@
             ]
         ],
         "icon": "node-red/leveldb.svg"
-    },
-    {
-        "id": "9ed8a01f651a92e6",
-        "type": "websocket out",
-        "z": "1728e7a0cbf4dbd0",
-        "d": true,
-        "name": "",
-        "server": "01834dd3df2ce705",
-        "client": "",
-        "x": 1600,
-        "y": 600,
-        "wires": []
     },
     {
         "id": "a632f585947343f8",
@@ -1185,10 +1085,11 @@
         "id": "dee49bb2a91064b4",
         "type": "mqtt in",
         "z": "1728e7a0cbf4dbd0",
+        "d": true,
         "g": "972ccc72943d2074",
         "name": "",
         "topic": "data/#",
-        "qos": "0",
+        "qos": "2",
         "datatype": "auto-detect",
         "broker": "0b7c7515b1c6aa53",
         "nl": false,
@@ -1208,6 +1109,7 @@
         "id": "958671caf54728ea",
         "type": "websocket out",
         "z": "1728e7a0cbf4dbd0",
+        "d": true,
         "g": "972ccc72943d2074",
         "name": "",
         "server": "01834dd3df2ce705",
@@ -1220,6 +1122,7 @@
         "id": "e2b68dcc1b60ff4d",
         "type": "function",
         "z": "1728e7a0cbf4dbd0",
+        "d": true,
         "g": "972ccc72943d2074",
         "name": "convert-data-for-live-show",
         "func": "// Initialisierung: Aggregationsspeicher und Timer (wird nur einmal eingerichtet)\nif (!context.get(\"init\")) {\n    // Aggregationsobjekt zum Speichern der Daten pro device_id\n    context.set(\"aggregated\", {});\n\n    // Timer, der alle 500ms prüft, ob aggregierte Daten vorliegen und diese dann als Block weitergibt\n    var timer = setInterval(function () {\n        var aggregated = context.get(\"aggregated\") || {};\n        var outputArray = [];\n\n        // Für jedes aggregierte Gerät wird ein Objekt erstellt, sofern Messwerte vorhanden sind\n        for (var device in aggregated) {\n            if (aggregated[device].datapoints.length > 0) {\n                // Hier sortieren wir die Datapoints nach ihrer ID in alphabetischer Reihenfolge\n                aggregated[device].datapoints.sort(function (a, b) {\n                    return a.id.localeCompare(b.id);\n                });\n                outputArray.push(aggregated[device]);\n            }\n        }\n        if (outputArray.length > 0) {\n            // Sende die aggregierten Daten als msg.payload weiter\n            node.send({ payload: outputArray });\n            // Leere den Aggregationsspeicher, um im nächsten Intervall neu zu sammeln\n            context.set(\"aggregated\", {});\n        }\n    }, 500);\n\n    context.set(\"timer\", timer);\n    context.set(\"init\", true);\n}\n\n// Bearbeitung jeder eingehenden Nachricht\n// Beispielhafte Topics: \"data/opcua/1/Hum_1\", \"data/opcua/1/Hum_2\", \"data/s7/3/var1\"\nvar topic = msg.topic;\nvar parts = topic.split(\"/\");\n\n// Überprüfe, ob das Topic das erwartete Format hat: mind. 4 Segmente\nif (parts.length < 4) {\n    node.warn(\"Ungültiges Topic-Format: \" + topic);\n    return null;\n}\n\n// Extrahiere device_id und den Messbezeichner (measurement)\n// parts[0] = \"data\", parts[1] = Gerätetyp (z. B. \"opcua\" oder \"s7\")\n// parts[2] = device_id, parts[3] = measurement (z. B. \"Hum_1\")\nvar device_id = parts[2];\nvar measurement = parts[3];\n\n// Erstelle den Datapoint im gewünschten Format\nvar datapoint = {};\ndatapoint.id = measurement || \"unknown\";\ndatapoint.name = measurement || \"unknown\";\nif (typeof msg.payload === \"number\") {\n    datapoint.value = msg.payload.toFixed(2);\n} else if (!isNaN(Number(msg.payload))) {\n    datapoint.value = Number(msg.payload).toFixed(2);\n} else {\n    datapoint.value = msg.payload || \"unknown\";\n}\n\n// Aggregiere die Daten in einem Kontextobjekt, gruppiert nach device_id\nvar aggregated = context.get(\"aggregated\") || {};\n\n// Falls für das Gerät noch kein Eintrag existiert, anlegen:\nif (!aggregated[device_id]) {\n    aggregated[device_id] = {\n        device_id: device_id,\n        datapoints: []\n    };\n}\n\n// Falls bereits ein Datapoint für das jeweilige measurement existiert, diesen aktualisieren;\n// ansonsten den neuen Datapoint anhängen.\nvar updated = false;\nfor (var i = 0; i < aggregated[device_id].datapoints.length; i++) {\n    if (aggregated[device_id].datapoints[i].id === measurement) {\n        aggregated[device_id].datapoints[i].value = datapoint.value;\n        updated = true;\n        break;\n    }\n}\nif (!updated) {\n    aggregated[device_id].datapoints.push(datapoint);\n}\n\n// Speichere das aktualisierte Aggregationsobjekt zurück in den Kontext\ncontext.set(\"aggregated\", aggregated);\n\n// Es wird kein unmittelbarer Output erzeugt – die Ausgabe erfolgt zyklisch über den Timer\nreturn null;\n",
@@ -1251,7 +1154,7 @@
         "retentionPolicyV18Flux": "",
         "org": "idpm",
         "bucket": "iot-data",
-        "x": 880,
+        "x": 940,
         "y": 960,
         "wires": []
     },
@@ -1301,7 +1204,7 @@
         "z": "1728e7a0cbf4dbd0",
         "g": "972ccc72943d2074",
         "name": "debug 8",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,

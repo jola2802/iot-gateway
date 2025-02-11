@@ -5,14 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
 	_ "github.com/glebarez/go-sqlite"
 	"github.com/gorilla/websocket"
+	MQTT "github.com/mochi-mqtt/server/v2"
+	"github.com/mochi-mqtt/server/v2/packets"
 	"github.com/sirupsen/logrus"
 )
 
@@ -161,6 +165,143 @@ func getDevice(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"device": device})
 }
 
+type Datapoint struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type AggregatedData struct {
+	DeviceID   string      `json:"device_id"`
+	Datapoints []Datapoint `json:"datapoints"`
+}
+
+// deviceDataWebSocket übernimmt die Funktionalität des Node-RED Nodes zur Aggregation
+// und Weitergabe der MQTT-Daten (Topic: "data/#") über eine WebSocket-Verbindung.
+func deviceDataWebSocket(c *gin.Context) {
+	// WebSocket-Verbindung herstellen
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		logrus.Errorf("Error upgrading to WebSocket: %v", err)
+		return
+	}
+	defer gracefulShutdown(conn)
+
+	// Starte eine Goroutine, um Verbindungsabbrüche zu überwachen.
+	go monitorWebSocket(conn)
+
+	// Aggregationsspeicher und zugehöriger Mutex
+	aggregated := make(map[string]*AggregatedData)
+	var aggMutex sync.Mutex
+
+	// MQTT-Server aus dem Context holen
+	server := c.MustGet("server").(*MQTT.Server)
+
+	// Callback-Funktion für eingehende MQTT-Nachrichten
+	callbackFn := func(cl *MQTT.Client, sub packets.Subscription, pk packets.Packet) {
+		topic := pk.TopicName
+		payloadStr := string(pk.Payload)
+
+		// Erwartetes Topic-Format: "data/<device_type>/<device_id>/<measurement>"
+		parts := strings.Split(topic, "/")
+		if len(parts) < 4 {
+			logrus.Warn("Ungültiges Topic-Format: " + topic)
+			return
+		}
+		deviceID, measurement := parts[2], parts[3]
+
+		// Formatierung des Payloads: Zahl mit zwei Dezimalstellen oder als String übernehmen.
+		var value string
+		if num, err := strconv.ParseFloat(payloadStr, 64); err == nil {
+			value = fmt.Sprintf("%.2f", num)
+		} else {
+			value = payloadStr
+		}
+
+		// Aktualisiere den Aggregationsspeicher
+		updateAggregation(aggregated, &aggMutex, deviceID, measurement, value)
+	}
+
+	// Abonniere den MQTT-Topic "data/#" einmalig.
+	if err := server.Subscribe("data/#", 1, callbackFn); err != nil {
+		logrus.Errorf("Error subscribing to topic data/#: %v", err)
+		return
+	}
+
+	// Ticker: Alle 500ms werden aggregierte Daten verarbeitet und gesendet.
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		outputArray := buildOutput(&aggregated, &aggMutex)
+		if len(outputArray) > 0 {
+			if err := conn.WriteJSON(outputArray); err != nil {
+				logrus.Errorf("Error sending aggregated data: %v", err)
+				return
+			}
+		}
+	}
+}
+
+func updateAggregation(aggregated map[string]*AggregatedData, aggMutex *sync.Mutex, deviceID, measurement, value string) {
+	aggMutex.Lock()
+	defer aggMutex.Unlock()
+
+	agg, exists := aggregated[deviceID]
+	if !exists {
+		agg = &AggregatedData{
+			DeviceID:   deviceID,
+			Datapoints: []Datapoint{},
+		}
+		aggregated[deviceID] = agg
+	}
+
+	// Falls bereits ein Datapoint für das jeweilige Measurement existiert, aktualisieren
+	updated := false
+	for i, dp := range agg.Datapoints {
+		if dp.ID == measurement {
+			agg.Datapoints[i].Value = value
+			updated = true
+			break
+		}
+	}
+	if !updated {
+		newDP := Datapoint{
+			ID:    measurement,
+			Name:  measurement,
+			Value: value,
+		}
+		agg.Datapoints = append(agg.Datapoints, newDP)
+	}
+}
+
+// buildOutput erstellt das Ausgabearray aus dem Aggregationsspeicher und leert diesen anschließend.
+func buildOutput(aggregated *map[string]*AggregatedData, aggMutex *sync.Mutex) []interface{} {
+	aggMutex.Lock()
+	defer aggMutex.Unlock()
+
+	var outputArray []interface{}
+	for _, agg := range *aggregated {
+		if len(agg.Datapoints) > 0 {
+			// Sortiere die Datapoints alphabetisch nach ihrer ID
+			sort.Slice(agg.Datapoints, func(i, j int) bool {
+				return agg.Datapoints[i].ID < agg.Datapoints[j].ID
+			})
+			outputArray = append(outputArray, *agg)
+		}
+	}
+	// Leere den Aggregationsspeicher für den nächsten Intervall.
+	*aggregated = make(map[string]*AggregatedData)
+	return outputArray
+}
+
+func gracefulShutdown(conn *websocket.Conn) {
+	if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
+		logrus.Errorf("Error closing WebSocket: %v", err)
+	}
+	conn.Close()
+}
+
 // ######################################################################################
 // #                                                                                    #
 //
@@ -262,13 +403,6 @@ func deviceStatusWebSocket(c *gin.Context) {
 	}
 }
 
-func gracefulShutdown(conn *websocket.Conn) {
-	if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
-		logrus.Errorf("Error closing WebSocket: %v", err)
-	}
-	conn.Close()
-}
-
 // Reusable function to handle WebSocket communication
 func handleWebSocketMessages(conn *websocket.Conn, dataChan chan Device) {
 	for device := range dataChan {
@@ -276,65 +410,6 @@ func handleWebSocketMessages(conn *websocket.Conn, dataChan chan Device) {
 		if err := conn.WriteJSON(device); err != nil {
 			logrus.Errorf("Error sending device status: %v", err)
 			return
-		}
-	}
-}
-
-// WebSocket-Endpunkt für die Gerätepunkte
-func deviceDataWebSocket(c *gin.Context) {
-	for {
-		// WebSocket-Verbindung herstellen
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			logrus.Errorf("Error upgrading to WebSocket: %v", err)
-			return
-		}
-		defer gracefulShutdown(conn)
-
-		// Starte eine Goroutine, um Verbindungsabbrüche zu überwachen
-		go func() {
-			defer gracefulShutdown(conn)
-			for {
-				_, _, err := conn.ReadMessage()
-				if err != nil {
-					logrus.Warnf("WebSocket disconnected: %v", err)
-					gracefulShutdown(conn)
-					return
-				}
-			}
-		}()
-
-		// Hole die Datenbankverbindung aus dem Context
-		db, exists := c.Get("db")
-		if !exists {
-			logrus.Println("Error retrieving database connection from context")
-			return
-		}
-
-		// Hole einen MQTT-Client aus dem Pool
-		mqttClient := getPooledMQTTClient(mqttClientPool, db.(*sql.DB))
-		defer releaseMQTTClient(mqttClientPool, mqttClient) // Gib den Client nach der Nutzung zurück
-
-		// Channel für den Empfang von Datenpunkten
-		deviceDataPoints := make(chan DeviceData)
-
-		// MQTT-Abonnement neu einrichten
-		subscribeToDeviceDataPoints(mqttClient, "data/#", deviceDataPoints)
-
-		// WebSocket-Nachrichten behandeln
-		for {
-			select {
-			case dataPoint := <-deviceDataPoints:
-				// Sende die Gerätepunkte an den Client
-				if err := conn.WriteJSON(dataPoint); err != nil {
-					logrus.Errorf("Error sending data point: %v", err)
-					return
-				}
-			case <-time.After(defaultTimeout):
-				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-					return
-				}
-			}
 		}
 	}
 }

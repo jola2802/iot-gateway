@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	dataforwarding "iot-gateway/data-forwarding"
 	logic "iot-gateway/logic"
 	mqtt_broker "iot-gateway/mqtt_broker"
 	webui "iot-gateway/webui"
@@ -31,6 +32,8 @@ func main() {
 	logrus.Info("MAIN: Broker started.")
 
 	time.Sleep(3 * time.Second)
+
+	go dataforwarding.StartInfluxDBWriter(db, server)
 
 	// Web-UI
 	go webui.Main(db, server)

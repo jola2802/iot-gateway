@@ -13,7 +13,7 @@ type DeviceData struct {
 	DeviceId    string
 	Datapoint   string
 	DatapointId string
-	Value       string
+	Value       interface{}
 	Timestamp   string
 }
 
@@ -28,7 +28,7 @@ var dataBatch = make([]DeviceData, 0, 10) // Puffer für 10 Datenpunkte
 var batchMu sync.Mutex                    // Mutex für die Synchronisation
 
 // SaveDeviceDataToBatch sammelt die Daten und speichert sie in Batches
-func SaveDeviceDataToBatch(db *sql.DB, deviceName string, deviceId string, datapoint string, datapointId string, value string, timestamp string, cacheDuration time.Duration) {
+func SaveDeviceDataToBatch(db *sql.DB, deviceName string, deviceId string, datapoint string, datapointId string, value interface{}, timestamp string, cacheDuration time.Duration) {
 	batchMu.Lock()
 	defer batchMu.Unlock()
 

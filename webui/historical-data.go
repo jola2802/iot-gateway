@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	dataforwarding "iot-gateway/data-forwarding"
+
 	"github.com/gin-gonic/gin"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/sirupsen/logrus"
@@ -15,6 +17,8 @@ type DataPoint struct {
 	X time.Time `json:"x"`
 	Y float64   `json:"y"`
 }
+
+var influxConfig *dataforwarding.InfluxConfig
 
 func showHistoricalDataPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "historical-data.html", nil)
@@ -28,12 +32,12 @@ func queryDataHandler(c *gin.Context) {
 		return
 	}
 
-	// InfluxDB-Konfiguration aus SQLite abrufen
-	var influxURL, influxToken, influxOrg, influxBucket string
-	err = db.QueryRow("SELECT url, token, org, bucket FROM influxdb LIMIT 1").Scan(&influxURL, &influxToken, &influxOrg, &influxBucket)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
-		return
+	if influxConfig == nil {
+		influxConfig, err = dataforwarding.GetInfluxConfig(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
+			return
+		}
 	}
 
 	// Anfrage-Parameter auslesen
@@ -48,10 +52,10 @@ func queryDataHandler(c *gin.Context) {
 	}
 
 	// Verbindung zur InfluxDB herstellen
-	client := influxdb2.NewClient(influxURL, influxToken)
+	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
 	defer client.Close()
 
-	queryAPI := client.QueryAPI(influxOrg)
+	queryAPI := client.QueryAPI(influxConfig.Org)
 
 	location, err := time.LoadLocation("Europe/Berlin")
 	if err != nil {
@@ -84,7 +88,7 @@ func queryDataHandler(c *gin.Context) {
 		from(bucket: "%s")
 		|> range(start: %s, stop: %s)
 		|> filter(fn: (r) => r["_measurement"] == %q and r["_field"] == "value")
-	`, influxBucket, startTime.UTC().Format(time.RFC3339), stopTime.UTC().Format(time.RFC3339), requestData.Measurement)
+	`, influxConfig.Bucket, startTime.UTC().Format(time.RFC3339), stopTime.UTC().Format(time.RFC3339), requestData.Measurement)
 
 	// Query ausführen
 	result, err := queryAPI.Query(c, query)
@@ -135,25 +139,25 @@ func getMeasurements(c *gin.Context) {
 		return
 	}
 
-	// InfluxDB-Konfigurationsdetails abrufen
-	var influxURL, influxToken, influxOrg, influxBucket string
-	err = db.QueryRow("SELECT url, token, org, bucket FROM influxdb LIMIT 1").Scan(&influxURL, &influxToken, &influxOrg, &influxBucket)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
-		return
+	if influxConfig == nil {
+		influxConfig, err = dataforwarding.GetInfluxConfig(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
+			return
+		}
 	}
 
 	// Verbindung zur InfluxDB
-	client := influxdb2.NewClient(influxURL, influxToken)
+	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
 	defer client.Close()
 
-	queryAPI := client.QueryAPI(influxOrg)
+	queryAPI := client.QueryAPI(influxConfig.Org)
 
 	// Flux-Query: Alle Measurements abrufen
 	query := fmt.Sprintf(`
 		import "influxdata/influxdb/schema"
 		schema.measurements(bucket: "%s")
-	`, influxBucket)
+	`, influxConfig.Bucket)
 
 	// Query ausführen
 	result, err := queryAPI.Query(c, query)

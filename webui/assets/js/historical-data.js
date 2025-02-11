@@ -75,6 +75,7 @@ form.addEventListener('submit', async (event) => {
     const startTime = document.getElementById('start-time').value;
     const duration = document.getElementById('duration').value;
     const selectedMeasurement = datapointSelect.value; // Ausgewähltes Measurement
+    const selectedDevice = deviceSelect.value; // Ausgewähltes Device
 
     // Fetch data from InfluxDB
     try {

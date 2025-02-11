@@ -42,6 +42,8 @@ func setupRoutes(r *gin.Engine) {
 	r.GET("/login", showLoginPage)
 	r.POST("/login", performLogin)
 	r.GET("/logout", logout)
+	r.GET("/api/ws-broker-status", brokerStatusWebSocket)
+	r.GET("/api/ws-device-data", deviceDataWebSocket)
 
 	// Protected routes
 	authorized := r.Group("/")
@@ -64,9 +66,9 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/ws-token", generateToken)
 
 		// WSS for dashboard data
-		authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
+		// authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
 		// WSS for device data
-		authorized.GET("/api/ws-device-data", deviceDataWebSocket)
+		// authorized.GET("/api/ws-device-data", deviceDataWebSocket)
 
 		/// #############
 		// Show the pages

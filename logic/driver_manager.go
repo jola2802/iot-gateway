@@ -65,28 +65,30 @@ func StartAllDrivers(dbF *sql.DB, serverF *MQTT.Server) {
 		// Speichere die Zeile als Slice – ohne extra Struct
 		devicesData = append(devicesData, []interface{}{id, devType, name, address, acqTime})
 	}
-	// Jetzt ist der DB-Query abgeschlossen und die DB-Sperre freigegeben
 
-	// Treiber anhand der im Slice gespeicherten Daten starten
-	for _, d := range devicesData {
-		// Da wir wissen, dass id, devType, name, address und acqTime in dieser Reihenfolge kommen:
-		deviceID := d[0].(string)
-		deviceType := d[1].(string)
-		deviceName := d[2].(string)
-		// deviceAddress := d[3].(string) // falls benötigt
-		// acquisitionTime := d[4].(int)   // falls benötigt
+	// Am besten in einer eigenen Goroutine starten
+	go func() {
+		// Treiber anhand der im Slice gespeicherten Daten starten
+		for _, d := range devicesData {
+			// Da wir wissen, dass id, devType, name, address und acqTime in dieser Reihenfolge kommen:
+			deviceID := d[0].(string)
+			deviceType := d[1].(string)
+			deviceName := d[2].(string)
+			// deviceAddress := d[3].(string) // falls benötigt
+			// acquisitionTime := d[4].(int)   // falls benötigt
 
-		switch deviceType {
-		case "opc-ua":
-			StartOPCUADriver(db, deviceID)
-		case "s7":
-			StartS7Driver(db, deviceID)
-		case "mqtt":
-			// MQTT-Treiber starten, falls erforderlich
-		default:
-			logrus.Warnf("DM: Unknown device type %s for device %s", deviceType, deviceName)
+			switch deviceType {
+			case "opc-ua":
+				StartOPCUADriver(db, deviceID)
+			case "s7":
+				StartS7Driver(db, deviceID)
+			case "mqtt":
+				// MQTT-Treiber starten, falls erforderlich
+			default:
+				logrus.Warnf("DM: Unknown device type %s for device %s", deviceType, deviceName)
+			}
 		}
-	}
+	}()
 
 	// Aktualisiere in der DB den Status auf Running, sofern noch Initializing gesetzt ist
 	if _, err := db.Exec("UPDATE devices SET status = ? WHERE status = ?", Running, Initializing); err != nil {

@@ -77,33 +77,40 @@ func logout(c *gin.Context) {
 func authRequired(c *gin.Context) {
 	session := sessions.Default(c)
 	user := session.Get("user")
+
+	// Checke ob der User eingeloggt ist
 	if user == nil {
 		if isWebSocketRequest(c.Request) {
 			c.AbortWithStatus(http.StatusUnauthorized)
-		} else {
-			c.Redirect(http.StatusFound, "/login")
-			c.Abort()
-		}
-		return
-	}
-
-	// Prüfe den Anmeldezeitpunkt
-	loginTimeVal := session.Get("loginTime")
-	if loginTimeVal != nil {
-		// Annahme: Der Wert wurde als time.Time gespeichert
-		if loginTime, ok := loginTimeVal.(time.Time); ok {
-			if time.Since(loginTime) > 2*time.Second {
-				// Session löschen und Redirect zu /login
-				session.Clear()
-				session.Save()
-				c.Redirect(http.StatusFound, "/login")
-				c.Abort()
-				return
-			}
 		}
 	}
-
 	c.Next()
+
+	// if user == nil {
+	// if isWebSocketRequest(c.Request) {
+	// c.AbortWithStatus(http.StatusUnauthorized)
+	// } else {
+	// c.Redirect(http.StatusFound, "/login")
+	// c.Abort()
+	// }
+	// return
+	// }
+
+	// // Prüfe den Anmeldezeitpunkt
+	// var loginTimeVal interface{} = session.Get("loginTime")
+	// if loginTimeVal != nil {
+	// 	// Annahme: Der Wert wurde als time.Time gespeichert
+	// 	if loginTime, ok := loginTimeVal.(time.Time); ok {
+	// 		if time.Since(loginTime) > 2*time.Second {
+	// 			// Session löschen und Redirect zu /login
+	// 			session.Clear()
+	// 			session.Save()
+	// 			c.Redirect(http.StatusFound, "/login")
+	// 			c.Abort()
+	// 			return
+	// 		}
+	// 	}
+	// }
 }
 
 func isWebSocketRequest(r *http.Request) bool {

@@ -3,7 +3,6 @@ package webui
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	dataforwarding "iot-gateway/data-forwarding"
@@ -51,7 +50,10 @@ func queryDataHandler(c *gin.Context) {
 		return
 	}
 
+	logrus.Infof("Request data: %+v", requestData)
+
 	// Verbindung zur InfluxDB herstellen
+	logrus.Infof("Verbindung zu InfluxDB unter %s wird hergestellt", influxConfig.URL)
 	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
 	defer client.Close()
 
@@ -87,7 +89,8 @@ func queryDataHandler(c *gin.Context) {
 	query := fmt.Sprintf(`
 		from(bucket: "%s")
 		|> range(start: %s, stop: %s)
-		|> filter(fn: (r) => r["_measurement"] == %q and r["_field"] == "value")
+		|> filter(fn: (r) => r["_measurement"] == "%s")
+		|> filter(fn: (r) => r["_field"] == "value")
 	`, influxConfig.Bucket, startTime.UTC().Format(time.RFC3339), stopTime.UTC().Format(time.RFC3339), requestData.Measurement)
 
 	// Query ausführen
@@ -130,8 +133,6 @@ func getMeasurements(c *gin.Context) {
 		return
 	}
 
-	deviceId := request.DeviceID
-
 	// Verbindung zur SQLite-Datenbank, um InfluxDB-Details zu holen
 	db, err := getDBConnection(c)
 	if err != nil {
@@ -153,14 +154,19 @@ func getMeasurements(c *gin.Context) {
 
 	queryAPI := client.QueryAPI(influxConfig.Org)
 
-	// Flux-Query: Alle Measurements abrufen
+	// Flux-Query: Hole alle Measurements für die angegebene deviceId
 	query := fmt.Sprintf(`
-		import "influxdata/influxdb/schema"
-		schema.measurements(bucket: "%s")
-	`, influxConfig.Bucket)
+	from(bucket: "%s")
+		|> range(start: -30d)  // Zeitfenster der letzten 30 Tage
+		|> filter(fn: (r) => r["deviceId"] == "%s")
+		|> group(columns: ["_measurement"])
+		|> distinct(column: "_measurement")
+		|> keep(columns: ["_measurement"])
+	`, influxConfig.Bucket, request.DeviceID)
 
 	// Query ausführen
 	result, err := queryAPI.Query(c, query)
+	logrus.Infof("result: %v", result)
 	if err != nil {
 		logrus.Errorf("Error while querying measurements: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query measurements from InfluxDB"})
@@ -169,17 +175,16 @@ func getMeasurements(c *gin.Context) {
 
 	// Measurements sammeln
 	var measurements []string
+
+	// Gefilterte Measurements sammeln
 	for result.Next() {
-		measurement := result.Record().ValueByKey("_value").(string)
-		// Filter in Go anwenden (falls notwendig)
-		if strings.HasPrefix(measurement, deviceId+"_") {
-			measurements = append(measurements, measurement)
-		}
+		measurement := result.Record().ValueByKey("_measurement").(string)
+		measurements = append(measurements, measurement)
 	}
 
-	// Fehler beim Querying
+	// Fehler beim Querying prüfen
 	if result.Err() != nil {
-		logrus.Errorf("Error processing query results: %s", result.Err().Error())
+		logrus.Errorf("Error processing filtered query results: %s", result.Err().Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Err().Error()})
 		return
 	}

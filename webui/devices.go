@@ -179,6 +179,22 @@ type AggregatedData struct {
 // deviceDataWebSocket übernimmt die Funktionalität des Node-RED Nodes zur Aggregation
 // und Weitergabe der MQTT-Daten (Topic: "data/#") über eine WebSocket-Verbindung.
 func deviceDataWebSocket(c *gin.Context) {
+	token := c.Query("token")
+
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is required"})
+		return
+	}
+
+	// Überprüfe den Token
+	wsTokenStore.RLock()
+	expriation, exists := wsTokenStore.tokens[token]
+	wsTokenStore.RUnlock()
+	if !exists || expriation.Before(time.Now()) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+		return
+	}
+
 	// WebSocket-Verbindung herstellen
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -687,7 +703,7 @@ func addDevice(c *gin.Context) {
 	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceData.DeviceType, deviceData.DeviceName)
 	server.Publish(topic, []byte("2 (initializing)"), false, 1)
 
-	RestartGateway(db)
+	RestartGateway(c)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Device added successfully"})
 }
@@ -726,7 +742,7 @@ func deleteDevice(c *gin.Context) {
 	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceType, device_id)
 	server.Publish(topic, []byte(payload), true, 1)
 
-	RestartGateway(db)
+	RestartGateway(c)
 
 	// Erfolgreiche Löschbestätigung senden
 	c.JSON(http.StatusOK, gin.H{"message": "Device deleted successfully"})
@@ -962,12 +978,12 @@ func updateDevice(c *gin.Context) {
 			return
 		}
 
-		RestartGateway(db)
+		RestartGateway(c)
 
 		logrus.Infof("MQTT device and user updated successfully for %s", updatedDevice.DeviceName)
 	}
 
-	RestartGateway(db)
+	RestartGateway(c)
 
 	// Erfolgreiche Antwort senden
 	c.JSON(http.StatusOK, gin.H{"message": "success"})

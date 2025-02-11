@@ -10,6 +10,7 @@ import (
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
 	MQTT "github.com/mochi-mqtt/server/v2"
 	packets "github.com/mochi-mqtt/server/v2/packets"
@@ -24,7 +25,7 @@ type InfluxConfig struct {
 	Bucket string
 }
 
-// GetInfluxConfig lädt die Konfiguration aus der SQLite-Datenbank.
+// GetInfluxConfig lädt die korrekte InfluxDB-Konfiguration aus der SQLite-Datenbank.
 func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
 	query := "SELECT url, token, org, bucket FROM influxdb"
 	rows, err := db.Query(query)
@@ -59,75 +60,102 @@ func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
 
 // Globale Variablen für das Buffering
 var (
-	// Puffer mit Kapazität für 1000 Punkte
-	influxBuffer = make([]*write.Point, 0, 1000)
+	// Puffer mit Kapazität für 1100 Punkte
+	influxBuffer = make([]*write.Point, 0, 1100)
 	bufferMutex  sync.Mutex
 	flushTimer   *time.Timer
 	influxConfig *InfluxConfig
 )
 
+var client influxdb2.Client
+var writeAPI api.WriteAPI
+
+// initializeClient erstellt einen neuen InfluxDB-Client, falls noch keiner existiert
+func initializeClient() error {
+	if client == nil {
+		client = influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
+		writeAPI = client.WriteAPI(influxConfig.Org, influxConfig.Bucket)
+	}
+	return nil
+}
+
 // flushBuffer schreibt alle im Puffer gesammelten Punkte an InfluxDB und leert den Puffer.
 func flushBuffer(db *sql.DB) error {
+	logrus.Infof("Flushen des Puffers")
 	bufferMutex.Lock()
 	points := influxBuffer
-	// Puffer zurücksetzen (mit Kapazität 1000)
-	influxBuffer = make([]*write.Point, 0, 1000)
+	// Puffer zurücksetzen (mit Kapazität 1100)
+	influxBuffer = make([]*write.Point, 0, 1100)
 	// Falls ein Timer aktiv war, stoppen wir ihn und setzen ihn zurück.
 	if flushTimer != nil {
+		logrus.Infof("Timer aktiv, stoppen und zurücksetzen")
 		flushTimer.Stop()
 		flushTimer = nil
 	}
 	bufferMutex.Unlock()
 
 	if len(points) == 0 {
+		logrus.Infof("Keine Punkte zum Flushen vorhanden")
 		return nil
 	}
 
 	if influxConfig == nil {
+		logrus.Infof("Keine InfluxDB-Konfiguration vorhanden, versuche sie zu laden")
 		influxConfig, _ = GetInfluxConfig(db)
 	}
 
-	// InfluxDB-Client erstellen
-	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
-	defer client.Close()
-	writeAPI := client.WriteAPIBlocking(influxConfig.Org, influxConfig.Bucket)
-	ctx := context.Background()
+	// Stelle sicher, dass ein Client existiert und funktionsfähig ist
+	if client == nil {
+		if err := initializeClient(); err != nil {
+			logrus.Errorf("Fehler beim Initialisieren des Clients: %v", err)
+			return err
+		}
+	} else {
+		health, err := client.Health(context.Background())
+		if err != nil || health.Status != "pass" {
+			if err := initializeClient(); err != nil {
+				logrus.Errorf("Fehler beim Initialisieren des Clients: %v", err)
+				return err
+			}
+		}
+	}
 
 	// Jeden Punkt im Puffer schreiben
 	for _, p := range points {
-		err := writeAPI.WritePoint(ctx, p)
-		if err != nil {
-			logrus.Errorf("Fehler beim Schreiben in InfluxDB: %v", err)
-			return err
-		}
+		writeAPI.WritePoint(p)
 	}
+	writeAPI.Flush()
 	logrus.Infof("Erfolgreich %d Punkte in InfluxDB geschrieben", len(points))
 	return nil
 }
 
 // WriteDeviceDataToInflux konvertiert die eingehenden DeviceData in einen InfluxDB-Punkt und legt ihn in einem Puffer ab.
-// Sobald der Puffer 1000 Punkte enthält oder nach 5 Sekunden automatisch geleert wird, werden alle Punkte an InfluxDB gesendet.
+// Sobald der Puffer 1100 Punkte enthält oder nach 5 Sekunden automatisch geleert wird, werden alle Punkte an InfluxDB gesendet.
 func writeDeviceDataToInflux(db *sql.DB, device DeviceData) error {
-	// Messung wird hier als Kombination aus DeviceId und Datapoint aufgebaut.
-	measurement := device.DeviceId + "_" + device.Datapoint
+	logrus.Infof("Schreibe DeviceData in InfluxDB: %v", device)
+	// Verwende nur den Datapoint als Measurement und speichere DeviceId als zusätzlichen Tag.
+	measurement := device.Datapoint
 	point := influxdb2.NewPointWithMeasurement(measurement).
-		// AddTag("deviceId", device.DeviceId).
-		// AddTag("datapoint", device.Datapoint).
+		AddTag("deviceId", device.DeviceId).
 		AddTag("datapoint_Id", device.DatapointId).
 		AddField("value", device.Value).
 		SetTime(time.Now())
 
+	// Füge den Punkt in den globalen Buffer ein
 	bufferMutex.Lock()
 	influxBuffer = append(influxBuffer, point)
 	currentBufferSize := len(influxBuffer)
-	// Wenn 1000 Nachrichten gesammelt wurden, sofort flushen.
-	if currentBufferSize >= 1000 {
+	// Wenn 1100 Punkte erreicht sind, sofort flushen
+	if currentBufferSize >= 1100 {
+		logrus.Infof("Buffer reached %d points, starting immediate flush", currentBufferSize)
 		bufferMutex.Unlock()
 		return flushBuffer(db)
 	}
-	// Falls kein Timer aktiv ist: einen Timer starten, der nach 5 Sekunden den Puffer automatisch leert.
+	// Falls kein Timer aktiv ist, starte einen Timer für 5 Sekunden
 	if flushTimer == nil {
+		logrus.Infof("No flush timer active. Setting up flush timer for 5 seconds")
 		flushTimer = time.AfterFunc(5*time.Second, func() {
+			logrus.Infof("Flush timer triggered")
 			if err := flushBuffer(db); err != nil {
 				logrus.Errorf("Fehler beim automatischen Flush: %v", err)
 			}
@@ -138,9 +166,9 @@ func writeDeviceDataToInflux(db *sql.DB, device DeviceData) error {
 }
 
 func StartInfluxDBWriter(db *sql.DB, server *MQTT.Server) {
+	logrus.Infof("Starte InfluxDB-Writer")
 	// Abonniere alle Topics, die mit "data/" beginnen, mit QoS 1
 	server.Subscribe("data/#", 1, func(client *MQTT.Client, sub packets.Subscription, pk packets.Packet) {
-		// Beispiel: topic = "data/opcua/9/Hum1"
 		parts := strings.Split(pk.TopicName, "/")
 		if len(parts) < 4 {
 			logrus.Errorf("Ungültiges Topic-Format: %s", pk.TopicName)
@@ -162,6 +190,7 @@ func StartInfluxDBWriter(db *sql.DB, server *MQTT.Server) {
 			Value:       fieldValue,
 		}
 
+		logrus.Infof("Schreibe DeviceData in InfluxDB: %v", dd)
 		if err := writeDeviceDataToInflux(db, dd); err != nil {
 			logrus.Errorf("Fehler beim Schreiben in InfluxDB: %v", err)
 		}
@@ -185,4 +214,17 @@ func processPayload(payload []byte) interface{} {
 
 	// Falls weder int noch float möglich sind, gebe den String zurück
 	return payloadStr
+}
+
+// StopInfluxDBWriter beendet den Writer und schließt den Client
+func StopInfluxDBWriter() {
+	if flushTimer != nil {
+		flushTimer.Stop()
+		flushTimer = nil
+	}
+	if client != nil {
+		client.Close()
+		client = nil
+		writeAPI = nil
+	}
 }

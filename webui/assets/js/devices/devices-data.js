@@ -1,9 +1,18 @@
 let wsDevices;
 
 // Funktion zum Initialisieren der WebSocket-Verbindung
-function initWebSocket(WS_PATH) {
+async function initWebSocket(WS_PATH) {
+    const response = await fetch ("/api/ws-token", {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+
+    const token = await response.json();
+
     // wsDevices = new WebSocket(`${WS_PATH}/deviceData`);
-    wsDevices = new WebSocket(`/api/ws-device-data`);
+    wsDevices = new WebSocket(`/api/ws-device-data?token=${token.token}`);
 
     wsDevices.onopen = () => {
         console.log('WebSocket-Verbindung hergestellt');

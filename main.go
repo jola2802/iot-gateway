@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	dbPath      = "./iot_gateway.db"
-	influxDBURL = "http://127.0.0.1:8086"
+	dbPath = "./iot_gateway.db"
 )
 
 func main() {
@@ -33,15 +32,16 @@ func main() {
 
 	time.Sleep(3 * time.Second)
 
+	// InfluxDB-Writer
 	go dataforwarding.StartInfluxDBWriter(db, server)
+	// defer dataforwarding.StopInfluxDBWriter()
 
 	// Web-UI
 	go webui.Main(db, server)
-	// defer webui.Stop()
 	logrus.Info("MAIN: Web-UI-server started.")
 
 	// Start Driver
-	go logic.StartAllDrivers(db, server)
+	logic.StartAllDrivers(db, server)
 
 	select {}
 }

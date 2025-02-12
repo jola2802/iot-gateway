@@ -1,8 +1,8 @@
 async function fetchAndPopulateDataForwarding() {
     try {
-        const response = await fetch(`${BASE_PATH}/getDataForwarding`);
+        const response = await fetch(`/api/get-routes`);
         if (!response.ok) {
-            throw new Error(`Error fetching /getDataForwarding: ${response.status}`);
+            throw new Error(`Error fetching /api/get-routes: ${response.status}`);
         }
 
         const dataForwarding = await response.json();
@@ -10,16 +10,17 @@ async function fetchAndPopulateDataForwarding() {
         tableBody.innerHTML = ''; // Tabelle leeren
 
         dataForwarding.forEach(route => {
+            console.log(route);
             const row = document.createElement('tr');
 
             // Route ID
             const routeIdCell = document.createElement('td');
-            routeIdCell.textContent = route.route_id;
+            routeIdCell.textContent = route.id;
             row.appendChild(routeIdCell);
 
             // Type
             const typeCell = document.createElement('td');
-            typeCell.textContent = route.type;
+            typeCell.textContent = route.destinationType;
             row.appendChild(typeCell);
 
             // Devices
@@ -29,7 +30,7 @@ async function fetchAndPopulateDataForwarding() {
 
             // Address
             const addressCell = document.createElement('td');
-            addressCell.textContent = route.address;
+            addressCell.textContent = route.destination_url;
             row.appendChild(addressCell);
 
             // Last Send
@@ -49,18 +50,44 @@ async function fetchAndPopulateDataForwarding() {
             `;
             row.appendChild(actionsCell);
 
+            // --- NEU: EventListener für das Löschen des Route-Eintrags ---
+            const trashBtn = actionsCell.querySelector('.fa-trash').parentElement;
+            trashBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (confirm('Möchten Sie diesen Eintrag wirklich löschen?')) {
+                    try {
+                        // DELETE-Request an den API-Endpunkt für Routes
+                        const delResponse = await fetch(`/api/routes/${route.id}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ route_id: route.id })
+                        });
+                        if (!delResponse.ok) {
+                            alert('Löschen fehlgeschlagen.');
+                        } else {
+                            alert('Eintrag wurde gelöscht.');
+                            row.remove(); // Zeile aus der Tabelle entfernen
+                        }
+                    } catch (error) {
+                        console.error('Fehler beim Löschen des Eintrags:', error);
+                        alert('Fehler beim Löschen des Eintrags.');
+                    }
+                }
+            });
+            //--------------------------------------------------------------
+
             tableBody.appendChild(row);
         });
     } catch (error) {
-        console.error('Error fetching /getDataForwarding:', error);
+        console.error('Error fetching /api/get-routes:', error);
     }
 }
 
 async function fetchAndPopulateImgProcesses() {
     try {
-        const response = await fetch(`${BASE_PATH}/getImgProcesses`);
+        const response = await fetch(`/api/list-img-processes`);
         if (!response.ok) {
-            throw new Error(`Error fetching /getImgProcesses: ${response.status}`);
+            throw new Error(`Error fetching /api/list-img-processes: ${response.status}`);
         }
 
         const imgProcesses = await response.json();
@@ -102,10 +129,36 @@ async function fetchAndPopulateImgProcesses() {
             `;
             row.appendChild(actionsCell);
 
+            // --- NEU: EventListener für das Löschen des Image Process-Eintrags ---
+            const trashBtn = actionsCell.querySelector('.fa-trash').parentElement;
+            trashBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (confirm('Möchten Sie diesen Eintrag wirklich löschen?')) {
+                    try {
+                        // DELETE-Request an den API-Endpunkt für Image Processes
+                        const delResponse = await fetch(`/api/delete-image-process/${process.process_id}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ process_id: process.process_id })
+                        });
+                        if (!delResponse.ok) {
+                            alert('Löschen fehlgeschlagen.');
+                        } else {
+                            alert('Eintrag wurde gelöscht.');
+                            row.remove(); // Zeile aus der Tabelle entfernen
+                        }
+                    } catch (error) {
+                        console.error('Fehler beim Löschen des Eintrags:', error);
+                        alert('Fehler beim Löschen des Eintrags.');
+                    }
+                }
+            });
+            //---------------------------------------------------------------------
+
             tableBody.appendChild(row);
         });
     } catch (error) {
-        console.error('Error fetching /getImgProcesses:', error);
+        console.error('Error fetching /listprocesses:', error);
     }
 }
 
@@ -113,7 +166,8 @@ fetchAndPopulateDataForwarding();
 fetchAndPopulateImgProcesses();
 
 // ##################
-
+// Destination Type Dropdown
+// ##################
 const destinationTypeSelect = document.getElementById('select-destination-type');
 
 destinationTypeSelect.addEventListener('change', () => {
@@ -151,13 +205,19 @@ function hideAllConfigsRoute() {
 
 hideAllConfigsRoute();
 
+// #########################
+// Devices for Image Capture
+// #########################
+
+// Get all OPC-UA Devices for Image Capture
 async function fetchAndPopulateDevicesProcess() {
     try {
-        const response = await fetch(`${BASE_PATH}/getDevices`);
+        const response = await fetch(`/api/list-opc-ua-devices`);
         if (!response.ok) {
-            throw new Error(`Error fetching /getDevices: ${response.status}`);
+            throw new Error(`Error fetching /api/list-opc-ua-devices: ${response.status}`);
         }
 
+        console.log(response);
         const devices = await response.json();
         const selectDeviceElement = document.getElementById('select-device');
 
@@ -178,7 +238,7 @@ async function fetchAndPopulateDevicesProcess() {
             selectDeviceElement.appendChild(option);
         });
     } catch (error) {
-        console.error('Error fetching /getDevices:', error);
+        console.error('Error fetching /api/list-opc-ua-devices:', error);
     }
 }
 
@@ -202,6 +262,9 @@ document.getElementById('add-header-button-p').addEventListener('click', functio
     // Neues Listenelement erstellen
     const listItem = document.createElement('li');
     listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+    // Speichere Key und Value als Datenattribute in dem Element
+    listItem.dataset.headerKey = key;
+    listItem.dataset.headerValue = value;
 
     // Inhalt des Listenelements hinzufügen
     listItem.innerHTML = `
@@ -243,6 +306,9 @@ document.getElementById('add-header-button-r').addEventListener('click', functio
     // Neues Listenelement erstellen
     const listItem = document.createElement('li');
     listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+    // Speichere Key und Value als Datenattribute in dem Element
+    listItem.dataset.headerKey = key;
+    listItem.dataset.headerValue = value;
 
     // Inhalt des Listenelements hinzufügen
     listItem.innerHTML = `
@@ -268,6 +334,9 @@ const newImgProcessModal = document.getElementById('modal-new-img-process');
 newImgProcessModal.addEventListener('show.bs.modal', fetchAndPopulateDevicesProcess);
 
 // ######################
+// Add new route modal
+// ######################
+
 // Selektiere das Modal
 var modal = document.getElementById('modal-new-route');
 
@@ -331,21 +400,22 @@ modal.addEventListener('show.bs.modal', function (event) {
     // ===============================
     // 3. Geräte abrufen und zur Liste hinzufügen
     // ===============================
-    fetch(`${BASE_PATH}/getDevices`)
+    fetch(`/api/get-devices-for-routes`)
         .then(function(response) {
             if (!response.ok) {
                 throw new Error('Netzwerkantwort war nicht ok');
             }
             return response.json();
         })
-        .then(function(devices) {
+        .then(function(devicesData) {
             var deviceList = document.getElementById('check-list-devices');
             // Leere die bestehende Liste
             deviceList.innerHTML = '';
 
-            // Überprüfe, ob devices ein Array ist
-            if (Array.isArray(devices)) {
-                devices.forEach(function(device) {
+            console.log(devicesData);
+            // Überprüfe, ob devicesData.devices ein Array ist
+            if (devicesData && Array.isArray(devicesData.devices)) {
+                devicesData.devices.forEach(function(device) {
                     // Erstelle die Listengruppelemente
                     var li = document.createElement('li');
                     li.className = 'list-group-item';
@@ -353,16 +423,17 @@ modal.addEventListener('show.bs.modal', function (event) {
                     var div = document.createElement('div');
                     div.className = 'form-check';
 
+                    // Da jedes Element ein String ist, verwenden wir den String direkt
                     var input = document.createElement('input');
                     input.type = 'checkbox';
                     input.className = 'form-check-input';
-                    input.id = 'formCheck-' + device.device_id;
-                    input.value = device.device; // Optional: Setze den Wert auf die Geräte-ID
+                    input.id = 'formCheck-' + device;
+                    input.value = device;
 
                     var label = document.createElement('label');
                     label.className = 'form-check-label';
-                    label.htmlFor = 'formCheck-' + device.device_id;
-                    label.textContent = device.device;
+                    label.htmlFor = 'formCheck-' + device;
+                    label.textContent = device;
 
                     // Füge Input und Label zum Div hinzu
                     div.appendChild(input);
@@ -375,7 +446,7 @@ modal.addEventListener('show.bs.modal', function (event) {
                     deviceList.appendChild(li);
                 });
             } else {
-                console.error('Unerwartetes Datenformat:', devices);
+                console.error('Unerwartetes Datenformat:', devicesData);
             }
         })
         .catch(function(error) {
@@ -539,3 +610,97 @@ function displayErrorInModal(modalElement, message) {
 
 // Initialisieren der Funktion nach dem Laden der Seite
 setupBrowsedNodesModal();
+
+// ************************
+// Save new route
+// ************************
+
+// Füge den Event Listener für den "Save"-Button im Modal "Add new Route" hinzu
+document.getElementById('btn-save-route').addEventListener('click', async function () {
+    // Werte aus den Formularfeldern holen
+    const destinationType = document.getElementById('select-destination-type').value;
+    const dataFormat = document.getElementById('select-data-format').value;
+    
+    // Erstelle das Payload-Objekt entsprechend des bestehenden Typs DataRoute
+    let payload = {
+        destinationType: destinationType,
+        dataFormat: dataFormat,
+        interval: 0,      // wird dann als Zahl gesetzt
+        headers: [],      // Array von Strings im Format "Key: Value"
+        devices: []       // Geräte, die ausgewählt werden
+        // destination_url oder filePath werden je nach Typ gesetzt
+    };
+
+    // Sammle alle ausgewählten Geräte aus der Checkliste
+    let devicesArr = [];
+    document.querySelectorAll('#check-list-devices input[type="checkbox"]:checked').forEach(chk => {
+        devicesArr.push(chk.value);
+    });
+    payload.devices = devicesArr;
+
+    if (destinationType === 'rest') {
+        // Für REST: Destination URL und REST-spezifische Felder
+        payload.destinationUrl = document.getElementById('rest-uri').value;
+        payload.interval = parseInt(document.getElementById('rest-sending-interval').value);
+        // Sammle Header als Array von Objekten { name: ..., value: ... }
+        let headersArr = [];
+        document.querySelectorAll('#header-list-r li').forEach(li => {
+            const key = li.dataset.headerKey;
+            const value = li.dataset.headerValue;
+            if (key && value) {
+                headersArr.push({ name: key, value: value });
+            }
+        });
+        payload.headers = headersArr;
+    } else if (destinationType === 'file-based') {
+        // Für file-based: Verwende den Dateinamen als filePath
+        payload.filePath = document.getElementById('fb-input-filename').value;
+        payload.interval = parseInt(document.getElementById('fb-sending-interval').value);
+        // Sammle Header als Array von Objekten { name: ..., value: ... }
+        let headersArr = [];
+        document.querySelectorAll('#header-list-r li').forEach(li => {
+            const key = li.dataset.headerKey;
+            const value = li.dataset.headerValue;
+            if (key && value) {
+                headersArr.push({ name: key, value: value });
+            }
+        });
+        payload.headers = headersArr;
+    }
+    // Optional: Header auch hier, nun als JSON
+    let headersArr = [];
+    document.querySelectorAll('#header-list-r li').forEach(li => {
+        const key = li.dataset.headerKey;
+        const value = li.dataset.headerValue;
+        if (key && value) {
+            headersArr.push({ name: key, value: value });
+        }
+    });
+    payload.headers = headersArr;
+
+    // Optional noch weitere Felder hinzufügen
+
+    console.log(payload);
+
+    // Sende die gesammelten Daten per POST an den Backend-Endpunkt
+    try {
+        const response = await fetch('/api/add-route', { // passe den Endpunkt ggf. an
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        // Bei einem Fehler reagiert der Benutzer
+        if (!response.ok) {
+            alert('Fehler beim Speichern der Route.');
+        } else {
+            // Erfolgreich: Seite neu laden
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Fehler beim Senden der Daten:', error);
+        alert('Fehler beim Senden der Daten.');
+    }
+}); 

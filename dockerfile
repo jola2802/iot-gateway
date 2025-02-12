@@ -14,10 +14,17 @@ RUN go mod download
 # Copy the source code
 COPY . .
 # Build the Go application
-RUN go build -o iot-gateway main.go
+# RUN go build -o iot-gateway main.go
+# Build the Go application statisch (CGO deaktiviert)
+RUN CGO_ENABLED=0 go build -o iot-gateway main.go
+
 
 # Stage 2: Set up the runtime environment
-FROM debian:bookworm-slim
+# FROM debian:bookworm-slim
+FROM alpine:latest
+
+# Füge tzdata hinzu, damit Zeitzoneninformationen verfügbar sind
+RUN apk add --no-cache tzdata
 
 # WORKDIR /data
 # # Kopiere die Dateien korrekt in das Verzeichnis
@@ -79,6 +86,8 @@ COPY config.json ./
 # COPY webui/assets /app/webui/assets
 # COPY iot_gateway.db /app/iot_gateway.db
 
+RUN chmod +x /app/iot-gateway
+
 # Copy Node-RED flow configuration
 # COPY flows.json /data/flows.json
 
@@ -87,5 +96,5 @@ EXPOSE 8443 50000 5001 5101 5100
 # 7777 8086
 
 # Command to run Go application, Node-RED, and InfluxDB
-# CMD ["/bin/sh", "-c", "/usr/local/influxdb/influxd --bolt-path /app/influxd.bolt --engine-path /app/engine & /app/iot-gateway --tls-keyfile /data/server.key --tls-certfile /data/server.crt --listen 0.0.0.0:8443 & node-red -u /data --tls-keyfile /data/server.key --tls-certfile /data/server.crt --listen 0.0.0.0:7777"]
-CMD ["/app/iot-gateway", "--tls-keyfile", "/data/server.key", "--tls-certfile", "/data/server.crt", "--listen", "0.0.0.0:8443"]
+# CMD ["/app/iot-gateway", "--tls-keyfile", "/data/server.key", "--tls-certfile", "/data/server.crt", "--listen", "0.0.0.0:8443"]
+ENTRYPOINT [ "/app/iot-gateway" ]

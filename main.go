@@ -43,5 +43,7 @@ func main() {
 	// Start Driver
 	logic.StartAllDrivers(db, server)
 
+	go dataforwarding.StartDataForwarding(db, server)
+
 	select {}
 }

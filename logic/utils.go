@@ -88,7 +88,7 @@ func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status
 func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRetries int) {
 	backoff := 1000 * time.Millisecond
 	for i := 0; i < maxRetries; i++ {
-		err := server.Publish(topic, []byte(payload), true, 1)
+		err := server.Publish(topic, []byte(payload), true, 2)
 		if err == nil {
 			return
 		}

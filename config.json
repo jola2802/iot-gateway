@@ -38,7 +38,7 @@
   "webui": {
     "http_port": "8088",
     "https_port": "8443",
-    "use_https": true,
+    "use_https": false,
     "tls_cert": "server.crt",
     "tls_key": "server.key"
   }

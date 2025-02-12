@@ -3,6 +3,7 @@ package webui
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	dataforwarding "iot-gateway/data-forwarding"
 	"strconv"
 	"strings"
@@ -31,9 +32,9 @@ func getRoutes(c *gin.Context) {
 		return
 	}
 
-	// SQL-Abfrage, um alle Routen aus der Tabelle 'data_routes' zu laden
+	// Angepasste SQL-Abfrage (jede Spalte nur einmal, in korrekter Reihenfolge)
 	query := `
-		SELECT id, destination_type, data_format, destination_url, file_path, interval, devices, destination_url, headers, file_path, created_at
+		SELECT id, destination_type, data_format, interval, devices, headers, destination_url, file_path, created_at
 		FROM data_routes
 	`
 	rows, err := db.Query(query)
@@ -50,14 +51,14 @@ func getRoutes(c *gin.Context) {
 		var route Route
 		var devices, headers sql.NullString // devices und headers als JSON-Strings
 
-		// Daten aus der Datenbank in die Struktur lesen
-		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.DestinationURL, &route.FilePath, &route.Interval, &devices, &route.DestinationURL, &headers, &route.FilePath, &route.CreatedAt)
+		// Reihenfolge entspricht: id, destination_type, data_format, interval, devices, headers, destination_url, file_path, created_at
+		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Interval, &devices, &headers, &route.DestinationURL, &route.FilePath, &route.CreatedAt)
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
 
-		// Verarbeite die devices (NULL oder JSON oder CSV)
+		// Verarbeite devices
 		if devices.Valid {
 			if err := json.Unmarshal([]byte(devices.String), &route.Devices); err != nil {
 				// Falls kein JSON, versuche sie als kommaseparierten String zu verarbeiten
@@ -92,7 +93,6 @@ func getRoutesById(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Invalid route ID"})
 		return
 	}
-	// logrus.Info("got route id: ", routeId)
 	db, err := getDBConnection(c)
 	if err != nil {
 		logrus.Error(err)
@@ -102,7 +102,7 @@ func getRoutesById(c *gin.Context) {
 
 	// SQL-Abfrage, um alle Routen aus der Tabelle 'data_routes' zu laden
 	query := `
-		SELECT destination_type, data_format, destination_url, file_path, interval, devices, headers
+		SELECT destination_type, data_format, interval, devices, headers, destination_url, file_path, created_at
 		FROM data_routes 
 		WHERE id = ?
 	`
@@ -110,13 +110,12 @@ func getRoutesById(c *gin.Context) {
 	route.ID = routeId
 	var devices, headers sql.NullString // devices und headers als JSON-Strings
 
-	err = db.QueryRow(query, routeId).Scan(&route.DestinationType, &route.DataFormat, &route.DestinationURL, &route.FilePath, &route.Interval, &devices, &headers)
+	err = db.QueryRow(query, routeId).Scan(&route.DestinationType, &route.DataFormat, &route.Interval, &devices, &headers, &route.DestinationURL, &route.FilePath, &route.CreatedAt)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Verarbeite die devices und headers wie in deiner getRoutes-Funktion
 	if devices.Valid {
 		if err := json.Unmarshal([]byte(devices.String), &route.Devices); err != nil {
 			route.Devices = strings.Split(devices.String, ",")
@@ -133,32 +132,34 @@ func getRoutesById(c *gin.Context) {
 		route.Headers = []string{}
 	}
 
-	// logrus.Info(route)
-
 	c.JSON(200, route)
 }
 
 // Speichern einer neuen Data Route in der Datenbank
-func SaveRouteConfig(c *gin.Context) {
-	db, err := getDBConnection(c)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+func saveRouteConfig(c *gin.Context) {
+	db, _ := getDBConnection(c)
 
 	var newRoute dataforwarding.DataRoute
-
-	// JSON-Daten aus der Anfrage binden
 	if err := c.ShouldBindJSON(&newRoute); err != nil {
+		logrus.Error(err)
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
+	logrus.Info(newRoute)
+
+	// Wandle den Header-Array in einen JSON-String um:
+	headersJSON, err := json.Marshal(newRoute.Headers)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 	// Check if the route ID already exists
 	var existingRouteID int
 	err = db.QueryRow("SELECT id FROM data_routes WHERE id = ?", newRoute.ID).Scan(&existingRouteID)
 
 	if err != nil && err != sql.ErrNoRows {
+		logrus.Error("Error checking if route exists:", err)
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -168,9 +169,10 @@ func SaveRouteConfig(c *gin.Context) {
 		query := `UPDATE data_routes SET destination_type = ?, data_format = ?, interval = ?, devices = ?, destination_url = ?, headers = ?, file_path = ?
 				  WHERE id = ?`
 		_, err = db.Exec(query, newRoute.DestinationType, newRoute.DataFormat, newRoute.Interval, pq.Array(newRoute.Devices),
-			newRoute.DestinationURL, pq.Array(newRoute.Headers), newRoute.FilePath, newRoute.ID)
+			newRoute.DestinationURL, string(headersJSON), newRoute.FilePath, newRoute.ID)
 
 		if err != nil {
+			logrus.Error("Error updating route:", err)
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
@@ -182,9 +184,10 @@ func SaveRouteConfig(c *gin.Context) {
 				  VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`
 		var routeID int
 		err = db.QueryRow(query, newRoute.DestinationType, newRoute.DataFormat, newRoute.Interval, pq.Array(newRoute.Devices),
-			newRoute.DestinationURL, pq.Array(newRoute.Headers), newRoute.FilePath).Scan(&routeID)
+			newRoute.DestinationURL, string(headersJSON), newRoute.FilePath).Scan(&routeID)
 
 		if err != nil {
+			logrus.Error("Error inserting route:", err)
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
@@ -195,7 +198,6 @@ func SaveRouteConfig(c *gin.Context) {
 
 func deleteRoute(c *gin.Context) {
 	routeId := c.Param("routeId")
-
 	db, err := getDBConnection(c)
 
 	// SQL-Abfrage für das Löschen der Route
@@ -231,7 +233,7 @@ func getlistDevices(c *gin.Context) {
 	}
 
 	var devices []string
-	rows, err := db.Query("SELECT name FROM devices")
+	rows, err := db.Query("SELECT name, id FROM devices")
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -240,13 +242,46 @@ func getlistDevices(c *gin.Context) {
 
 	for rows.Next() {
 		var device string
-		err := rows.Scan(&device)
+		var id int
+		err := rows.Scan(&device, &id)
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
-		devices = append(devices, device)
+		deviceInfo := fmt.Sprintf("%d - %s", id, device)
+		devices = append(devices, deviceInfo)
 	}
 	c.JSON(200, gin.H{"devices": devices})
 	// logrus.Println(devices)
+}
+
+func listDevices(c *gin.Context) {
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+	}
+
+	var devices []string
+	rows, err := db.Query("SELECT name, id FROM devices where type = 'opc-ua'")
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var device string
+		var id int
+		err := rows.Scan(&device, &id)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		// Combine device and id
+		deviceInfo := fmt.Sprintf("%d - %s", id, device)
+		devices = append(devices, deviceInfo)
+		logrus.Info(deviceInfo)
+	}
+	logrus.Info(devices)
+	c.JSON(200, gin.H{"devices": devices})
 }

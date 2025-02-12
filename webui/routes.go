@@ -64,6 +64,13 @@ func setupRoutes(r *gin.Engine) {
 		authorized.PUT("/api/update-device/:device_id", updateDevice)
 		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
 		authorized.GET("/api/ws-token", generateToken)
+		authorized.GET("/api/get-routes", getRoutes)
+		authorized.GET("/api/get-devices-for-routes", getlistDevices)
+		authorized.GET("/api/list-img-processes", listImgCapProcesses)
+		authorized.GET("/api/list-opc-ua-devices", listDevices) // list devices
+		authorized.POST("/api/add-route", saveRouteConfig)
+		authorized.DELETE("/api/routes/:routeId", deleteRoute)
+		authorized.GET("/api/routes/:routeId", getRoutesById)
 
 		// WSS for dashboard data
 		// authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
@@ -88,11 +95,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/profile", updateProfile)
 
 		// Data Routes
-		authorized.GET("/routes", getRoutes)
-		authorized.GET("/routes/:routeId", getRoutesById)
-		authorized.DELETE("/routes/:routeId", deleteRoute)
 		authorized.GET("/listdevices", getlistDevices)
-		authorized.POST("/saveRouteConfig", SaveRouteConfig)
 
 		//node-red
 
@@ -116,12 +119,10 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/users", createUserHandler)
 
 		// Features
-		authorized.GET("/listopcuadevices", listDevices) // list devices
 		authorized.GET("/latest-image/:deviceName", latestImage)
-		authorized.GET("/listprocesses", listImgCapProcesses)
 		authorized.POST("/start-image-process/:id", startImageProcess)
 		authorized.GET("/stop-image-process/:id", stopImageProcess)
-		authorized.POST("/delete-image-process/:id", deleteImageProcess)
+		authorized.POST("/api/delete-image-process/:id", deleteImageProcess)
 		authorized.GET("/add-image-process", addImageProcess)
 
 		authorized.GET("/browse-nodes/:deviceName", browseNodes)

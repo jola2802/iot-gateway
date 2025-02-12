@@ -60,6 +60,8 @@ func queryDataHandler(c *gin.Context) {
 	queryAPI := client.QueryAPI(influxConfig.Org)
 
 	location, err := time.LoadLocation("Europe/Berlin")
+	logrus.Info(location)
+
 	if err != nil {
 		logrus.Errorf("Failed to load location: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load location"})
@@ -166,7 +168,6 @@ func getMeasurements(c *gin.Context) {
 
 	// Query ausführen
 	result, err := queryAPI.Query(c, query)
-	logrus.Infof("result: %v", result)
 	if err != nil {
 		logrus.Errorf("Error while querying measurements: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query measurements from InfluxDB"})

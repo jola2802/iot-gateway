@@ -171,7 +171,6 @@ exportButton.className = 'btn btn-secondary btn-sm mt-3';
 const chartContainer = document.getElementById('chart-container');
 if (chartContainer) {
     chartContainer.appendChild(exportButton);
-    console.log('Export Button added to chart-container successfully.');
 } else {
     console.error('Container #chart-container not found!');
 }

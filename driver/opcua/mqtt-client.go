@@ -107,8 +107,8 @@ func pubData(data map[string]interface{}, deviceName string, deviceId string, se
 			return fmt.Errorf("OPC-UA: Failed to marshal data for node-name %s: %v", name, err)
 		}
 
-		topic := fmt.Sprintf("data/opcua/%s/%s", deviceId, name)
-		err = server.Publish(topic, []byte(payload), false, 1)
+		topic := fmt.Sprintf("data/opc-ua/%s/%s", deviceId, name)
+		err = server.Publish(topic, []byte(payload), false, 2)
 		if err != nil {
 			return fmt.Errorf("OPC-UA: Failed to publish data for node-name %s: %v", name, err)
 		}

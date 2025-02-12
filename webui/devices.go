@@ -322,32 +322,6 @@ func gracefulShutdown(conn *websocket.Conn) {
 // #                                                                                    #
 //
 // # #
-func listDevices(c *gin.Context) {
-	db, err := getDBConnection(c)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-	}
-
-	var devices []string
-	rows, err := db.Query("SELECT name FROM devices where type = 'opcua'")
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var device string
-		err := rows.Scan(&device)
-		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
-			return
-		}
-		devices = append(devices, device)
-	}
-	c.JSON(200, gin.H{"devices": devices})
-	logrus.Println(devices)
-}
 
 // WebSocket-Endpunkt für den Gerätestatus und Steuerungsnachrichten
 func deviceStatusWebSocket(c *gin.Context) {
@@ -701,7 +675,7 @@ func addDevice(c *gin.Context) {
 
 	// Erstelle das MQTT-Topic
 	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceData.DeviceType, deviceData.DeviceName)
-	server.Publish(topic, []byte("2 (initializing)"), false, 1)
+	server.Publish(topic, []byte("2 (initializing)"), false, 2)
 
 	RestartGateway(c)
 
@@ -740,7 +714,7 @@ func deleteDevice(c *gin.Context) {
 	// Erstelle das MQTT-Topic
 	payload := ""
 	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceType, device_id)
-	server.Publish(topic, []byte(payload), true, 1)
+	server.Publish(topic, []byte(payload), true, 2)
 
 	RestartGateway(c)
 

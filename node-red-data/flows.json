@@ -3,7 +3,7 @@
         "id": "9cf1a910b50ef244",
         "type": "tab",
         "label": "Data Forwarding",
-        "disabled": true,
+        "disabled": false,
         "info": "",
         "env": []
     },

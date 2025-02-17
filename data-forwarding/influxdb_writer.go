@@ -25,6 +25,21 @@ type InfluxConfig struct {
 	Bucket string
 }
 
+// Globale Variablen für das Buffering
+var (
+	// Puffer mit Kapazität für 1100 Punkte
+	influxBuffer = make([]*write.Point, 0, 1100)
+	bufferMutex  sync.Mutex
+	flushTimer   *time.Timer
+	influxConfig *InfluxConfig
+
+	client   influxdb2.Client
+	writeAPI api.WriteAPI
+
+	// Neu: Zeitpunkt der letzten empfangenen Nachricht
+	lastMessageReceived time.Time
+)
+
 // GetInfluxConfig lädt die korrekte InfluxDB-Konfiguration aus der SQLite-Datenbank.
 func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
 	query := "SELECT url, token, org, bucket FROM influxdb"
@@ -57,21 +72,6 @@ func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
 
 	return nil, fmt.Errorf("Keine funktionsfähige InfluxDB-Konfiguration gefunden")
 }
-
-// Globale Variablen für das Buffering
-var (
-	// Puffer mit Kapazität für 1100 Punkte
-	influxBuffer = make([]*write.Point, 0, 1100)
-	bufferMutex  sync.Mutex
-	flushTimer   *time.Timer
-	influxConfig *InfluxConfig
-
-	client   influxdb2.Client
-	writeAPI api.WriteAPI
-
-	// Neu: Zeitpunkt der letzten empfangenen Nachricht
-	lastMessageReceived time.Time
-)
 
 // initializeClient erstellt einen neuen InfluxDB-Client, falls noch keiner existiert.
 // Falls noch keine gültige Konfiguration vorhanden ist, wird alle 10 Sekunden versucht, diese zu laden.
@@ -132,7 +132,7 @@ func flushBuffer(db *sql.DB) error {
 		writeAPI.WritePoint(p)
 	}
 	writeAPI.Flush()
-	logrus.Infof("Erfolgreich %d Punkte in InfluxDB geschrieben", len(points))
+	// logrus.Infof("Erfolgreich %d Punkte in InfluxDB geschrieben", len(points))
 	return nil
 }
 
@@ -280,7 +280,7 @@ func StartDataForwarding(db *sql.DB, server *MQTT.Server) {
 	var routes []DataRoute
 	for rows.Next() {
 		var route DataRoute
-		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Devices, &route.DestinationURL, &route.Headers, &route.FilePath)
+		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Devices, &route.DestinationURL, &route.Headers, &route.FilePath, &route.Interval, &route.Status)
 		if err != nil {
 			logrus.Errorf("Fehler beim Scannen der Datenroute: %v", err)
 			continue

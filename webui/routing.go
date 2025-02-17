@@ -135,18 +135,19 @@ func getRoutesById(c *gin.Context) {
 	c.JSON(200, route)
 }
 
-// Speichern einer neuen Data Route in der Datenbank
+// Speichern einer neuen oder aktualisierten Data Route in der Datenbank
 func saveRouteConfig(c *gin.Context) {
 	db, _ := getDBConnection(c)
-
 	var newRoute dataforwarding.DataRoute
+
+	routeIdStr := c.Param("routeId")
+	newRoute.ID, _ = strconv.Atoi(routeIdStr)
+
 	if err := c.ShouldBindJSON(&newRoute); err != nil {
 		logrus.Error(err)
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-
-	logrus.Info(newRoute)
 
 	// Wandle den Header-Array in einen JSON-String um:
 	headersJSON, err := json.Marshal(newRoute.Headers)
@@ -280,8 +281,8 @@ func listDevices(c *gin.Context) {
 		// Combine device and id
 		deviceInfo := fmt.Sprintf("%d - %s", id, device)
 		devices = append(devices, deviceInfo)
-		logrus.Info(deviceInfo)
+		// logrus.Info(deviceInfo)
 	}
-	logrus.Info(devices)
+	// logrus.Info(devices)
 	c.JSON(200, gin.H{"devices": devices})
 }

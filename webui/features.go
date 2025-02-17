@@ -454,7 +454,7 @@ func browse(ctx context.Context, n *opcua.Node, path string, level int) ([]NodeD
 // browseNodes ist der Endpunkt, der die Knoten eines Geräts durchsucht und als JSON zurückgibt
 func browseNodes(c *gin.Context) {
 	// Hol den Gerätenamen aus der URL
-	deviceName := c.Param("deviceName")
+	deviceID := c.Param("deviceID")
 
 	// Datenbankverbindung holen
 	db, err := getDBConnection(c)
@@ -464,8 +464,8 @@ func browseNodes(c *gin.Context) {
 	}
 
 	// Geräteeinstellungen abrufen (Adresse, Sicherheitsrichtlinie und Modus)
-	query := "SELECT address, security_policy, security_mode FROM devices WHERE name = ?"
-	row := db.QueryRow(query, deviceName)
+	query := "SELECT address, security_policy, security_mode FROM devices WHERE id = ?"
+	row := db.QueryRow(query, deviceID)
 
 	var address, securityPolicy, securityMode string
 	if err := row.Scan(&address, &securityPolicy, &securityMode); err != nil {
@@ -503,6 +503,11 @@ func browseNodes(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error browsing nodes", "error": err.Error()})
 		return
 	}
+
+	// Enferne alle Nodes die nicht vom Typ Variable sind
+	nodeList = removeNonVariableNodes(nodeList)
+
+	// logrus.Println(nodeList)
 
 	// Knoten als JSON zurückgeben
 	c.JSON(http.StatusOK, gin.H{"nodes": nodeList})
@@ -545,4 +550,13 @@ func browseNodes(c *gin.Context) {
 	// }
 
 	// logrus.Println("Node list saved to nodelist.csv")
+}
+
+func removeNonVariableNodes(nodeList []NodeDef) []NodeDef {
+	for _, node := range nodeList {
+		if node.NodeClass != ua.NodeClassVariable {
+			nodeList = append(nodeList, node)
+		}
+	}
+	return nodeList
 }

@@ -143,8 +143,10 @@ async function fetchAndPopulateDevices() {
 
             // Event-Listener für das Öffnen des Bearbeiten-Modals
             editButton.addEventListener('click', () => {
-                initializeEditDeviceModal(device.id); // Übergibt die aktuelle `device_id`
-            }); 
+                // Speichere die device_id als data-Attribut am Modal
+                document.getElementById('modal-edit-device').setAttribute('data-device-id', device.id);
+                console.log('Device ID bei edit button:', device.id);
+            });
 
             actionsCell.appendChild(editButton);
 
@@ -226,4 +228,9 @@ document.getElementById('modal-new-device').addEventListener('show.bs.modal', in
 // #########
 
 // Füge den Event Listener hinzu, der beim Öffnen des Edit-Modals aktiviert wird
-document.getElementById('modal-edit-device').addEventListener('show.bs.modal', initializeEditDeviceModal);
+document.getElementById('modal-edit-device').addEventListener('show.bs.modal', (event) => {
+    const deviceId = event.target.getAttribute('data-device-id');
+    if (deviceId) {
+        initializeEditDeviceModal(deviceId);
+    }
+});

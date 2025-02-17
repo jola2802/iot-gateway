@@ -105,13 +105,47 @@ func brokerStatusWebSocket(c *gin.Context) {
 		_ = server.Subscribe("$SYS/broker/uptime", 3, callbackFn)
 	}()
 
-	// Ticker, um den Status regelmäßig zu senden
-	ticker := time.NewTicker(1000 * time.Millisecond)
-	defer ticker.Stop()
-
 	httpClient := &http.Client{
 		Timeout: 5 * time.Second,
 	}
+
+	// Variable für den Node-RED-Status
+	var noderedconnection bool
+
+	// Starte eine Goroutine für die Node-RED-Überprüfung
+	go func() {
+		nodeRedTicker := time.NewTicker(2 * time.Second) // Prüfe alle 5 Sekunden
+		defer nodeRedTicker.Stop()
+
+		nodeRedUrls := []string{
+			"http://127.0.0.1:1880",
+			"http://127.0.0.1:7777",
+		}
+
+		for range nodeRedTicker.C {
+			currentConnection := false
+			for _, url := range nodeRedUrls {
+				resp, err := httpClient.Get(url)
+				if err == nil {
+					if resp.StatusCode == 200 {
+						currentConnection = true
+						resp.Body.Close()
+						break // Wenn eine Verbindung erfolgreich ist, brechen wir die Schleife ab
+					}
+					resp.Body.Close()
+				}
+			}
+
+			// Nur aktualisieren wenn sich der Status geändert hat
+			if currentConnection != noderedconnection {
+				noderedconnection = currentConnection
+			}
+		}
+	}()
+
+	// Ticker für den Broker-Status
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
 
 	for range ticker.C {
 		// Überprüfen, ob der Token noch gültig ist
@@ -125,21 +159,12 @@ func brokerStatusWebSocket(c *gin.Context) {
 			return
 		}
 
-		noderedconnection := false
-		resp, err := httpClient.Get("http://127.0.0.1/nodered")
-		if err == nil {
-			if resp.StatusCode == 200 && resp.StatusCode < 300 {
-				noderedconnection = true
-			}
-			resp.Body.Close()
-		}
-
 		// Hier wird der Status an den Client gesendet, angepasst an das alte Format:
 		status := BrokerStatus{
 			Uptime:            brokerUptime,
 			NumberMessages:    messageCount,
 			NumberDevices:     len(driverIDs),
-			NodeRedConnection: noderedconnection, // Setze hier ggf. den gewünschten Standardwert
+			NodeRedConnection: noderedconnection,
 		}
 
 		if err := conn.WriteJSON(status); err != nil {

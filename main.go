@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -30,7 +29,7 @@ func main() {
 	server := mqtt_broker.StartBroker(db)
 	logrus.Info("MAIN: Broker started.")
 
-	time.Sleep(3 * time.Second)
+	// time.Sleep(3 * time.Second)
 
 	// InfluxDB-Writer
 	go dataforwarding.StartInfluxDBWriter(db, server)

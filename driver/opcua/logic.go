@@ -81,9 +81,25 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 
 	client, _ := opcua.NewClient(device.Address, clientOpts...)
 	ctx := context.Background()
-	if err := client.Connect(ctx); err != nil {
-		logrus.Errorf("OPC-UA: Error initializing OPC-UA client for device %v: %s", device.Name, err)
-		return fmt.Errorf("failed to initialize OPC-UA client for device %v: %v", device.Name, err)
+
+	// Retry-Logik: Versuche alle 10 Sekunden, die Verbindung aufzubauen
+	retryInterval := 10 * time.Second
+	for {
+		err = client.Connect(ctx)
+		if err != nil {
+			logrus.Errorf("OPC-UA: Fehler beim Verbinden mit Gerät %v: %v. Versuche in %v erneut...", device.Name, err, retryInterval)
+			// Prüfe, ob ein Stop-Request empfangen wurde
+			select {
+			case <-stopChan:
+				logrus.Infof("OPC-UA: Stop-Request erhalten. Verbindungsversuch für Gerät %v abgebrochen.", device.Name)
+				return fmt.Errorf("connection aborted for device %v", device.Name)
+			case <-time.After(retryInterval):
+				continue
+			}
+		}
+		// Verbindung erfolgreich!
+		logrus.Infof("OPC-UA: Erfolgreich mit Gerät %v verbunden.", device.Name)
+		break
 	}
 
 	// Device zu OPC-UA Device Map hinzufügen

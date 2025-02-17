@@ -115,6 +115,11 @@ function initializeEditDeviceModal(device_id) {
 
     // Funktion, um Gerätedetails basierend auf der device_id abzurufen
     async function fetchDeviceDetails(device_id) {
+        // check if device_id is a number
+        if (isNaN(device_id)) {
+            console.error('Device ID is not a number');
+            return;
+        }
         try {
             // const response = await fetch(`${BASE_PATH}/getDevice/${device_id}`);
             const response = await fetch(`/api/getDevice/${device_id}`);

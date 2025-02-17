@@ -10,7 +10,5 @@ type DataRoute struct {
 	DestinationURL  string   `json:"destinationUrl,omitempty"`
 	Headers         []Header `json:"headers,omitempty"`
 	FilePath        string   `json:"filePath,omitempty"`
-	ExternalBroker  string   `json:"externalBroker,omitempty"` // Externe MQTT-Broker-Adresse
-	BrokerUsername  string   `json:"brokerUsername,omitempty"` // Benutzername für externen Broker
-	BrokerPassword  string   `json:"brokerPassword,omitempty"` // Passwort für externen Broker
+	Status          string   `json:"status,omitempty"`
 }

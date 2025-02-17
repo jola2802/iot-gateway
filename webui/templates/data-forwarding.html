@@ -24,6 +24,74 @@
     <link rel="stylesheet" href="assets/css/Ludens---1-Index-Table-with-Search--Sort-Filters-v20.css">
     <link rel="stylesheet" href="assets/css/Ludens---TomSelect-Form.css">
     <link rel="stylesheet" href="assets/css/Ludens-basic-login.css">
+    <style>
+        /* Progress Steps Styling */
+        .progress-steps .step-item {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .progress-steps .step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress-steps .step-text {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .progress-steps .step-item.active .step-circle {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .progress-steps .step-item.completed .step-circle {
+            background-color: #28a745;
+            color: white;
+        }
+
+        /* Wichtig: Diese Styles steuern die Sichtbarkeit der Schritte */
+        .step-pane {
+            display: none !important;  /* !important um andere Styles zu überschreiben */
+        }
+
+        .step-pane.active {
+            display: block !important;
+        }
+
+        .hint-text {
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+
+        .review-content {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        /* Zusätzliche Animationen für smoothere Übergänge */
+        .step-pane {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .step-pane.active {
+            opacity: 1;
+        }
+    </style>
 </head>
 
 <body id="page-top">
@@ -156,8 +224,15 @@
             </footer>
         </div><a class="border rounded d-inline scroll-to-top" href="#page-top"><i class="fas fa-angle-up"></i></a>
     </div>
-    <div class="modal fade modal-lg" role="dialog" tabindex="-1" id="modal-new-route">
-        <div class="modal-dialog" role="document">
+    <div class="modal fade modal-lg" id="modal-new-route" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <!-- Spinner hinzufügen -->
+            <div class="loading-spinner" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Lädt...</span>
+                </div>
+            </div>
+            <!-- Bestehender Modal-Content -->
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title">Add new Route</h4><button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="modal"></button>
@@ -228,7 +303,7 @@
                                                 <div class="col">
                                                     <form style="max-width: 700px;" role="form" action="indexTeachers.html" method="post" enctype="multipart/form-data">
                                                         <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Filename</strong></label><input class="form-control" type="text" id="fb-input-filename" placeholder="e.g. data-device1"></div>
-                                                        <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Location</strong></label><input class="form-control" type="number" id="fb-input-location" placeholder=""></div>
+                                                        <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Location</strong></label><input class="form-control" type="text" id="fb-input-location" placeholder=""></div>
                                                     </form>
                                                 </div>
                                                 <div class="col">
@@ -250,119 +325,182 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title">Add new Process</h4><button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="modal"></button>
+                    <h4 class="modal-title">Add new Process</h4>
+                    <button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="card shadow mb-3">
-                        <div class="card-body">
-                            <form>
-                                <div class="row">
-                                    <div class="col">
-                                        <div class="card">
-                                            <div class="card-body" style="border-color: var(--bs-btn-hover-color);">
-                                                <h4 class="card-title">OPC-UA - Configuration</h4>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col">
-                                                    <form style="max-width: 700px;margin-right: 5px;margin-left: 5px;" role="form" action="indexTeachers.html" method="post" enctype="multipart/form-data">
-                                                        <div class="form-group mb-3"><label class="form-label"><strong>Device</strong></label><select class="form-select" id="select-device">
-                                                                <optgroup label="This is a group">
-                                                                    <option value="12" selected="">This is item 1</option>
-                                                                    <option value="13">This is item 2</option>
-                                                                    <option value="14">This is item 3</option>
-                                                                </optgroup>
-                                                            </select></div>
-                                                        <div class="form-group mb-3"><label class="form-label"><strong>Method Parent Node</strong></label>
-                                                            <div class="input-group" id="method-parent-node"><input class="form-control" type="text" id="read-completed-node-3"><button class="btn btn-primary btn-open-browsed-nodes" type="button" style="background: var(--bs-secondary);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20" fill="none" style="font-size: 20px;">
-
-                                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4C5.79086 4 4 5.79086 4 8C4 10.2091 5.79086 12 8 12C10.2091 12 12 10.2091 12 8C12 5.79086 10.2091 4 8 4ZM2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8C14 9.29583 13.5892 10.4957 12.8907 11.4765L17.7071 16.2929C18.0976 16.6834 18.0976 17.3166 17.7071 17.7071C17.3166 18.0976 16.6834 18.0976 16.2929 17.7071L11.4765 12.8907C10.4957 13.5892 9.29583 14 8 14C4.68629 14 2 11.3137 2 8Z" fill="currentColor"></path>
-                                                                    </svg></button></div>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Timeout (in sec)</strong></label><input class="form-control" type="number" id="aquisition-time-1" min="10" placeholder="default: 30 sec"></div>
-                                                    <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Method Image Node</strong></label>
-                                                        <div class="input-group" id="method-image-node"><input class="form-control" type="text" id="read-completed-node-2"><button class="btn btn-primary btn-open-browsed-nodes" type="button" style="background: var(--bs-secondary);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20" fill="none" style="font-size: 20px;">
-
-                                                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4C5.79086 4 4 5.79086 4 8C4 10.2091 5.79086 12 8 12C10.2091 12 12 10.2091 12 8C12 5.79086 10.2091 4 8 4ZM2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8C14 9.29583 13.5892 10.4957 12.8907 11.4765L17.7071 16.2929C18.0976 16.6834 18.0976 17.3166 17.7071 17.7071C17.3166 18.0976 16.6834 18.0976 16.2929 17.7071L11.4765 12.8907C10.4957 13.5892 9.29583 14 8 14C4.68629 14 2 11.3137 2 8Z" fill="currentColor"></path>
-                                                                </svg></button></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col">
-                                                    <form style="max-width: 700px;">
-                                                        <div class="form-group mb-3"><label class="form-label"><strong>Image Node</strong></label>
-                                                            <div class="input-group"><input class="form-control" type="text" id="image-node"><button class="btn btn-primary btn-open-browsed-nodes" type="button" style="background: var(--bs-secondary);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20" fill="none" style="font-size: 20px;">
-
-                                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4C5.79086 4 4 5.79086 4 8C4 10.2091 5.79086 12 8 12C10.2091 12 12 10.2091 12 8C12 5.79086 10.2091 4 8 4ZM2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8C14 9.29583 13.5892 10.4957 12.8907 11.4765L17.7071 16.2929C18.0976 16.6834 18.0976 17.3166 17.7071 17.7071C17.3166 18.0976 16.6834 18.0976 16.2929 17.7071L11.4765 12.8907C10.4957 13.5892 9.29583 14 8 14C4.68629 14 2 11.3137 2 8Z" fill="currentColor"></path>
-                                                                    </svg></button></div>
-                                                        </div>
-                                                        <div class="form-group mb-3"><label class="form-label"><strong>Read completed Node</strong></label>
-                                                            <div class="input-group"><input class="form-control" type="text" id="read-completed-node"><button class="btn btn-primary btn-open-browsed-nodes" type="button" style="background: var(--bs-secondary);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20" fill="none" style="font-size: 20px;">
-
-                                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4C5.79086 4 4 5.79086 4 8C4 10.2091 5.79086 12 8 12C10.2091 12 12 10.2091 12 8C12 5.79086 10.2091 4 8 4ZM2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8C14 9.29583 13.5892 10.4957 12.8907 11.4765L17.7071 16.2929C18.0976 16.6834 18.0976 17.3166 17.7071 17.7071C17.3166 18.0976 16.6834 18.0976 16.2929 17.7071L11.4765 12.8907C10.4957 13.5892 9.29583 14 8 14C4.68629 14 2 11.3137 2 8Z" fill="currentColor"></path>
-                                                                    </svg></button></div>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Capture completed Node</strong></label>
-                                                        <div class="input-group" id="capture-completed-node"><input class="form-control" type="text" id="read-completed-node-1"><button class="btn btn-primary btn-open-browsed-nodes" type="button" style="background: var(--bs-secondary);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20" fill="none" style="font-size: 20px;">
-
-                                                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4C5.79086 4 4 5.79086 4 8C4 10.2091 5.79086 12 8 12C10.2091 12 12 10.2091 12 8C12 5.79086 10.2091 4 8 4ZM2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8C14 9.29583 13.5892 10.4957 12.8907 11.4765L17.7071 16.2929C18.0976 16.6834 18.0976 17.3166 17.7071 17.7071C17.3166 18.0976 16.6834 18.0976 16.2929 17.7071L11.4765 12.8907C10.4957 13.5892 9.29583 14 8 14C4.68629 14 2 11.3137 2 8Z" fill="currentColor"></path>
-                                                                </svg></button></div>
-                                                    </div>
-                                                    <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Capture Mode</strong></label><select class="form-select" id="capture-mode">
-                                                            <optgroup label="This is a group">
-                                                                <option value="12" selected="">This is item 1</option>
-                                                                <option value="13">This is item 2</option>
-                                                                <option value="14">This is item 3</option>
-                                                            </optgroup>
-                                                        </select></div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col">
-                                                    <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Interval (in sec)</strong></label><input class="form-control" type="number" id="interval" min="1"></div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Trigger Node</strong></label><input class="form-control" type="number" id="trigger-node" min="100"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row" style="margin-top: 10px;">
-                                    <div class="col">
-                                        <div class="card">
-                                            <div class="card-body" style="border-color: var(--bs-btn-hover-color);">
-                                                <h4 class="card-title">REST - Configuration</h4>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col">
-                                                    <form style="max-width: 700px;" role="form" action="indexTeachers.html" method="post" enctype="multipart/form-data">
-                                                        <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>URI</strong></label><input class="form-control" type="text" placeholder="Enter the REST API URI"></div>
-                                                    </form>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="form-group mb-3" style="margin-right: 5px;margin-left: 5px;"><label class="form-label"><strong>Datapoint/Readings ID</strong></label><input class="form-control" type="number" id="port-2" min="1" placeholder="optional"></div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col" style="margin-right: 5px;margin-left: 5px;margin-bottom: 5px;"><label class="form-label"><strong>Header (optional)</strong></label>
-                                                    <ul class="list-group" id="header-list"></ul>
-                                                    <div class="input-group"><input class="form-control" type="text" id="header-key" placeholder="Header Key"><input class="form-control" type="text" id="header-value" placeholder="Header Value"><button class="btn btn-primary" id="add-header-button-p" type="button">Add</button></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3"><button class="btn btn-primary btn-sm" type="submit" style="margin-top: 15px;" data-bs-toggle="modal" data-bs-target="#modal-captured-image">Save &amp; Test</button></div>
-                            </form>
+                    <!-- Progress Steps -->
+                    <div class="progress-steps mb-4">
+                        <div class="d-flex justify-content-between">
+                            <div class="step-item active" data-step="1">
+                                <div class="step-circle">1</div>
+                                <div class="step-text">Device</div>
+                            </div>
+                            <div class="step-item" data-step="2">
+                                <div class="step-circle">2</div>
+                                <div class="step-text">Methods</div>
+                            </div>
+                            <div class="step-item" data-step="3">
+                                <div class="step-circle">3</div>
+                                <div class="step-text">Nodes</div>
+                            </div>
+                            <div class="step-item" data-step="4">
+                                <div class="step-circle">4</div>
+                                <div class="step-text">Capture</div>
+                            </div>
+                            <div class="step-item" data-step="5">
+                                <div class="step-circle">5</div>
+                                <div class="step-text">REST</div>
+                            </div>
+                            <div class="step-item" data-step="6">
+                                <div class="step-circle">6</div>
+                                <div class="step-text">Review</div>
+                            </div>
+                        </div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar" role="progressbar" style="width: 16.66%"></div>
                         </div>
                     </div>
+
+                    <!-- Step Content -->
+                    <div class="step-content">
+                        <!-- Step 1: Device Selection -->
+                        <div class="step-pane active" data-step="1">
+                            <div class="hint-text mb-3">
+                                Select the OPC-UA device from which images should be captured.
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><strong>Device</strong></label>
+                                <select class="form-select" id="select-opc-device">
+                                    <option value="" selected disabled>Please select device...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Methods -->
+                        <div class="step-pane" data-step="2">
+                            <div class="hint-text mb-3">
+                                Enter the nodes for the methods used to capture images.
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>Method Parent Node</strong></label>
+                                <div class="input-group">
+                                    <input class="form-control" type="text" id="method-parent-node-input" placeholder="e.g. ns=4;s=Methods">
+                                    <button class="btn btn-secondary btn-open-browsed-nodes" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>Method Image Node</strong></label>
+                                <div class="input-group">
+                                    <input class="form-control" type="text" id="method-image-node-input" placeholder="e.g. ns=4;s=TakeImage">
+                                    <button class="btn btn-secondary btn-open-browsed-nodes" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Nodes -->
+                        <div class="step-pane" data-step="3">
+                            <div class="hint-text mb-3">
+                                Configure the nodes for the image and status signals.
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>Image Node</strong></label>
+                                <div class="input-group">
+                                    <input class="form-control" type="text" id="image-node-input" placeholder="Node for image">
+                                    <button class="btn btn-secondary btn-open-browsed-nodes" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>Capture Completed Node</strong></label>
+                                <div class="input-group">
+                                    <input class="form-control" type="text" id="capture-completed-node-input" placeholder="Node for capture status">
+                                    <button class="btn btn-secondary btn-open-browsed-nodes" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>Read Completed Node</strong></label>
+                                <div class="input-group">
+                                    <input class="form-control" type="text" id="read-completed-node-input" placeholder="Node for read status">
+                                    <button class="btn btn-secondary btn-open-browsed-nodes" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Capture Mode -->
+                        <div class="step-pane" data-step="4">
+                            <div class="hint-text mb-3">
+                                Select the capture mode and its corresponding parameters.
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>Capture Mode</strong></label>
+                                <select class="form-select" id="capture-mode">
+                                    <option value="interval">Interval-based</option>
+                                    <option value="trigger">Trigger-based</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Interval Mode Options -->
+                            <div id="interval-options">
+                                <div class="form-group mb-3">
+                                    <label class="form-label"><strong>Interval (in seconds)</strong></label>
+                                    <input class="form-control" type="number" id="interval-input" min="1" placeholder="e.g. 60">
+                                </div>
+                            </div>
+                            
+                            <!-- Trigger Mode Options -->
+                            <div id="trigger-options" style="display: none;">
+                                <div class="form-group mb-3">
+                                    <label class="form-label"><strong>Trigger Node</strong></label>
+                                    <input class="form-control" type="text" id="trigger-node-input" placeholder="Node for trigger signal">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: REST Configuration -->
+                        <div class="step-pane" data-step="5">
+                            <div class="hint-text mb-3">
+                                Configure the REST API settings for image transmission.
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>URI</strong></label>
+                                <input class="form-control" type="text" id="rest-uri-input" placeholder="https://api.example.com/images">
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="form-label"><strong>Headers (optional)</strong></label>
+                                <ul class="list-group" id="header-list-p"></ul>
+                                <div class="input-group mt-2">
+                                    <input class="form-control" type="text" id="header-key-p" placeholder="Header Key">
+                                    <input class="form-control" type="text" id="header-value-p" placeholder="Header Value">
+                                    <button class="btn btn-primary" id="add-header-button-p" type="button">Add</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 6: Review -->
+                        <div class="step-pane" data-step="6">
+                            <div class="hint-text mb-3">
+                                Review your settings before saving.
+                            </div>
+                            <div class="review-content">
+                                <!-- Will be filled dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" id="btn-prev" style="display: none;">Previous</button>
+                    <button class="btn btn-primary" type="button" id="btn-next">Next</button>
+                    <button class="btn btn-success" type="button" id="btn-save" style="display: none;">Save</button>
                 </div>
             </div>
         </div>
@@ -385,43 +523,38 @@
             </div>
         </div>
     </div>
-    <div class="modal fade modal-md" role="dialog" tabindex="-1" id="modal-browsed-nodes" style="z-index:1056;">
-        <div class="modal-dialog" role="document">
+    <div class="modal fade" role="dialog" tabindex="-1" id="modal-browsed-nodes">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title">Browsed nodes</h4><button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="modal"></button>
+                    <h4 class="modal-title">Browse Nodes</h4>
+                    <button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="card shadow d-flex align-items-center mb-3">
-                        <div class="card-body d-flex w-100">
-                            <ul class="list-group d-flex w-100"></ul>
-                        </div>
+                    <div class="list-group">
+                        <!-- Nodes werden hier dynamisch eingefügt -->
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
-    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/utils/jquery.min.js"></script>
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
     <script src="assets/js/api.js"></script>
-    <!-- <script src="assets/js/broker.js"></script> -->
-    <script src="assets/js/data-forwarding.js"></script>
-    <!-- <script src="assets/js/devices/devices-charts.js"></script> -->
-    <!-- <script src="assets/js/devices/devices-data.js"></script> -->
-    <!-- <script src="assets/js/devices/devices-utils.js"></script> -->
-    <!-- <script src="assets/js/devices/devices.js"></script> -->
-    <!-- <script src="assets/js/home.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+    <script src="assets/js/data-forwarding/device-cache.js"></script>
+    <script src="assets/js/data-forwarding/utils.js"></script>
+    <script src="assets/js/data-forwarding/data-forwarding.js"></script>
+    <script src="assets/js/data-forwarding/modals.js"></script>
+    <script src="assets/js/data-forwarding/process-wizard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.0.1/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/jquery.tablesorter.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-filter.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-storage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-    <!-- <script src="assets/js/index.js"></script> -->
-    <!-- <script src="assets/js/profile.js"></script> -->
-    <script src="assets/js/theme.js"></script>
-    <script src="assets/js/Toggle-Password-toggle-pass.js"></script>
-    <!-- Neu hinzugefügtes Skript für das Abrufen der Geräte -->
+    <script src="assets/js/utils/theme.js"></script>
 </body>
 
 </html>

@@ -27,11 +27,11 @@
       });
     }
 
-    // Close any open menu accordions when window is resized below 768px
+    // Close any open menu accordions when window is resized below 1000px
     window.addEventListener('resize', function() {
       var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
 
-      if (vw < 768) {
+      if (vw < 1000) {
         for (var bsCollapse of sidebarCollapseList) {
           bsCollapse.hide();
         }
@@ -47,7 +47,7 @@
     fixedNaigation.on('mousewheel DOMMouseScroll wheel', function(e) {
       var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
 
-      if (vw > 768) {
+      if (vw > 1000) {
         var e0 = e.originalEvent,
           delta = e0.wheelDelta || -e0.detail;
         this.scrollTop += (delta < 0 ? 1 : -1) * 30;

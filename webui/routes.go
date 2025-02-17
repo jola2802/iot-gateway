@@ -70,7 +70,9 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/list-opc-ua-devices", listDevices) // list devices
 		authorized.POST("/api/add-route", saveRouteConfig)
 		authorized.DELETE("/api/routes/:routeId", deleteRoute)
-		authorized.GET("/api/routes/:routeId", getRoutesById)
+		authorized.GET("/api/route/:routeId", getRoutesById)
+		authorized.PUT("/api/route/:routeId", saveRouteConfig)
+		authorized.GET("/api/add-img-process", addImageProcess)
 
 		// WSS for dashboard data
 		// authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
@@ -105,7 +107,7 @@ func setupRoutes(r *gin.Engine) {
 		// authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
 		// authorized.POST("/devices", addDevice)                           // Add a new device
 		// authorized.DELETE("/devices/:deviceName", deleteDevice) // Delete a device
-		authorized.GET("/browseNodes/:deviceName", browseNodes) // Get device attributes
+		authorized.GET("/api/browseNodes/:deviceID", browseNodes) // Get device attributes
 
 		//websocket for device status and data
 		// authorized.GET("/ws/deviceStatus", deviceStatusWebSocket)
@@ -125,7 +127,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/api/delete-image-process/:id", deleteImageProcess)
 		authorized.GET("/add-image-process", addImageProcess)
 
-		authorized.GET("/browse-nodes/:deviceName", browseNodes)
+		authorized.GET("/browse-nodes/:deviceID", browseNodes)
 	}
 }
 

@@ -2,7 +2,6 @@ function getHostInfo() {
     const hostname = window.location.hostname;
     const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
 
-    // hostname = "192.168.0.84"
     const BASE_PATH = `https://${hostname}/nodered/`;
     const WS_PATH = `wss://${hostname}/nodered/`;
 

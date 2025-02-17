@@ -59,9 +59,9 @@ func ForwardToPublicTopic(db *sql.DB, topic, payload string) error {
 // Weiterleitung von Daten zu einem externen MQTT-Broker
 func ForwardToExternalBroker(route DataRoute, topic, payload string) error {
 	opts := MQTT.NewClientOptions().
-		AddBroker(route.ExternalBroker).
-		SetUsername(route.BrokerUsername).
-		SetPassword(route.BrokerPassword).
+		// AddBroker(route.ExternalBroker).
+		// SetUsername(route.BrokerUsername).
+		// SetPassword(route.BrokerPassword).
 		SetAutoReconnect(true)
 
 	client := MQTT.NewClient(opts)

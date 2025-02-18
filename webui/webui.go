@@ -90,3 +90,7 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 func showRoutingPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "data-forwarding.html", nil)
 }
+
+func StopWebUI() {
+	server.Close()
+}

@@ -36,6 +36,12 @@
                         nodeRedElement.textContent = data.nodeRedConnection ? 'Connected' : 'Disconnected';
                         nodeRedElement.style.color = data.nodeRedConnection ? 'green' : 'red';
                     }
+                    // Node-RED-Adresse aktualisieren
+                    if (data.nodeRedAddress !== undefined) {
+                        const nodeRedAddressElement = document.getElementById('node-red-address');
+                        nodeRedAddressElement.textContent = data.nodeRedAddress;
+                        nodeRedAddressElement.href = data.nodeRedAddress;
+                    }
                 }
 
                 // WebSocket-Ereignisse
@@ -65,3 +71,24 @@
             });
     }
 })();
+
+// eventlistener for the confirm-restart-button
+document.getElementById('confirm-restart-button').addEventListener('click', restartGateway);
+
+// Function to restart the gateway
+async function restartGateway() {
+    await fetch('/api/restart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Fehler beim Neustarten des Gateways');
+        } else {
+            alert('Gateway wurde erfolgreich neugestartet');
+            window.location.reload();
+        }
+    })
+}

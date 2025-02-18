@@ -35,7 +35,10 @@ func performLogin(c *gin.Context) {
 	// Get the db instance from the gin.Context
 	db, exists := c.Get("db")
 	if !exists {
-		c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "Database connection not found"})
+		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+			"error":    "Datenbankverbindung fehlgeschlagen",
+			"username": c.PostForm("username"), // Behalte den eingegebenen Benutzernamen
+		})
 		return
 	}
 
@@ -48,7 +51,10 @@ func performLogin(c *gin.Context) {
 	var storedPassword string
 	err := dbConn.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedPassword)
 	if err != nil || storedPassword != password {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "Invalid credentials"})
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+			"error":    "Benutzername oder Passwort falsch",
+			"username": username, // Behalte den eingegebenen Benutzernamen
+		})
 		return
 	}
 

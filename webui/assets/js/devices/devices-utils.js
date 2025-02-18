@@ -81,47 +81,23 @@ function initializeOpcUaSecuritySettings(prefix = '') {
     selectAuthenticationSettings.dispatchEvent(new Event('change'));
 }    
 
-function initializeEditDeviceModal(device_id) {
-    // // Selektiere das Dropdown-Menü für den Gerätetyp
-    const selectDeviceType = document.getElementById('select-device-type-1');
-
-    // Funktion zum Ausblenden aller Konfigurationskarten
-    function hideAllConfigs() {
-        const configIds = ['opc-ua-config-1', 's7-config-1', 'mqtt-config-1'];
-        configIds.forEach(id => {
-            const config = document.getElementById(id);
-            if (config) config.style.display = 'none';
-        });
-    }
-
-    // Funktion zum Anzeigen der entsprechenden Konfigurationskarte basierend auf der Auswahl
-    function showConfig(selectedType) {
-        hideAllConfigs();
-        const config = document.getElementById(`${selectedType}-config-1`);
-        if (config) {
-            config.style.display = 'block';
-
-            // Falls OPC-UA ausgewählt wurde, initialisiere Sicherheitsrichtlinie und -modus
-            if (selectedType === 'opc-ua') {
-                initializeOpcUaSecuritySettings('-1');
-                document.querySelectorAll('.datatype-column').forEach(col => col.classList.add('hidden'));
-                document.querySelectorAll('td:nth-child(3)').forEach(cell => cell.classList.add('hidden')); // Verstecke alle Zellen in der Spalte
-            } else {
-                document.querySelectorAll('.datatype-column').forEach(col => col.classList.remove('hidden'));
-                document.querySelectorAll('td:nth-child(3)').forEach(cell => cell.classList.remove('hidden')); // Zeige alle Zellen in der Spalte
-            }
-        }
-    }
-
-    // Funktion, um Gerätedetails basierend auf der device_id abzurufen
-    async function fetchDeviceDetails(device_id) {
-        // check if device_id is a number
-        if (isNaN(device_id)) {
-            console.error('Device ID is not a number');
-            return;
-        }
+async function initializeEditDeviceModal(device_id) {
+    return new Promise(async (resolve, reject) => {
         try {
-            // const response = await fetch(`${BASE_PATH}/getDevice/${device_id}`);
+            // Prüfen ob device_id gültig ist
+            if (!device_id) {
+                throw new Error('Keine gültige Device ID');
+            }
+
+            // Speichere device_id im localStorage für spätere Verwendung
+            localStorage.setItem('device_id', device_id);
+            
+            // Hole die Referenz zum select Element
+            const selectDeviceType = document.getElementById('select-device-type-1');
+            if (!selectDeviceType) {
+                throw new Error('select-device-type-1 Element nicht gefunden');
+            }
+            
             const response = await fetch(`/api/getDevice/${device_id}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch device details: ${response.status}`);
@@ -134,11 +110,22 @@ function initializeEditDeviceModal(device_id) {
 
             // Gerätedaten in das Modal einfügen
             document.getElementById('device-name-1').value = deviceData.deviceName || '';
+            
+            // Setze den Device Type und deaktiviere das Feld
             selectDeviceType.value = deviceData.deviceType || 'opc-ua';
             selectDeviceType.disabled = true;
-            //disable name input field
+
+            // Deaktiviere das Namensfeld
             document.getElementById('device-name-1').disabled = true;
-            showConfig(deviceData.deviceType);
+
+            // Zeige die entsprechende Konfiguration
+            const configIds = ['opc-ua-config-1', 's7-config-1', 'mqtt-config-1'];
+            configIds.forEach(id => {
+                const config = document.getElementById(id);
+                if (config) {
+                    config.style.display = id.includes(deviceData.deviceType) ? 'block' : 'none';
+                }
+            });
 
             if (deviceData.deviceType === 'opc-ua') {
                 // Clear old values
@@ -234,8 +221,8 @@ function initializeEditDeviceModal(device_id) {
                     <a href="#" class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" 
                         style="margin-left: 5px;" 
                         onclick="confirmDeleteDatapoint('${datapoint.datapointId}', event)">
-                        <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
-                    </a>
+                            <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
+                        </a>
                     `;
                     row.appendChild(actionCell);
 
@@ -245,113 +232,28 @@ function initializeEditDeviceModal(device_id) {
             }
             datapointsTableBody.appendChild(createEmptyRow(deviceData.deviceType));
 
+            // Am Ende der Funktion:
+            resolve();
         } catch (error) {
-            console.error(`Error fetching device details: ${error.message}`);
+            console.error(`Error in initializeEditDeviceModal: ${error.message}`);
+            reject(error);
         }
-    }
-
-    // Funktion zum Hinzufügen der Username- und Password-Felder
-    function createCredentialsFields(prefix = '') {
-        // Verwenden Sie den Container, in den die Felder eingefügt werden sollen.
-        // Für das New Device Modal muss im HTML <div id="opc-ua-credentials"></div> vorhanden sein.
-        // Für das Edit Device Modal muss im HTML <div id="opc-ua-credentials-1"></div> vorhanden sein.
-        const container = document.getElementById('opc-ua-credentials' + prefix);
-        if (!container) {
-          console.error('Credentials container not found: opc-ua-credentials' + prefix);
-          return;
-        }
-        
-        // Falls noch nicht vorhanden, erstellen Sie die Username-Feldgruppe.
-        if (!document.getElementById('username-group' + prefix)) {
-          const usernameGroup = document.createElement('div');
-          usernameGroup.id = 'username-group' + prefix;
-          usernameGroup.className = 'form-group mb-3';
-          usernameGroup.innerHTML = `
-            <label class="form-label" for="username${prefix}"><strong>Username</strong></label>
-            <input type="text" class="form-control" id="username${prefix}" placeholder="Enter username">
-          `;
-          container.appendChild(usernameGroup);
-        }
-        
-        // Falls noch nicht vorhanden, erstellen Sie die Password-Feldgruppe.
-        if (!document.getElementById('password-group' + prefix)) {
-          const passwordGroup = document.createElement('div');
-          passwordGroup.id = 'password-group' + prefix;
-          passwordGroup.className = 'form-group mb-3';
-          passwordGroup.innerHTML = `
-            <label class="form-label" for="password${prefix}"><strong>Password</strong></label>
-            <input type="password" class="form-control" id="password${prefix}" placeholder="Enter password">
-          `;
-          container.appendChild(passwordGroup);
-        }
-      }
-      
-    
-    // Initiales Ausblenden aller Konfigurationskarten
-    hideAllConfigs();
-
-    // Zeige die Konfigurationskarte basierend auf der aktuellen Auswahl
-    const initialSelection = selectDeviceType.value;
-    showConfig(initialSelection);
-
-    // Gerätedetails abrufen
-    fetchDeviceDetails(device_id);
-
-    // Entferne vorherige Event Listener, um doppelte Listener zu vermeiden
-    const newEditDeviceModal = document.getElementById('modal-edit-device');
-    if (newEditDeviceModal) {
-        selectDeviceType.removeEventListener('change', handleDeviceTypeChange);
-    }
-
-    // Event Listener für Änderungen im Dropdown-Menü
-    function handleDeviceTypeChange() {
-        const selectedValue = selectDeviceType.value;
-        showConfig(selectedValue);
-    }
-
-    selectDeviceType.addEventListener('change', handleDeviceTypeChange);
-
-    // Funktion zur Initialisierung der Sicherheitsrichtlinien und -modi für OPC-UA
-    function initializeOpcUaSecuritySettings(prefix = '') {
-        // Für New Device: id="select-authentication-settings"
-        // Für Edit Device: id="select-authentication-settings-1"
-        const authSelect = document.getElementById('select-authentication-settings' + prefix);
-        if (!authSelect) {
-          console.error('Authentication select not found: select-authentication-settings' + prefix);
-          return;
-        }
-        function handleAuthChange() {
-          if (authSelect.value === 'user-pw') {
-            showCredentials(prefix);
-          } else {
-            hideCredentials(prefix);
-          }
-        }
-        // Binden Sie den Listener nur einmal, um Mehrfachbindungen zu vermeiden.
-        if (!authSelect.dataset.listenerBound) {
-          authSelect.addEventListener('change', handleAuthChange);
-          authSelect.dataset.listenerBound = 'true';
-        }
-        // Lösen Sie den Change-Event aus, damit der aktuelle Zustand übernommen wird.
-        authSelect.dispatchEvent(new Event('change'));
-      }
-
-    // Save device_id in web storage
-    localStorage.setItem('device_id', device_id);
+    });
 }
 
 // Funktion zum Hinzufügen der Username- und Password-Felder
-function showCredentials(prefix = '') {
-    // Der Container, in den die dynamischen Felder eingefügt werden sollen.
-    // Für New Device: id="opc-ua-credentials"
-    // Für Edit Device: id="opc-ua-credentials-1"
+function createCredentialsFields(prefix = '') {
+    // Verwenden Sie den Container, in den die Felder eingefügt werden sollen.
+    // Für das New Device Modal muss im HTML <div id="opc-ua-credentials"></div> vorhanden sein.
+    // Für das Edit Device Modal muss im HTML <div id="opc-ua-credentials-1"></div> vorhanden sein.
     const container = document.getElementById('opc-ua-credentials' + prefix);
     if (!container) {
       console.error('Credentials container not found: opc-ua-credentials' + prefix);
       return;
     }
+    
     // Falls noch nicht vorhanden, erstellen Sie die Username-Feldgruppe.
-    if (!document.getElementById('username' + prefix)) {
+    if (!document.getElementById('username-group' + prefix)) {
       const usernameGroup = document.createElement('div');
       usernameGroup.id = 'username-group' + prefix;
       usernameGroup.className = 'form-group mb-3';
@@ -361,8 +263,9 @@ function showCredentials(prefix = '') {
       `;
       container.appendChild(usernameGroup);
     }
+    
     // Falls noch nicht vorhanden, erstellen Sie die Password-Feldgruppe.
-    if (!document.getElementById('password' + prefix)) {
+    if (!document.getElementById('password-group' + prefix)) {
       const passwordGroup = document.createElement('div');
       passwordGroup.id = 'password-group' + prefix;
       passwordGroup.className = 'form-group mb-3';
@@ -373,13 +276,6 @@ function showCredentials(prefix = '') {
       container.appendChild(passwordGroup);
     }
   }
-  
-function hideCredentials(prefix = '') {
-const usernameGroup = document.getElementById('username-group' + prefix);
-const passwordGroup = document.getElementById('password-group' + prefix);
-if (usernameGroup) usernameGroup.remove();
-if (passwordGroup) passwordGroup.remove();
-}
   
 
 function createEmptyRow(deviceType) {

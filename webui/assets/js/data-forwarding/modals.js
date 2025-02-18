@@ -8,6 +8,30 @@ const fileConfig = document.getElementById('file-config');
 const mqttConfig = document.getElementById('mqtt-config');
 const lupeButtons = document.querySelectorAll('.btn-open-browsed-nodes');
 
+// Initialisierung beim Laden der Seite
+document.addEventListener('DOMContentLoaded', initializeModals);
+
+// Event-Listener für den Save-Button
+document.getElementById('btn-save-route').addEventListener('click', async function() {
+    try {
+        toggleLoadingSpinner(true);
+        await saveRoute();
+        const modal = bootstrap.Modal.getInstance(routeModal);
+        modal.hide();
+        await fetchAndPopulateDataForwarding();
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+        alert('Fehler beim Speichern: ' + error.message);
+    } finally {
+        toggleLoadingSpinner(false);
+    }
+});
+
+// Füge die Initialisierung zum DOMContentLoaded Event hinzu
+document.addEventListener('DOMContentLoaded', () => {
+    initializeHeaderFunctionality();
+}); 
+
 // Event Listeners
 if (newImgProcessModal) {
     newImgProcessModal.addEventListener('show.bs.modal', fetchAndPopulateDevicesProcess);
@@ -212,9 +236,6 @@ window.dataForwarding.functions = {
     }
 };
 
-// Initialisierung beim Laden der Seite
-document.addEventListener('DOMContentLoaded', initializeModals);
-
 // Funktion zum Zurücksetzen des Formulars
 function resetRouteForm() {
     routeModal.querySelector('.modal-title').textContent = 'Add new Route';
@@ -246,22 +267,6 @@ function initializeSelectOptions() {
         </optgroup>
     `;
 }
-
-// Event-Listener für den Save-Button
-document.getElementById('btn-save-route').addEventListener('click', async function() {
-    try {
-        toggleLoadingSpinner(true);
-        await saveRoute();
-        const modal = bootstrap.Modal.getInstance(routeModal);
-        modal.hide();
-        await fetchAndPopulateDataForwarding();
-    } catch (error) {
-        console.error('Fehler beim Speichern:', error);
-        alert('Fehler beim Speichern: ' + error.message);
-    } finally {
-        toggleLoadingSpinner(false);
-    }
-});
 
 // Überarbeitete loadRouteData Funktion
 async function loadRouteData(routeId) {
@@ -491,8 +496,3 @@ function addHeaderToList(keyInput, valueInput, list) {
     keyInput.value = '';
     valueInput.value = '';
 }
-
-// Füge die Initialisierung zum DOMContentLoaded Event hinzu
-document.addEventListener('DOMContentLoaded', () => {
-    initializeHeaderFunctionality();
-}); 

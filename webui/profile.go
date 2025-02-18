@@ -27,9 +27,10 @@ func getProfile(c *gin.Context) {
 		Name     string `json:"name"`
 		Address  string `json:"address"`
 		Company  string `json:"company"`
+		Email    string `json:"email"`
 	}
 
-	err := dbConn.QueryRow("SELECT username, name, address, company FROM users LIMIT 1").Scan(&profileData.Username, &profileData.Name, &profileData.Address, &profileData.Company)
+	err := dbConn.QueryRow("SELECT username, name, address, company, email FROM users LIMIT 1").Scan(&profileData.Username, &profileData.Name, &profileData.Address, &profileData.Company, &profileData.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error getting profile data"})
 		return
@@ -40,77 +41,44 @@ func getProfile(c *gin.Context) {
 
 // updateProfile updates the user profile
 func updateProfile(c *gin.Context) {
-	// Get the db instance from the gin.Context
-	db, exists := c.Get("db")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Database connection not found"})
+	// Datenbankverbindung aus dem Kontext holen
+	dbConn, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Datenbank-Verbindung nicht gefunden"})
 		return
 	}
 
-	dbConn := db.(*sql.DB)
+	// Profil-Daten-Datentyp ohne Passwort-Felder definieren
 	var profileData struct {
-		Username        string `json:"username"`
-		Name            string `json:"name"`
-		Address         string `json:"address"`
-		Company         string `json:"company"`
-		CurrentPassword string `json:"currentPassword"`
-		NewPassword     string `json:"newPassword"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+		Address  string `json:"address"`
+		Company  string `json:"company"`
+		Email    string `json:"email"`
 	}
 
+	// JSON-Daten aus der Anfrage binden
 	if err := c.ShouldBindJSON(&profileData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
-		return
-	}
-	var storedPassword string
-	err := dbConn.QueryRow("SELECT password FROM users LIMIT 1").Scan(&storedPassword)
-	if err != nil || storedPassword != profileData.CurrentPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Current password is incorrect"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Ungültige Anfrage"})
 		return
 	}
 
-	tx, err := dbConn.Begin()
+	// UPDATE-Abfrage: Nur die angegebenen Felder aktualisieren, Passwort bleibt unverändert.
+	_, err = dbConn.Exec(
+		"UPDATE users SET username = ?, name = ?, address = ?, company = ?, email = ?",
+		profileData.Username, profileData.Name, profileData.Address, profileData.Company, profileData.Email,
+	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error starting transaction"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Fehler beim Aktualisieren des Profils"})
 		return
 	}
 
-	_, err = tx.Exec("DELETE FROM users")
-	if err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting old profile"})
-		return
-	}
-
-	if profileData.NewPassword != "" {
-		_, err = tx.Exec("INSERT INTO users (username, name, address, company, password) VALUES (?, ?, ?, ?, ?)",
-			profileData.Username, profileData.Name, profileData.Address, profileData.Company, profileData.NewPassword)
-	} else {
-		_, err = tx.Exec("INSERT INTO users (username, name, address, company, password) VALUES (?, ?, ?, ?, ?)",
-			profileData.Username, profileData.Name, profileData.Address, profileData.Company, storedPassword)
-	}
-
-	if err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new profile"})
-		return
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error committing transaction"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully!"})
+	c.JSON(http.StatusOK, gin.H{"message": "Profil erfolgreich aktualisiert!"})
 }
 
 func changePassword(c *gin.Context) {
 	// Get the db instance from the gin.Context
-	db, err := getDBConnection(c)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Database connection not found"})
-		return
-	}
+	db, _ := getDBConnection(c)
 
 	var passwordData struct {
 		CurrentPassword string `json:"currentPassword"`
@@ -123,7 +91,7 @@ func changePassword(c *gin.Context) {
 	}
 
 	var storedPassword string
-	err = db.QueryRow("SELECT password FROM users LIMIT 1").Scan(&storedPassword)
+	err := db.QueryRow("SELECT password FROM users LIMIT 1").Scan(&storedPassword)
 	if err != nil || storedPassword != passwordData.CurrentPassword {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Current password is incorrect"})
 		return
@@ -134,6 +102,8 @@ func changePassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating password"})
 		return
 	}
+	c.Redirect(http.StatusSeeOther, "/logout")
+	c.Abort()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully!"})
 }

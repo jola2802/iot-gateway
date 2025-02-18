@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.25-alpine
     container_name: reverse-proxy
     depends_on:
       - iot-gateway

@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -120,6 +121,27 @@ func RestartAllDrivers(db *sql.DB) {
 	StartAllDrivers(db, server)
 }
 
+func RestartDevice(db *sql.DB, deviceID string) {
+	logrus.Infof("DM: Restarting device %s...", deviceID)
+
+	// Erstelle einen Kontext mit Timeout, damit die Abfrage nicht unendlich blockiert.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	var deviceType string
+	if err := db.QueryRowContext(ctx, `SELECT type FROM devices WHERE id = ?`, deviceID).Scan(&deviceType); err != nil {
+		logrus.Errorf("DM: Fehler beim Abfragen des Gerätetyps: %v", err)
+		return
+	}
+
+	switch deviceType {
+	case "opc-ua":
+		restartOPCUADriver(db, deviceID)
+	case "s7":
+		restartS7Driver(db, deviceID)
+	}
+}
+
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPC-UA-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -237,7 +259,7 @@ func stopOPCUADriver(deviceID string) {
 // Example:
 //
 //	db, _ := sql.Open("mysql", "user:password@tcp(localhost:3306)/database")
-//	restartOPCUADriver(db, "device-123")
+//	restartOPCUADriver(db, "1")
 func restartOPCUADriver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting OPC-UA driver for device %s...", deviceID)
 	stopOPCUADriver(deviceID)

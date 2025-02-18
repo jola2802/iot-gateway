@@ -36,7 +36,8 @@ const (
 			password TEXT NOT NULL,
 			name TEXT,
 			address TEXT,
-			company TEXT
+			company TEXT,
+			email TEXT
 		);
 	`
 
@@ -108,7 +109,7 @@ const (
 			destination_url TEXT,
 			headers TEXT, -- Verwende TEXT für JSON-Daten
 			file_path TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 	`
 
@@ -201,9 +202,9 @@ func InitDB(dbPath string) (*sql.DB, error) {
 	// If no users are found, create a default admin user
 	if count == 0 {
 		db.Exec(`
-            INSERT INTO users (username, password, name, address, company)
-            VALUES (?, ?, ?, ?, ?)
-        `, "admin", "password", "Admin", "Admin Street", "Admin Corp.")
+            INSERT INTO users (username, password, name, address, company, email)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, "admin", "password", "Admin", "Admin Street", "Admin Corp.", "admin@admin.com")
 	}
 
 	// Check if there are any broker settings in the database

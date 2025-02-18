@@ -2,6 +2,7 @@ package webui
 
 import (
 	"database/sql"
+	"net"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -24,6 +25,7 @@ type BrokerStatus struct {
 	NumberMessages    int    `json:"numberMessages"`
 	NumberDevices     int    `json:"numberDevices"`
 	NodeRedConnection bool   `json:"nodeRedConnection"`
+	NodeRedAddress    string `json:"nodeRedAddress"`
 }
 
 // Variable zum Speichern der Nachrichtenanzahl
@@ -111,35 +113,45 @@ func brokerStatusWebSocket(c *gin.Context) {
 
 	// Variable für den Node-RED-Status
 	var noderedconnection bool
+	var nodeRedAddress string
 
 	// Starte eine Goroutine für die Node-RED-Überprüfung
 	go func() {
 		nodeRedTicker := time.NewTicker(2 * time.Second) // Prüfe alle 5 Sekunden
 		defer nodeRedTicker.Stop()
 
-		nodeRedUrls := []string{
-			"http://127.0.0.1:1880",
-			"http://127.0.0.1:7777",
+		// get own ip address
+		ip, err := getOwnIP()
+		if err != nil {
+			logrus.Errorf("Error getting own IP address: %v", err)
 		}
 
-		for range nodeRedTicker.C {
-			currentConnection := false
-			for _, url := range nodeRedUrls {
-				resp, err := httpClient.Get(url)
-				if err == nil {
-					if resp.StatusCode == 200 {
-						currentConnection = true
-						resp.Body.Close()
-						break // Wenn eine Verbindung erfolgreich ist, brechen wir die Schleife ab
-					}
-					resp.Body.Close()
-				}
-			}
+		logrus.Infof("Own IP address: %s", ip)
 
-			// Nur aktualisieren wenn sich der Status geändert hat
-			if currentConnection != noderedconnection {
-				noderedconnection = currentConnection
+		nodeRedUrls := []string{
+			"http://" + ip + ":7777",
+			"https://" + ip + "/nodered",
+		}
+
+		var currentUrl string
+		var currentConnection bool
+		for _, url := range nodeRedUrls {
+			resp, err := httpClient.Get(url)
+			if err == nil {
+				if resp.StatusCode == 200 {
+					currentConnection = true
+					currentUrl = url
+					resp.Body.Close()
+					break
+				}
+				resp.Body.Close()
 			}
+		}
+
+		// Nur aktualisieren wenn sich der Status geändert hat
+		if currentConnection != noderedconnection {
+			noderedconnection = currentConnection
+			nodeRedAddress = currentUrl
 		}
 	}()
 
@@ -165,6 +177,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 			NumberMessages:    messageCount,
 			NumberDevices:     len(driverIDs),
 			NodeRedConnection: noderedconnection,
+			NodeRedAddress:    nodeRedAddress,
 		}
 
 		if err := conn.WriteJSON(status); err != nil {
@@ -174,9 +187,21 @@ func brokerStatusWebSocket(c *gin.Context) {
 	}
 }
 
+func getOwnIP() (string, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String(), nil
+}
+
 func restartGatewayHandler(c *gin.Context) {
 	// restart the gateway
 	RestartGateway(c)
+	c.JSON(http.StatusOK, gin.H{"message": "Gateway restarted successfully"})
 }
 
 // RestartGateway accepts either *gin.Context or *sql.DB as argument
@@ -203,9 +228,4 @@ func RestartGateway(c *gin.Context) {
 	// Manual trigger to run Garbage Collector
 	logrus.Info("Running garbage collector after restart.")
 	runtime.GC()
-}
-
-// showDashboard gives the data to the dashboard page
-func dashboardWS(c *gin.Context) {
-
 }

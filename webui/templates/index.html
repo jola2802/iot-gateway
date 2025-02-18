@@ -135,7 +135,8 @@
                                     <h4 class="card-title" style="color: var(--bs-primary);border-left-width: 2px;border-left-color: var(--bs-primary);font-size: 22px;"><strong>NODE-RED&nbsp;</strong>&nbsp;<img src="assets/img/node-red-icon-2048x2048-b2t479rp.png" style="filter: brightness(0%);opacity: 0.72;width: 30px;"></h4>
                                     <div class="row align-items-center">
                                         <div class="col-xxl-1" style="width: 187px;"><span id="node-red-connection" style="font-weight: bold;color: var(--bs-black);font-size: 20px;">Loading...</span></div>
-                                        <div class="col"><a href="https://localhost/nodered" target="_blank" style="color: var(--bs-card-bg);"><i class="la la-external-link" style="color: var(--bs-black);font-size: 20px;"></i></a></div>
+                                        <!-- hier die node-red-adresse als href einfügen -->
+                                        <div class="col"><a target="_blank" style="color: var(--bs-card-bg);" id="node-red-address"><i class="la la-external-link" style="color: var(--bs-black);font-size: 20px;"></i></a></div>
                                     </div>
                                 </div>
                             </div>
@@ -162,7 +163,7 @@
                 <div class="modal-body">
                     <p>Are you sure you want to restart the Gateway?</p>
                 </div>
-                <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">NO</button><button class="btn btn-primary" type="button" style="background: var(--bs-form-invalid-color);border-style: none;border-color: var(--bs-black);">YES</button></div>
+                <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">NO</button><button class="btn btn-primary" type="button" style="background: var(--bs-form-invalid-color);border-style: none;border-color: var(--bs-black);" id="confirm-restart-button">YES</button></div>
             </div>
         </div>
     </div>

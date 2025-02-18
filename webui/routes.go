@@ -41,6 +41,7 @@ func setupRoutes(r *gin.Engine) {
 	// Public routes
 	r.GET("/login", showLoginPage)
 	r.POST("/login", performLogin)
+	// r.POST("/reset-password", handlePasswordReset)
 	r.GET("/logout", logout)
 	r.GET("/api/ws-broker-status", brokerStatusWebSocket)
 	r.GET("/api/ws-device-data", deviceDataWebSocket)
@@ -54,8 +55,6 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/getBrokerUsers", getAllBrokerUsers)
 		authorized.GET("/api/getBrokerUser/:username", getBrokerUser)
 		authorized.GET("/api/getBrokerLogin", getBrokerLogin)
-		authorized.GET("/api/profile", getProfile)
-		authorized.POST("/api/changePassword", changePassword)
 
 		// Devices
 		authorized.GET("/api/getDevices", getDevices)
@@ -64,6 +63,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.PUT("/api/update-device/:device_id", updateDevice)
 		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
 		authorized.GET("/api/ws-token", generateToken)
+		authorized.POST("/api/restart-device/:device_id", restartDevice)
 
 		// Historical Data
 		authorized.POST("/api/query-data", queryDataHandler)
@@ -81,9 +81,16 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/add-img-process", addImageProcess)
 		authorized.GET("/api/browseNodes/:deviceID", browseNodes) // Get device attributes
 
+		// Profile
+		authorized.GET("/api/profile", getProfile)
+		authorized.PUT("/api/profile", updateProfile)
+		authorized.PUT("/api/changePassword", changePassword)
+
 		// Settings
 		authorized.GET("/api/settings", getSettings)
 		authorized.POST("/api/settings", updateSettings)
+
+		authorized.POST("/api/restart", restartGatewayHandler)
 
 		// WSS for dashboard data
 		// authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
@@ -102,10 +109,6 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/profile", showProfilePage)
 		authorized.GET("/settings", showSettingsPage)
 		// ############
-
-		authorized.POST("/restart", restartGatewayHandler)
-
-		authorized.POST("/profile", updateProfile)
 
 		// Data Routes
 		authorized.GET("/listdevices", getlistDevices)

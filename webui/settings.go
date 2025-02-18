@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,7 @@ type ACLEntry struct {
 }
 
 func getSettings(c *gin.Context) {
-	configFile, err := ioutil.ReadFile("config.json")
+	configFile, err := os.ReadFile("config.json")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Konnte Konfigurationsdatei nicht lesen"})
 		return
@@ -65,7 +65,7 @@ func updateSettings(c *gin.Context) {
 	}
 
 	// Schreibe die neue Konfiguration in die Datei
-	if err := ioutil.WriteFile("config.json", configJSON, 0644); err != nil {
+	if err := os.WriteFile("config.json", configJSON, 0644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Speichern der Konfiguration"})
 		return
 	}

@@ -30,6 +30,11 @@
                         <div class="text-center mb-3"><img class="img-fluid" src="https://idpm-institut.de/wp-content/uploads/2021/10/IDPM-final_2023-10-11.png" alt="Gateway" style="max-width: 120px">
                             <h1 class="mb-3 mt-3">Gateway Login</h1>
                         </div>
+                        {{if .error}}
+                        <div class="alert alert-danger" role="alert">
+                            {{.error}}
+                        </div>
+                        {{end}}
                         <form action="/login" method="post">
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username</label>
@@ -49,7 +54,6 @@
     <script src="assets/js/utils/jquery.min.js"></script>
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
     <script src="assets/js/utils/theme.js"></script>
-    <script src="assets/js/Toggle-Password-toggle-pass.js"></script>
 </body>
 
 </html>

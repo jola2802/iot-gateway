@@ -1,4 +1,4 @@
-initWebSocket(WS_PATH);
+initWebSocket();
 
 // Funktion zum Aktualisieren der Device-Tabellen
 function updateDeviceTables(devices) {
@@ -49,8 +49,9 @@ function updateDeviceTables(devices) {
 // Funktion zum Abrufen und Befüllen der Devices beim Laden der Seite
 async function fetchAndPopulateDevices() {
     try {
+        // warte 200ms 
+        await new Promise(resolve => setTimeout(resolve, 200));
         // API-Aufruf
-        // const response = await fetch(`${BASE_PATH}/getDevices`);
         const response = await fetch(`/api/getDevices`);
 
         if (!response.ok) {
@@ -61,8 +62,6 @@ async function fetchAndPopulateDevices() {
         const devicesArr = await response.json();
 
         const devices = devicesArr.devices; 
-
-        // console.log('Devices fetched successfully:', devices);
 
         // Tabelle referenzieren
         const tableBody = document.querySelector('#table-devices tbody');
@@ -104,8 +103,8 @@ async function fetchAndPopulateDevices() {
             const statusIcon = document.createElement('span');
             statusIcon.className = 'status-lamp';
             statusIcon.style.display = 'inline-block';
-            statusIcon.style.width = '10px';
-            statusIcon.style.height = '10px';
+            statusIcon.style.width = '15px';
+            statusIcon.style.height = '15px';
             statusIcon.style.borderRadius = '50%';
             statusIcon.style.marginRight = '5px';
 
@@ -118,9 +117,20 @@ async function fetchAndPopulateDevices() {
             } else if (device.status === 'error') {
                 statusIcon.style.backgroundColor = 'red';
                 statusIcon.title = 'error';
-            } else if (device.status === '2 (initializing)') {
-                statusIcon.style.backgroundColor = 'gray';
+            }else if (device.status === '3 (initializing)') {
+                statusIcon.style.backgroundColor = 'white';
+                statusIcon.style.border = '3px solid gray';
                 statusIcon.title = 'initializing';
+            } else if (device.status === '4 (no datapoints)') {
+                // Rahmen grün, Füllung leer
+                statusIcon.style.backgroundColor = 'white';
+                statusIcon.style.border = '3px solid green';
+                statusIcon.title = 'no datapoints';
+            } else if (device.status === '5 (no connection)') {
+                // Rahmen rot, Füllung leer
+                statusIcon.style.backgroundColor = 'white';
+                statusIcon.style.border = '3px solid red';
+                statusIcon.title = 'no connection';
             } else {
                 statusIcon.style.backgroundColor = 'red';
                 statusIcon.title = 'error';
@@ -134,9 +144,37 @@ async function fetchAndPopulateDevices() {
             actionsCell.className = 'text-center align-middle';
             actionsCell.style.height = '60px';
 
+            // Restart Button hinzufügen
+            const restartButton = document.createElement('a');
+            restartButton.className = 'btn btnMaterial btn-flat primary semicircle';
+            restartButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            restartButton.style.marginRight = '5px';
+            //Tooltip hinzufügen
+            restartButton.setAttribute('data-bs-toggle', 'tooltip');
+            restartButton.setAttribute('data-bs-placement', 'top');
+            restartButton.setAttribute('title', 'Restart Device');
+            
+            // Event-Listener für den Restart-Button
+            restartButton.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(`/api/restart-device/${device.id}`, {
+                        method: 'POST'
+                    });
+                    if (response.ok) {
+                        alert('Driver has been restarted');
+                    } else {
+                        throw new Error('Error restarting driver');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error restarting driver');
+                }
+            });
+
+            actionsCell.appendChild(restartButton);
+
             const editButton = document.createElement('a');
             editButton.className = 'btn btnMaterial btn-flat success semicircle';
-            editButton.href = '#';
             editButton.innerHTML = '<i class="fas fa-pen"></i>';
             editButton.setAttribute('data-bs-toggle', 'modal');
             editButton.setAttribute('data-bs-target', '#modal-edit-device');
@@ -227,10 +265,27 @@ document.getElementById('modal-new-device').addEventListener('show.bs.modal', in
 // Modal edit device dynamisieren
 // #########
 
-// Füge den Event Listener hinzu, der beim Öffnen des Edit-Modals aktiviert wird
-document.getElementById('modal-edit-device').addEventListener('show.bs.modal', (event) => {
-    const deviceId = event.target.getAttribute('data-device-id');
-    if (deviceId) {
-        initializeEditDeviceModal(deviceId);
+// Event-Listener für Edit-Buttons
+document.addEventListener('click', async (event) => {
+    const editButton = event.target.closest('.btn-flat.success');
+    if (editButton) {
+        event.preventDefault();
+        
+        // Device ID aus dem Button-Attribut holen
+        const deviceId = document.getElementById('modal-edit-device').getAttribute('data-device-id');
+        
+        if (deviceId) {
+            try {
+                // Warte bis die Daten geladen sind
+                await initializeEditDeviceModal(deviceId);
+                
+                // Erst dann das Modal öffnen
+                const modal = new bootstrap.Modal(document.getElementById('modal-edit-device'));
+                modal.show();
+            } catch (error) {
+                console.error('Fehler beim Laden der Gerätedaten:', error);
+                alert('Fehler beim Laden der Gerätedaten. Bitte versuchen Sie es erneut.');
+            }
+        }
     }
 });

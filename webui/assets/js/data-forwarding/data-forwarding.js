@@ -48,6 +48,12 @@ async function fetchAndPopulateDataForwarding() {
         const tableBody = document.querySelector('#table-data-forwarding tbody');
         tableBody.innerHTML = ''; // Tabelle leeren
 
+        // Prüfe ob dataForwarding null oder undefined ist
+        if (!dataForwarding || dataForwarding.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No data forwarding routes found</td></tr>';
+            return;
+        }
+
         dataForwarding.forEach(route => {
             const row = document.createElement('tr');
 
@@ -297,7 +303,6 @@ function initializeLupeButtons() {
                 if (!response.ok) throw new Error('Fehler beim Laden der Nodes');
                 
                 const data = await response.json();
-                console.log('API Response:', data);
                 
                 // Prüfe das Format der Daten
                 const nodes = Array.isArray(data) ? data : (data.nodes || []);
@@ -469,10 +474,6 @@ function updateBrowsedNodesModal(data) {
     });
 }
 
-// Initialisieren der Funktion nach dem Laden der Seite
-setupBrowsedNodesModal();
-
-// Am Ende der Datei
 // Exportiere die benötigten Funktionen
 window.dataForwarding.functions = {
     ...window.dataForwarding.functions,

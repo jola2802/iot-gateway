@@ -3,6 +3,7 @@ package webui
 import (
 	"database/sql"
 	"fmt"
+	"iot-gateway/logic"
 	"log"
 	"net/http"
 	"sort"
@@ -239,13 +240,19 @@ func deviceDataWebSocket(c *gin.Context) {
 	}
 
 	// Abonniere den MQTT-Topic "data/#" einmalig.
-	if err := server.Subscribe("data/#", 1, callbackFn); err != nil {
+	if err := server.Subscribe("data/#", 2, callbackFn); err != nil {
 		logrus.Errorf("Error subscribing to topic data/#: %v", err)
 		return
 	}
 
-	// Ticker: Alle 500ms werden aggregierte Daten verarbeitet und gesendet.
-	ticker := time.NewTicker(500 * time.Millisecond)
+	// Abonniere den MQTT-Topic "iot-gateway/driver/states/#" einmalig.
+	if err := server.Subscribe("iot-gateway/driver/states/#", 2, callbackFn); err != nil {
+		logrus.Errorf("Error subscribing to topic iot-gateway/driver/states/#: %v", err)
+		return
+	}
+
+	// Ticker: Alle 1000ms werden aggregierte Daten verarbeitet und gesendet.
+	ticker := time.NewTicker(1000 * time.Millisecond)
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -318,9 +325,21 @@ func gracefulShutdown(conn *websocket.Conn) {
 	conn.Close()
 }
 
+func restartDevice(c *gin.Context) {
+	deviceID := c.Param("device_id")
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	logic.RestartDevice(db, deviceID)
+	c.JSON(http.StatusOK, gin.H{"message": "Device restarted successfully"})
+}
+
 // ######################################################################################
 // #                                                                                    #
-//
+// OLD CODE
 // # #
 
 // WebSocket-Endpunkt für den Gerätestatus und Steuerungsnachrichten

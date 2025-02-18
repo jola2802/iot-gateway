@@ -248,9 +248,9 @@ func StopBroker() {
 
 // RestartBroker startet den MQTT-Broker neu
 func RestartBroker(db *sql.DB) {
-	StopBroker()                       // Stoppt den Broker
-	once = sync.Once{}                 // Setzt die `once` Variable zurück, um erneut starten zu können
-	time.Sleep(100 * time.Millisecond) // Wartet 2 Sekunden
-	StartBroker(db)                    // Startet den Broker neu
+	StopBroker()                        // Stoppt den Broker
+	once = sync.Once{}                  // Setzt die `once` Variable zurück, um erneut starten zu können
+	time.Sleep(1000 * time.Millisecond) // Wartet 2 Sekunden
+	StartBroker(db)                     // Startet den Broker neu
 	logrus.Info("MQTT Broker restarted successfully.")
 }

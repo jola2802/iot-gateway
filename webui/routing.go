@@ -22,7 +22,7 @@ type Route struct {
 	DestinationURL  string   `json:"destination_url"`
 	Devices         []string `json:"devices"` // Geräte hinzufügen
 	FilePath        string   `json:"filePath"`
-	CreatedAt       string   `json:"createdAt"`
+	LastUpdated     string   `json:"lastUpdated"`
 }
 
 func getRoutes(c *gin.Context) {
@@ -34,7 +34,7 @@ func getRoutes(c *gin.Context) {
 
 	// Angepasste SQL-Abfrage (jede Spalte nur einmal, in korrekter Reihenfolge)
 	query := `
-		SELECT id, destination_type, data_format, interval, devices, headers, destination_url, file_path, created_at
+		SELECT id, destination_type, data_format, interval, devices, headers, destination_url, file_path, last_updated
 		FROM data_routes
 	`
 	rows, err := db.Query(query)
@@ -51,8 +51,8 @@ func getRoutes(c *gin.Context) {
 		var route Route
 		var devices, headers sql.NullString // devices und headers als JSON-Strings
 
-		// Reihenfolge entspricht: id, destination_type, data_format, interval, devices, headers, destination_url, file_path, created_at
-		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Interval, &devices, &headers, &route.DestinationURL, &route.FilePath, &route.CreatedAt)
+		// Reihenfolge entspricht: id, destination_type, data_format, interval, devices, headers, destination_url, file_path, last_updated
+		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Interval, &devices, &headers, &route.DestinationURL, &route.FilePath, &route.LastUpdated)
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
@@ -81,8 +81,8 @@ func getRoutes(c *gin.Context) {
 		// Füge die Route zur Liste hinzu
 		routes = append(routes, route)
 	}
-	// logrus.Info(routes)
 	// Gebe die Routen als JSON zurück
+	logrus.Info(routes)
 	c.JSON(200, routes)
 }
 
@@ -102,7 +102,7 @@ func getRoutesById(c *gin.Context) {
 
 	// SQL-Abfrage, um alle Routen aus der Tabelle 'data_routes' zu laden
 	query := `
-		SELECT destination_type, data_format, interval, devices, headers, destination_url, file_path, created_at
+		SELECT destination_type, data_format, interval, devices, headers, destination_url, file_path, last_updated
 		FROM data_routes 
 		WHERE id = ?
 	`
@@ -110,7 +110,7 @@ func getRoutesById(c *gin.Context) {
 	route.ID = routeId
 	var devices, headers sql.NullString // devices und headers als JSON-Strings
 
-	err = db.QueryRow(query, routeId).Scan(&route.DestinationType, &route.DataFormat, &route.Interval, &devices, &headers, &route.DestinationURL, &route.FilePath, &route.CreatedAt)
+	err = db.QueryRow(query, routeId).Scan(&route.DestinationType, &route.DataFormat, &route.Interval, &devices, &headers, &route.DestinationURL, &route.FilePath, &route.LastUpdated)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -199,7 +199,7 @@ func saveRouteConfig(c *gin.Context) {
 
 func deleteRoute(c *gin.Context) {
 	routeId := c.Param("routeId")
-	db, err := getDBConnection(c)
+	db, _ := getDBConnection(c)
 
 	// SQL-Abfrage für das Löschen der Route
 	query := "DELETE FROM data_routes WHERE id = ?"
@@ -253,7 +253,6 @@ func getlistDevices(c *gin.Context) {
 		devices = append(devices, deviceInfo)
 	}
 	c.JSON(200, gin.H{"devices": devices})
-	// logrus.Println(devices)
 }
 
 func listDevices(c *gin.Context) {
@@ -281,8 +280,6 @@ func listDevices(c *gin.Context) {
 		// Combine device and id
 		deviceInfo := fmt.Sprintf("%d - %s", id, device)
 		devices = append(devices, deviceInfo)
-		// logrus.Info(deviceInfo)
 	}
-	// logrus.Info(devices)
 	c.JSON(200, gin.H{"devices": devices})
 }

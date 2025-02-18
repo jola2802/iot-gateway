@@ -290,3 +290,7 @@ func StartDataForwarding(db *sql.DB, server *MQTT.Server) {
 
 	logrus.Infof("Alle Datenrouten geladen: %d", len(routes))
 }
+
+func StopDataForwarding() {
+	StopInfluxDBWriter()
+}

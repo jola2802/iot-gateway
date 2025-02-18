@@ -727,26 +727,6 @@
             }
         }
     },
-    "node-red-contrib-jwt": {
-        "name": "node-red-contrib-jwt",
-        "version": "0.1.0",
-        "local": true,
-        "user": true,
-        "nodes": {
-            "jwt": {
-                "name": "jwt",
-                "types": [
-                    "jwt sign",
-                    "jwt verify"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "node-red-contrib-jwt",
-                "file": "/data/node_modules/node-red-contrib-jwt/jwt.js"
-            }
-        }
-    },
     "node-red-contrib-opcua": {
         "name": "node-red-contrib-opcua",
         "version": "0.2.339",
@@ -1013,6 +993,28 @@
                 "user": false,
                 "module": "node-red-contrib-modbus",
                 "file": "/data/node_modules/node-red-contrib-modbus/modbus/modbus-flex-fc.js"
+            }
+        }
+    },
+    "node-red-contrib-s7": {
+        "name": "node-red-contrib-s7",
+        "version": "3.1.0",
+        "local": false,
+        "user": false,
+        "nodes": {
+            "s7": {
+                "name": "s7",
+                "types": [
+                    "s7 endpoint",
+                    "s7 in",
+                    "s7 out",
+                    "s7 control"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "node-red-contrib-s7",
+                "file": "/usr/local/lib/node_modules/node-red-contrib-s7/red/s7.js"
             }
         }
     }

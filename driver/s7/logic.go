@@ -67,3 +67,20 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 		time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)
 	}
 }
+
+// TestConnection versucht eine Verbindung zur S7-SPS herzustellen
+func TestConnection(device opcua.DeviceConfig) bool {
+	// Erstelle einen neuen TCP Client Handler
+	handler := s7.NewTCPClientHandler(device.Address, device.Rack, device.Slot)
+	handler.Timeout = 5 * time.Second
+
+	// Versuche eine Verbindung herzustellen
+	if err := handler.Connect(); err != nil {
+		logrus.Errorf("S7: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
+		return false
+	}
+
+	// Verbindung erfolgreich - wieder trennen
+	handler.Close()
+	return true
+}

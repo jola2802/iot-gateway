@@ -74,23 +74,38 @@
                     </div>
                 </nav>
                 <div class="container-fluid">
-                    <h2>Settings</h2>
+                    <h2>Einstellungen</h2>
                     <hr>
             
-                    <!-- Eingabefelder für Node-RED und InfluxDB URLs -->
                     <form id="settings-form" class="mb-4">
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="node-red-url" class="form-label">Node-RED URL:</label>
-                                <input type="url" id="node-red-url" class="form-control" placeholder="e.g., http://localhost:1880" required>
+                            <h4>Web UI Einstellungen</h4>
+                            <div class="col-md-4">
+                                <label for="http-port" class="form-label">HTTP Port:</label>
+                                <input type="text" id="http-port" class="form-control" required>
                             </div>
-                            <div class="col-md-6">
-                                <label for="influxdb-url" class="form-label">InfluxDB URL:</label>
-                                <input type="url" id="influxdb-url" class="form-control" placeholder="e.g., http://localhost:8086" required>
+                            <div class="col-md-4">
+                                <label for="https-port" class="form-label">HTTPS Port:</label>
+                                <input type="text" id="https-port" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="use-https" class="form-label">HTTPS aktivieren:</label>
+                                <select id="use-https" class="form-control">
+                                    <option value="true">Ja</option>
+                                    <option value="false">Nein</option>
+                                </select>
                             </div>
                         </div>
+
+                        <div class="row mb-3">
+                            <h4>Listener Einstellungen</h4>
+                            <div class="col-12 mb-3" id="listeners-container">
+                                <!-- Listener werden hier dynamisch eingefügt -->
+                            </div>
+                        </div>
+
                         <div class="text-end">
-                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                            <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
                         </div>
                     </form>
                 </div>
@@ -108,6 +123,41 @@
     <script src="assets/js/api.js"></script>
     <script src="assets/js/settings.js"></script>
     <script src="assets/js/utils/theme.js"></script>
+
+    <!-- Template für Listener -->
+    <template id="listener-template">
+        <div class="listener-entry border p-3 mb-2">
+            <h5>Listener</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">ID:</label>
+                    <input type="text" class="form-control listener-id" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Adresse:</label>
+                    <input type="text" class="form-control listener-address" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Typ:</label>
+                    <select class="form-control listener-type">
+                        <option value="tcp">TCP</option>
+                        <option value="websocket">WebSocket</option>
+                        <option value="http">HTTP</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">TLS:</label>
+                    <select class="form-control listener-tls">
+                        <option value="true">Ja</option>
+                        <option value="false">Nein</option>
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger remove-listener">X</button>
+                </div>
+            </div>
+        </div>
+    </template>
 </body>
 
 </html>

@@ -1,0 +1,32 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.18.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/data/.npmrc
+5 silly config load:file:/usr/src/node-red/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm remove node-red-contrib-s7
+8 verbose argv "remove" "--no-audit" "--no-update-notifier" "--no-fund" "--save" "node-red-contrib-s7"
+9 verbose logfile logs-max:10 dir:/data/.npm/_logs/2025-01-28T10_25_13_116Z-
+10 verbose logfile /data/.npm/_logs/2025-01-28T10_25_13_116Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile start cleaning logs, removing 1 files
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly reify mark retired [ '/data/node_modules/@st-one-io/nodes7' ]
+16 silly reify mark retired [ '/data/node_modules/iso-on-tcp' ]
+17 silly reify mark retired [ '/data/node_modules/node-red-contrib-s7' ]
+18 silly reify moves {
+18 silly reify   '/data/node_modules/@st-one-io/nodes7': '/data/node_modules/@st-one-io/.nodes7-OLDzRenA',
+18 silly reify   '/data/node_modules/iso-on-tcp': '/data/node_modules/.iso-on-tcp-MUHvRAej',
+18 silly reify   '/data/node_modules/node-red-contrib-s7': '/data/node_modules/.node-red-contrib-s7-CAj01QUq'
+18 silly reify }
+19 silly REMOVE node_modules/node-red-contrib-s7
+20 silly REMOVE node_modules/iso-on-tcp
+21 silly REMOVE node_modules/@st-one-io/nodes7
+22 verbose cwd /data
+23 verbose os Linux 5.15.167.4-microsoft-standard-WSL2
+24 verbose node v20.18.1
+25 verbose npm  v10.8.2
+26 verbose exit 0
+27 info ok

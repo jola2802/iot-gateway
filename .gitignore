@@ -1,8 +1,5 @@
-# Auto detect text files and perform LF normalization
-* text=auto
-# Ignoriere den Ordner ./data
-/data/
-/files/
+// Ignore all files in the node-red-data directory
+node-red-data/*
 
-# Ignoriere den Ordner ./node-red-data
-/node-red-data/
+// Ignore all files in the data directory
+files/*

@@ -2,15 +2,15 @@ package webui
 
 import (
 	"database/sql"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/glebarez/go-sqlite"
-	MQTT "github.com/mochi-mqtt/server/v2"
 )
 
 var cachedBrokerSettings *BrokerSettings
@@ -32,6 +32,45 @@ type User struct {
 type ACLEntry struct {
 	Topic      string `json:"topic"`
 	Permission int    `json:"permission"` // Als int definiert
+}
+
+func getSettings(c *gin.Context) {
+	configFile, err := ioutil.ReadFile("config.json")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Konnte Konfigurationsdatei nicht lesen"})
+		return
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(configFile, &config); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Parsen der Konfiguration"})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
+}
+
+func updateSettings(c *gin.Context) {
+	var newConfig map[string]interface{}
+	if err := c.BindJSON(&newConfig); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Eingabedaten"})
+		return
+	}
+
+	// Konvertiere die Konfiguration zurück in JSON mit schöner Formatierung
+	configJSON, err := json.MarshalIndent(newConfig, "", "  ")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Erstellen der JSON-Konfiguration"})
+		return
+	}
+
+	// Schreibe die neue Konfiguration in die Datei
+	if err := ioutil.WriteFile("config.json", configJSON, 0644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Speichern der Konfiguration"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Einstellungen erfolgreich gespeichert"})
 }
 
 // showSettingsPage shows the settings page, returning broker settings and user data.
@@ -66,24 +105,6 @@ func showSettingsPage(c *gin.Context) {
 
 	// Render response based on the Accept header
 	respondWithSettingsPage(c, address, username, password, users)
-}
-
-// getDBConnection retrieves the database connection from the gin.Context.
-func getDBConnection(c *gin.Context) (*sql.DB, error) {
-	db, exists := c.Get("db")
-	if !exists {
-		return nil, errors.New("database connection not found")
-	}
-	return db.(*sql.DB), nil
-}
-
-// getDBConnection retrieves the database connection from the gin.Context.
-func getMQTTServer(c *gin.Context) (*MQTT.Server, error) {
-	server, exists := c.Get("server")
-	if !exists {
-		return nil, errors.New("database connection not found")
-	}
-	return server.(*MQTT.Server), nil
 }
 
 // fetchBrokerSettings fetches the broker address from the database.

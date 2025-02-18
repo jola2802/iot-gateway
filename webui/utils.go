@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,8 +16,27 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
+
+// getDBConnection retrieves the database connection from the gin.Context.
+func getDBConnection(c *gin.Context) (*sql.DB, error) {
+	db, exists := c.Get("db")
+	if !exists {
+		return nil, errors.New("database connection not found")
+	}
+	return db.(*sql.DB), nil
+}
+
+// getDBConnection retrieves the database connection from the gin.Context.
+func getMQTTServer(c *gin.Context) (*MQTT.Server, error) {
+	server, exists := c.Get("server")
+	if !exists {
+		return nil, errors.New("database connection not found")
+	}
+	return server.(*MQTT.Server), nil
+}
 
 var mqttClientPool *sync.Pool
 

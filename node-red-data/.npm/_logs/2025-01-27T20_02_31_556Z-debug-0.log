@@ -1,0 +1,112 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.18.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/data/.npmrc
+5 silly config load:file:/usr/src/node-red/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm remove node-red-contrib-chartjs
+8 verbose argv "remove" "--no-audit" "--no-update-notifier" "--no-fund" "--save" "node-red-contrib-chartjs"
+9 verbose logfile logs-max:10 dir:/data/.npm/_logs/2025-01-27T20_02_31_556Z-
+10 verbose logfile /data/.npm/_logs/2025-01-27T20_02_31_556Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile start cleaning logs, removing 1 files
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly reify mark retired [ '/data/node_modules/after' ]
+16 silly reify mark retired [ '/data/node_modules/arraybuffer.slice' ]
+17 silly reify mark retired [ '/data/node_modules/backo2' ]
+18 silly reify mark retired [ '/data/node_modules/base64-arraybuffer' ]
+19 silly reify mark retired [ '/data/node_modules/blob' ]
+20 silly reify mark retired [ '/data/node_modules/chart.js' ]
+21 silly reify mark retired [ '/data/node_modules/chartjs-color' ]
+22 silly reify mark retired [ '/data/node_modules/chartjs-color-string' ]
+23 silly reify mark retired [ '/data/node_modules/component-bind' ]
+24 silly reify mark retired [ '/data/node_modules/component-emitter' ]
+25 silly reify mark retired [ '/data/node_modules/component-inherit' ]
+26 silly reify mark retired [ '/data/node_modules/engine.io-client' ]
+27 silly reify mark retired [ '/data/node_modules/has-binary2' ]
+28 silly reify mark retired [ '/data/node_modules/has-cors' ]
+29 silly reify mark retired [ '/data/node_modules/indexof' ]
+30 silly reify mark retired [ '/data/node_modules/isarray' ]
+31 silly reify mark retired [ '/data/node_modules/moment' ]
+32 silly reify mark retired [ '/data/node_modules/node-red-contrib-chartjs' ]
+33 silly reify mark retired [ '/data/node_modules/parseqs' ]
+34 silly reify mark retired [ '/data/node_modules/parseuri' ]
+35 silly reify mark retired [ '/data/node_modules/socket.io-client' ]
+36 silly reify mark retired [ '/data/node_modules/to-array' ]
+37 silly reify mark retired [ '/data/node_modules/xmlhttprequest-ssl' ]
+38 silly reify mark retired [ '/data/node_modules/yeast' ]
+39 silly reify moves {
+39 silly reify   '/data/node_modules/after': '/data/node_modules/.after-zbYH2LFA',
+39 silly reify   '/data/node_modules/arraybuffer.slice': '/data/node_modules/.arraybuffer.slice-qJPzkfB5',
+39 silly reify   '/data/node_modules/backo2': '/data/node_modules/.backo2-6nCGwWx3',
+39 silly reify   '/data/node_modules/base64-arraybuffer': '/data/node_modules/.base64-arraybuffer-Yg6lkDfr',
+39 silly reify   '/data/node_modules/blob': '/data/node_modules/.blob-qxcGmUPU',
+39 silly reify   '/data/node_modules/chart.js': '/data/node_modules/.chart.js-b1YZAtPt',
+39 silly reify   '/data/node_modules/chartjs-color': '/data/node_modules/.chartjs-color-6xlwdObA',
+39 silly reify   '/data/node_modules/chartjs-color-string': '/data/node_modules/.chartjs-color-string-SGxJNicL',
+39 silly reify   '/data/node_modules/component-bind': '/data/node_modules/.component-bind-YHKkM9Zd',
+39 silly reify   '/data/node_modules/component-emitter': '/data/node_modules/.component-emitter-uk9S2GBc',
+39 silly reify   '/data/node_modules/component-inherit': '/data/node_modules/.component-inherit-pwbUeVqL',
+39 silly reify   '/data/node_modules/engine.io-client': '/data/node_modules/.engine.io-client-eKWxWDgY',
+39 silly reify   '/data/node_modules/has-binary2': '/data/node_modules/.has-binary2-edLMm3sC',
+39 silly reify   '/data/node_modules/has-cors': '/data/node_modules/.has-cors-yxNNt6lX',
+39 silly reify   '/data/node_modules/indexof': '/data/node_modules/.indexof-O7a4NxVr',
+39 silly reify   '/data/node_modules/isarray': '/data/node_modules/.isarray-Qb0SFsNw',
+39 silly reify   '/data/node_modules/moment': '/data/node_modules/.moment-HMXFnPrn',
+39 silly reify   '/data/node_modules/node-red-contrib-chartjs': '/data/node_modules/.node-red-contrib-chartjs-XdlFq4Xp',
+39 silly reify   '/data/node_modules/parseqs': '/data/node_modules/.parseqs-azIRsOFh',
+39 silly reify   '/data/node_modules/parseuri': '/data/node_modules/.parseuri-A6MSd3Zk',
+39 silly reify   '/data/node_modules/socket.io-client': '/data/node_modules/.socket.io-client-GAmbjxQw',
+39 silly reify   '/data/node_modules/to-array': '/data/node_modules/.to-array-fmb3Pr3T',
+39 silly reify   '/data/node_modules/xmlhttprequest-ssl': '/data/node_modules/.xmlhttprequest-ssl-cCzkOwrO',
+39 silly reify   '/data/node_modules/yeast': '/data/node_modules/.yeast-0SwsZHcc'
+39 silly reify }
+40 silly REMOVE node_modules/yeast
+41 silly REMOVE node_modules/xmlhttprequest-ssl
+42 silly REMOVE node_modules/to-array
+43 silly REMOVE node_modules/socket.io-client
+44 silly REMOVE node_modules/socket.io-client/node_modules/socket.io-parser
+45 silly REMOVE node_modules/socket.io-client/node_modules/debug
+46 silly REMOVE node_modules/parseuri
+47 silly REMOVE node_modules/parseqs
+48 silly REMOVE node_modules/node-red-contrib-chartjs
+49 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/ws
+50 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/socket.io-parser
+51 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/socket.io-adapter
+52 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/socket.io
+53 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/ms
+54 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/engine.io-parser
+55 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/engine.io
+56 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/debug
+57 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/cookie
+58 silly REMOVE node_modules/node-red-contrib-chartjs/node_modules/component-emitter
+59 silly REMOVE node_modules/moment
+60 silly REMOVE node_modules/isarray
+61 silly REMOVE node_modules/indexof
+62 silly REMOVE node_modules/has-cors
+63 silly REMOVE node_modules/has-binary2
+64 silly REMOVE node_modules/engine.io-client
+65 silly REMOVE node_modules/engine.io-client/node_modules/ws
+66 silly REMOVE node_modules/engine.io-client/node_modules/engine.io-parser
+67 silly REMOVE node_modules/engine.io-client/node_modules/debug
+68 silly REMOVE node_modules/component-inherit
+69 silly REMOVE node_modules/component-emitter
+70 silly REMOVE node_modules/component-bind
+71 silly REMOVE node_modules/chartjs-color-string
+72 silly REMOVE node_modules/chartjs-color
+73 silly REMOVE node_modules/chartjs-color/node_modules/color-name
+74 silly REMOVE node_modules/chartjs-color/node_modules/color-convert
+75 silly REMOVE node_modules/chart.js
+76 silly REMOVE node_modules/blob
+77 silly REMOVE node_modules/base64-arraybuffer
+78 silly REMOVE node_modules/backo2
+79 silly REMOVE node_modules/arraybuffer.slice
+80 silly REMOVE node_modules/after
+81 verbose cwd /data
+82 verbose os Linux 5.15.167.4-microsoft-standard-WSL2
+83 verbose node v20.18.1
+84 verbose npm  v10.8.2
+85 verbose exit 0
+86 info ok

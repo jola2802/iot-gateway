@@ -33,7 +33,6 @@ type MqttConfig struct {
 }
 
 // Gerätekonfigurationsstruktur
-
 type DeviceConfig struct {
 	ID              string      `json:"id"`
 	Type            string      `json:"type"`
@@ -297,4 +296,34 @@ func generateNewCertificateForDevice(device DeviceConfig) (tls.Certificate, erro
 		return tls.Certificate{}, fmt.Errorf("failed to parse generated RSA certificate: %v", err)
 	}
 	return cert, nil
+}
+
+// TestConnection versucht eine Verbindung zum OPC-UA Server herzustellen
+func TestConnection(device DeviceConfig) bool {
+	// Erstelle Client-Optionen
+	clientOpts, err := clientOptsFromFlags(device)
+	if err != nil {
+		logrus.Errorf("OPC-UA: Fehler beim Erstellen der Client-Optionen für Gerät %v: %v", device.Name, err)
+		return false
+	}
+
+	// Erstelle neuen Client
+	client, err := opcua.NewClient(device.Address, clientOpts...)
+	if err != nil {
+		logrus.Errorf("OPC-UA: Fehler beim Erstellen des Clients für Gerät %v: %v", device.Name, err)
+		return false
+	}
+
+	// Versuche Verbindung herzustellen mit Timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Connect(ctx); err != nil {
+		logrus.Errorf("OPC-UA: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
+		return false
+	}
+
+	// Verbindung erfolgreich - wieder trennen
+	client.Close(ctx)
+	return true
 }

@@ -1,45 +1,47 @@
 {
   "listeners": [
     {
-      "id": "localtcp",
-      "address": ":50000",
+      "address": ":5000",
+      "id": "localTCP",
+      "tls": false,
       "type": "tcp"
     },
     {
-      "id": "localWS",
       "address": ":5001",
+      "id": "localWS",
+      "tls": false,
       "type": "websocket"
     },
     {
-      "id": "webuiWS",
       "address": ":5100",
-      "type": "websocket",
-      "tls": true
+      "id": "webuiWS",
+      "tls": true,
+      "type": "websocket"
     },
     {
-      "id": "publicWS",
       "address": ":5101",
-      "type": "websocket",
-      "tls": true
+      "id": "publicWS",
+      "tls": true,
+      "type": "websocket"
     },
     {
-      "id": "publicTCP",
       "address": ":5102",
-      "type": "tcp",
-      "tls": true
+      "id": "publicTCP",
+      "tls": true,
+      "type": "tcp"
     },
     {
-      "id": "stats",
       "address": ":9090",
-      "type": "http",
-      "tls": true
+      "id": "stats",
+      "tls": true,
+      "type": "http"
     }
   ],
   "webui": {
     "http_port": "8088",
     "https_port": "8443",
-    "use_https": false,
     "tls_cert": "server.crt",
-    "tls_key": "server.key"
+    "tls_key": "server.key",
+    "use_https": false
   }
 }

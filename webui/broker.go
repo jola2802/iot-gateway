@@ -14,7 +14,7 @@ func showBrokerPage(c *gin.Context) {
 }
 
 // Gibt User und deren ACL-Einträge zurück
-func getBrokerUsers(c *gin.Context) {
+func getAllBrokerUsers(c *gin.Context) {
 	db, _ := getDBConnection(c)
 
 	// Abfrage für alle Benutzer aus der auth-Tabelle
@@ -175,8 +175,6 @@ func getBrokerLogin(c *gin.Context) {
 		hostname = "localhost"
 	}
 	brokerUrl := "wss://" + hostname + ":5101/ws"
-
-	// brokerUrl = "wss://localhost:5101/ws" // sollte noch weggelassen werden...!!!!!!!!!!!!!!!######
 
 	// User und BrokerUrl als JSON zurückgeben
 	c.JSON(http.StatusOK, gin.H{"username": user.Username, "password": user.Password, "brokerUrl": brokerUrl})

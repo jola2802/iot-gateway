@@ -18,6 +18,7 @@ const (
 	Initializing  = "2 (initializing)"
 	Error         = "3 (error)"
 	No_Datapoints = "4 (no datapoints)"
+	No_Connection = "5 (no connection)"
 	Paused        = "4 (paused)"
 	deleted       = "9 (deleted)"
 )
@@ -167,6 +168,14 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 	}
 	opcuaConfig.DataNode = nodes
 
+	// Verbindungstest vor dem Start des Treibers
+	if connected := opcua.TestConnection(opcuaConfig); !connected {
+		state.status = No_Connection
+		logrus.Errorf("DM: Keine Verbindung möglich zu OPC-UA Gerät %s", opcuaConfig.Name)
+		publishDeviceState(server, "opc-ua", deviceID, state.status)
+		return
+	}
+
 	// Treiber starten
 	stopChan := make(chan struct{})
 	opcuaStopChans[deviceID] = stopChan
@@ -249,11 +258,19 @@ func StartS7Driver(db *sql.DB, deviceID string) {
 	state.status = Initializing
 	publishDeviceState(server, "s7", deviceID, state.status)
 
-	// 1. Geräte-Konfiguration laden
+	// Geräte-Konfiguration laden
 	s7Config, err := readS7DeviceConfig(db, deviceID)
 	if err != nil {
 		state.status = Error
 		logrus.Errorf("%v", err)
+		publishDeviceState(server, "s7", deviceID, state.status)
+		return
+	}
+
+	// Verbindungstest vor dem Start des Treibers
+	if connected := s7.TestConnection(s7Config); !connected {
+		state.status = No_Connection
+		logrus.Errorf("DM: Keine Verbindung möglich zu S7 Gerät %s", s7Config.Name)
 		publishDeviceState(server, "s7", deviceID, state.status)
 		return
 	}

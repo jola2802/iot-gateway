@@ -51,28 +51,39 @@ func setupRoutes(r *gin.Engine) {
 	{
 		/// #############
 		// NEUE ROUTEN HIER
-		authorized.GET("/api/getBrokerUsers", getBrokerUsers)
+		authorized.GET("/api/getBrokerUsers", getAllBrokerUsers)
 		authorized.GET("/api/getBrokerUser/:username", getBrokerUser)
 		authorized.GET("/api/getBrokerLogin", getBrokerLogin)
 		authorized.GET("/api/profile", getProfile)
 		authorized.POST("/api/changePassword", changePassword)
+
+		// Devices
 		authorized.GET("/api/getDevices", getDevices)
 		authorized.GET("/api/getDevice/:device_id", getDevice)
-		authorized.POST("/api/query-data", queryDataHandler)
-		authorized.POST("/api/get-measurements", getMeasurements)
 		authorized.POST("/api/add-device", addDevice)
 		authorized.PUT("/api/update-device/:device_id", updateDevice)
 		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
 		authorized.GET("/api/ws-token", generateToken)
+
+		// Historical Data
+		authorized.POST("/api/query-data", queryDataHandler)
+		authorized.POST("/api/get-measurements", getMeasurements)
+
+		// Routes & Img Processes
 		authorized.GET("/api/get-routes", getRoutes)
 		authorized.GET("/api/get-devices-for-routes", getlistDevices)
 		authorized.GET("/api/list-img-processes", listImgCapProcesses)
-		authorized.GET("/api/list-opc-ua-devices", listDevices) // list devices
+		authorized.GET("/api/list-opc-ua-devices", listDevices)
 		authorized.POST("/api/add-route", saveRouteConfig)
 		authorized.DELETE("/api/routes/:routeId", deleteRoute)
 		authorized.GET("/api/route/:routeId", getRoutesById)
 		authorized.PUT("/api/route/:routeId", saveRouteConfig)
 		authorized.GET("/api/add-img-process", addImageProcess)
+		authorized.GET("/api/browseNodes/:deviceID", browseNodes) // Get device attributes
+
+		// Settings
+		authorized.GET("/api/settings", getSettings)
+		authorized.POST("/api/settings", updateSettings)
 
 		// WSS for dashboard data
 		// authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
@@ -107,18 +118,17 @@ func setupRoutes(r *gin.Engine) {
 		// authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
 		// authorized.POST("/devices", addDevice)                           // Add a new device
 		// authorized.DELETE("/devices/:deviceName", deleteDevice) // Delete a device
-		authorized.GET("/api/browseNodes/:deviceID", browseNodes) // Get device attributes
 
 		//websocket for device status and data
 		// authorized.GET("/ws/deviceStatus", deviceStatusWebSocket)
 		// authorized.GET("/ws/deviceData", deviceDataWebSocket)
 
 		// Broker routes
-		authorized.POST("/settings", updateBrokerSettings)
-		authorized.POST("/updateUser", updateBrokerUser)
-		authorized.DELETE("/users/:username", deleteUserHandler)
-		authorized.PUT("/users/:username", updateUserHandler)
-		authorized.POST("/users", createUserHandler)
+		// authorized.POST("/settings", updateBrokerSettings)
+		// authorized.POST("/updateUser", updateBrokerUser)
+		// authorized.DELETE("/users/:username", deleteUserHandler)
+		// authorized.PUT("/users/:username", updateUserHandler)
+		// authorized.POST("/users", createUserHandler)
 
 		// Features
 		authorized.GET("/latest-image/:deviceName", latestImage)
@@ -128,6 +138,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/add-image-process", addImageProcess)
 
 		authorized.GET("/browse-nodes/:deviceID", browseNodes)
+
 	}
 }
 

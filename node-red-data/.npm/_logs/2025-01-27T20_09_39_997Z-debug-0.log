@@ -1,0 +1,46 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.18.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/data/.npmrc
+5 silly config load:file:/usr/src/node-red/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm install node-red-contrib-s7comm@1.1.6
+8 verbose argv "install" "--no-audit" "--no-update-notifier" "--no-fund" "--save" "--save-prefix" "~" "--omit" "dev" "--engine-strict" "node-red-contrib-s7comm@1.1.6"
+9 verbose logfile logs-max:10 dir:/data/.npm/_logs/2025-01-27T20_09_39_997Z-
+10 verbose logfile /data/.npm/_logs/2025-01-27T20_09_39_997Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile start cleaning logs, removing 1 files
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly fetch manifest node-red-contrib-s7comm@1.1.6
+16 silly packumentCache full:https://registry.npmjs.org/node-red-contrib-s7comm cache-miss
+17 http fetch GET 200 https://registry.npmjs.org/node-red-contrib-s7comm 866ms (cache miss)
+18 silly packumentCache full:https://registry.npmjs.org/node-red-contrib-s7comm set size:undefined disposed:false
+19 silly placeDep ROOT node-red-contrib-s7comm@1.1.6 OK for: node-red-project@0.0.1 want: 1.1.6
+20 silly fetch manifest nodes7@0.3.1
+21 silly packumentCache full:https://registry.npmjs.org/nodes7 cache-miss
+22 silly fetch manifest colors@1.3.2
+23 silly packumentCache full:https://registry.npmjs.org/colors cache-miss
+24 http fetch GET 200 https://registry.npmjs.org/colors 201ms (cache updated)
+25 silly packumentCache full:https://registry.npmjs.org/colors set size:undefined disposed:false
+26 http fetch GET 200 https://registry.npmjs.org/nodes7 677ms (cache miss)
+27 silly packumentCache full:https://registry.npmjs.org/nodes7 set size:undefined disposed:false
+28 silly placeDep node_modules/node-red-contrib-s7comm colors@1.3.2 OK for: node-red-contrib-s7comm@1.1.6 want: 1.3.2
+29 silly placeDep ROOT nodes7@0.3.1 OK for: node-red-contrib-s7comm@1.1.6 want: 0.3.1
+30 silly reify moves {}
+31 silly tarball no local data for node-red-contrib-s7comm@https://registry.npmjs.org/node-red-contrib-s7comm/-/node-red-contrib-s7comm-1.1.6.tgz. Extracting by manifest.
+32 silly tarball no local data for nodes7@https://registry.npmjs.org/nodes7/-/nodes7-0.3.1.tgz. Extracting by manifest.
+33 silly tarball no local data for colors@https://registry.npmjs.org/colors/-/colors-1.3.2.tgz. Extracting by manifest.
+34 http fetch GET 200 https://registry.npmjs.org/nodes7/-/nodes7-0.3.1.tgz 134ms (cache miss)
+35 http fetch GET 200 https://registry.npmjs.org/node-red-contrib-s7comm/-/node-red-contrib-s7comm-1.1.6.tgz 141ms (cache miss)
+36 http fetch GET 200 https://registry.npmjs.org/colors/-/colors-1.3.2.tgz 228ms (cache miss)
+37 silly ADD node_modules/nodes7
+38 silly ADD node_modules/node-red-contrib-s7comm
+39 silly ADD node_modules/node-red-contrib-s7comm/node_modules/colors
+40 verbose cwd /data
+41 verbose os Linux 5.15.167.4-microsoft-standard-WSL2
+42 verbose node v20.18.1
+43 verbose npm  v10.8.2
+44 verbose exit 0
+45 info ok

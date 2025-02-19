@@ -1,85 +1,107 @@
+// ==================== KONSTANTEN ====================
+const DEVICE_TYPES = {
+    OPC_UA: 'opc-ua',
+    S7: 's7',
+    MQTT: 'mqtt'
+};
+
+// ==================== GRUNDLEGENDE HILFSFUNKTIONEN ====================
 function hideAllConfigs() {
-    // opcUaConfig.style.display = 'none';
-    s7Config.style.display = 'none';
-    mqttConfig.style.display = 'none';
+    const configIds = ['opc-ua-config', 's7-config', 'mqtt-config'];
+    configIds.forEach(id => {
+        const config = document.getElementById(id);
+        if (config) config.style.display = 'none';
+    });
 }
 
+// ==================== DEVICE MODAL FUNKTIONEN ====================
 function initializeNewDeviceModal() {
-    // // Selektiere das Dropdown-Menü für den Gerätetyp
     const selectDeviceType = document.getElementById('select-device-type');
 
-    // Funktion zum Ausblenden aller Konfigurationskarten
-    function hideAllConfigs() {
-        const configIds = ['opc-ua-config', 's7-config', 'mqtt-config'];
-        configIds.forEach(id => {
-            const config = document.getElementById(id);
-            if (config) config.style.display = 'none';
-        });
-    }
-
-    // Funktion zum Anzeigen der entsprechenden Konfigurationskarte basierend auf der Auswahl
     function showConfig(selectedType) {
         hideAllConfigs();
         const config = document.getElementById(`${selectedType}-config`);
         if (config) {
             config.style.display = 'block';
-
-            // Falls OPC-UA ausgewählt wurde, initialisiere Sicherheitsrichtlinie und -modus
-            if (selectedType === 'opc-ua') {
+            if (selectedType === DEVICE_TYPES.OPC_UA) {
                 initializeOpcUaSecuritySettings('');
             }
         }
     }
 
-    // Initiales Ausblenden aller Konfigurationskarten
     hideAllConfigs();
-
-    // Zeige die Konfigurationskarte basierend auf der aktuellen Auswahl
     const initialSelection = selectDeviceType.value;
     showConfig(initialSelection);
 
-    // Entferne vorherige Event Listener, um doppelte Listener zu vermeiden
     const newDeviceModal = document.getElementById('modal-new-device');
     if (newDeviceModal) {
         selectDeviceType.removeEventListener('change', handleDeviceTypeChange);
     }
 
-    // Event Listener für Änderungen im Dropdown-Menü
     function handleDeviceTypeChange() {
-        const selectedValue = selectDeviceType.value;
-        showConfig(selectedValue);
+        showConfig(selectDeviceType.value);
     }
 
     selectDeviceType.addEventListener('change', handleDeviceTypeChange);
 }
 
-// Funktion zur Initialisierung der Sicherheitsrichtlinien und -modi für OPC-UA
-function initializeOpcUaSecuritySettings(prefix = '') {
-    // Für das New Device Modal: 'select-authentication-settings'
-    // Für das Edit Device Modal: 'select-authentication-settings-1'
-    const selectAuthenticationSettings = document.getElementById('select-authentication-settings' + prefix);
-    if (!selectAuthenticationSettings) {
-        console.error('select-authentication-settings' + prefix + ' nicht gefunden.');
+// ==================== OPC UA CREDENTIALS HANDLING ====================
+function handleOpcUaCredentials(prefix = '') {
+    const containerName = 'opc-ua-credentials' + prefix;
+    const container = document.getElementById(containerName);
+    if (!container) {
+        console.error(`Container ${containerName} nicht gefunden`);
         return;
     }
-    
-    function handleAuthenticationSettingsChange() {
-        if (selectAuthenticationSettings.value === 'user-pw') {
-            showCredentials();
-        } else {
-            hideCredentials();
-        }
+
+    const ids = {
+        select: 'select-authentication-settings' + prefix,
+        usernameGroup: 'username-group' + prefix,
+        passwordGroup: 'password-group' + prefix,
+        username: 'username' + prefix,
+        password: 'password' + prefix
+    };
+
+    if (!document.getElementById(ids.usernameGroup)) {
+        container.innerHTML = `
+            <div id="${ids.usernameGroup}" class="form-group mb-3" style="display: none;">
+                <label class="form-label" for="${ids.username}"><strong>Username</strong></label>
+                <input type="text" class="form-control" id="${ids.username}" placeholder="Enter username">
+            </div>
+            <div id="${ids.passwordGroup}" class="form-group mb-3" style="display: none;">
+                <label class="form-label" for="${ids.password}"><strong>Password</strong></label>
+                <input type="password" class="form-control" id="${ids.password}" placeholder="Enter password">
+            </div>
+        `;
     }
-    
-    // Binden Sie den Listener nur einmal
-    if (!selectAuthenticationSettings.dataset.listenerBound) {
-        selectAuthenticationSettings.addEventListener('change', handleAuthenticationSettingsChange);
-        selectAuthenticationSettings.dataset.listenerBound = 'true';
+
+    const selectAuth = document.getElementById(ids.select);
+    if (!selectAuth) {
+        console.error(`Select element ${ids.select} nicht gefunden`);
+        return;
     }
-    
-    // Lösen Sie den Change-Event aus, damit der initiale Zustand übernommen wird
-    selectAuthenticationSettings.dispatchEvent(new Event('change'));
-}    
+
+    function toggleCredentialsFields() {
+        const usernameGroup = document.getElementById(ids.usernameGroup);
+        const passwordGroup = document.getElementById(ids.passwordGroup);
+        const display = selectAuth.value === 'user-pw' ? 'block' : 'none';
+        
+        if (usernameGroup) usernameGroup.style.display = display;
+        if (passwordGroup) passwordGroup.style.display = display;
+    }
+
+    if (!selectAuth.dataset.listenerBound) {
+        selectAuth.addEventListener('change', toggleCredentialsFields);
+        selectAuth.dataset.listenerBound = 'true';
+    }
+
+    toggleCredentialsFields();
+    return ids;
+}
+
+function initializeOpcUaSecuritySettings(prefix = '') {
+    return handleOpcUaCredentials(prefix);
+}
 
 async function initializeEditDeviceModal(device_id) {
     return new Promise(async (resolve, reject) => {
@@ -140,39 +162,20 @@ async function initializeEditDeviceModal(device_id) {
                 document.getElementById('select-authentication-settings-1').value = deviceData.authentication || 'anonymous';
                 document.getElementById('select-security-mode-1').value = deviceData.securityMode.String || 'None';
 
-                createCredentialsFields();
-                const usernameGroup = document.getElementById('username-group');
-                const passwordGroup = document.getElementById('password-group');
-                // username und password darf kein sql nullstring sein
+                // Credentials verwalten
+                const credentialIds = handleOpcUaCredentials('-1');
+                
                 if (deviceData.username.String !== '' && deviceData.password.String !== '') {
-                    // Create Username- and password-groups
-                    if (usernameGroup && passwordGroup) {
-                        usernameGroup.style.display = 'block';
-                        passwordGroup.style.display = 'block';
-                        document.getElementById('select-authentication-settings-1').value = 'user-pw';
-
-                        const usernameInput = document.getElementById('username');
-                        const passwordInput = document.getElementById('password');
-
-                        if (usernameInput && passwordInput) {
-                            usernameInput.value = deviceData.username.String || '';
-                            passwordInput.value = deviceData.password.String || '';
-                        } else {
-                            console.error('Username or Password input not found in DOM');
-                        }
-                    } else {
-                        document.getElementById('select-authentication-settings-1').value = 'anonymous';
-                        usernameGroup.style.display = 'none';
-                        passwordGroup.style.display = 'none';
-                        console.error('Username group or Password group not found in DOM');
-                    }
+                    document.getElementById(credentialIds.select).value = 'user-pw';
+                    document.getElementById(credentialIds.username).value = deviceData.username.String;
+                    document.getElementById(credentialIds.password).value = deviceData.password.String;
+                } else {
+                    document.getElementById(credentialIds.select).value = 'anonymous';
                 }
-                else {
-                    // deleteCredentialsFields();
-                    usernameGroup.style.display = 'none';
-                    passwordGroup.style.display = 'none';
-                    document.getElementById('select-authentication-settings-1').value = 'anonymous';
-                }
+                
+                // Trigger change event to update visibility
+                document.getElementById(credentialIds.select).dispatchEvent(new Event('change'));
+
                 document.getElementById('acquisition-time-opc-ua-1').value = deviceData.acquisitionTime;
                 
             } else if (deviceData.deviceType === 's7') {
@@ -241,187 +244,158 @@ async function initializeEditDeviceModal(device_id) {
     });
 }
 
-// Funktion zum Hinzufügen der Username- und Password-Felder
-function createCredentialsFields(prefix = '') {
-    // Verwenden Sie den Container, in den die Felder eingefügt werden sollen.
-    // Für das New Device Modal muss im HTML <div id="opc-ua-credentials"></div> vorhanden sein.
-    // Für das Edit Device Modal muss im HTML <div id="opc-ua-credentials-1"></div> vorhanden sein.
-    const container = document.getElementById('opc-ua-credentials' + prefix);
-    if (!container) {
-      console.error('Credentials container not found: opc-ua-credentials' + prefix);
-      return;
-    }
-    
-    // Falls noch nicht vorhanden, erstellen Sie die Username-Feldgruppe.
-    if (!document.getElementById('username-group' + prefix)) {
-      const usernameGroup = document.createElement('div');
-      usernameGroup.id = 'username-group' + prefix;
-      usernameGroup.className = 'form-group mb-3';
-      usernameGroup.innerHTML = `
-        <label class="form-label" for="username${prefix}"><strong>Username</strong></label>
-        <input type="text" class="form-control" id="username${prefix}" placeholder="Enter username">
-      `;
-      container.appendChild(usernameGroup);
-    }
-    
-    // Falls noch nicht vorhanden, erstellen Sie die Password-Feldgruppe.
-    if (!document.getElementById('password-group' + prefix)) {
-      const passwordGroup = document.createElement('div');
-      passwordGroup.id = 'password-group' + prefix;
-      passwordGroup.className = 'form-group mb-3';
-      passwordGroup.innerHTML = `
-        <label class="form-label" for="password${prefix}"><strong>Password</strong></label>
-        <input type="password" class="form-control" id="password${prefix}" placeholder="Enter password">
-      `;
-      container.appendChild(passwordGroup);
-    }
-  }
-  
-
+// ==================== DATENPUNKT HANDLING ====================
 function createEmptyRow(deviceType) {
     const emptyRow = document.createElement('tr');
+    const cells = {
+        id: createInputCell('Enter ID'),
+        name: createInputCell('Enter Name'),
+        datatype: createDatatypeCell(deviceType),
+        address: createInputCell('Enter Address / Node ID'),
+        action: createActionCell()
+    };
 
-    // Spalte: Datapoint ID
-    const idCell = document.createElement('td');
-    const idInput = document.createElement('input');
-    idInput.type = 'text';
-    idInput.className = 'form-control';
-    idInput.placeholder = 'Enter ID';
-    idCell.appendChild(idInput);
-    emptyRow.appendChild(idCell);
+    Object.values(cells).forEach(cell => emptyRow.appendChild(cell));
+    return emptyRow;
+}
 
-    // Spalte: Datapoint Name
-    const nameCell = document.createElement('td');
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.className = 'form-control';
-    nameInput.placeholder = 'Enter Name';
-    nameCell.appendChild(nameInput);
-    emptyRow.appendChild(nameCell);
+function createInputCell(placeholder) {
+    const cell = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control';
+    input.placeholder = placeholder;
+    cell.appendChild(input);
+    return cell;
+}
 
-    // Spalte: Datatype – nur bei s7 als Dropdown; bei opc-ua statisch oder leer
-    const datatypeCell = document.createElement('td');
-    if (deviceType === 's7') {
-        const datatypeSelect = document.createElement('select');
-        datatypeSelect.className = 'form-select';
-        ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            datatypeSelect.appendChild(option);
-        });
-        datatypeCell.appendChild(datatypeSelect);
-    } else if (deviceType === 'opc-ua') {
-        // Bei OPC-UA ist die Auswahl des Datentyps nicht relevant.
-        // Wir können hier einen statischen Text anzeigen oder das Feld leer lassen.
-        datatypeCell.textContent = 'N/A';
-    } else {
-        // Fallback: Dropdown erstellen
-        const datatypeSelect = document.createElement('select');
-        datatypeSelect.className = 'form-select';
-        ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            datatypeSelect.appendChild(option);
-        });
-        datatypeCell.appendChild(datatypeSelect);
+function createDatatypeCell(deviceType) {
+    const cell = document.createElement('td');
+    
+    if (deviceType === DEVICE_TYPES.OPC_UA) {
+        cell.textContent = 'N/A';
+        
+        // Verstecktes Eingabefeld für Konsistenz
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.value = 'N/A';
+        cell.appendChild(hiddenInput);
+        
+        return cell;
     }
-    emptyRow.appendChild(datatypeCell);
+    
+    const datatypeSelect = document.createElement('select');
+    datatypeSelect.className = 'form-select';
+    ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        datatypeSelect.appendChild(option);
+    });
+    cell.appendChild(datatypeSelect);
+    return cell;
+}
 
-    // Spalte: Address / Node ID
-    const addressCell = document.createElement('td');
-    const addressInput = document.createElement('input');
-    addressInput.type = 'text';
-    addressInput.className = 'form-control';
-    addressInput.placeholder = 'Enter Address / Node ID';
-    addressCell.appendChild(addressInput);
-    emptyRow.appendChild(addressCell);
-
-    // Spalte: Aktion (Save-Button)
-    const actionCell = document.createElement('td');
+function createActionCell() {
+    const cell = document.createElement('td');
     const saveButton = document.createElement('button');
     saveButton.type = 'button';
     saveButton.className = 'btn btn-success';
     saveButton.textContent = 'Save';
-    saveButton.addEventListener('click', () => {
-        // Bei s7 wird der ausgewählte Datentyp übergeben,
-        // bei opc-ua kann ein fester Wert oder null übergeben werden.
-        let datatypeValue = null;
-        if (deviceType === 's7') {
-            // Hier nehmen wir den Wert aus dem select-Feld
-            datatypeValue = emptyRow.querySelector('select').value;
-        }
-        saveDatapoint(idInput.value, nameInput.value, datatypeValue, addressInput.value, deviceType);
+    saveButton.addEventListener('click', function() {
+        const row = this.closest('tr');
+        const inputs = row.querySelectorAll('input, select');
+        const [idInput, nameInput, datatypeInput, addressInput] = inputs;
+        
+        const deviceType = document.getElementById('select-device-type').value || 
+                          document.getElementById('select-device-type-1').value;
+        
+        saveDatapoint(
+            idInput.value,
+            nameInput.value,
+            datatypeInput?.value || 'N/A',
+            addressInput.value,
+            deviceType
+        );
     });
-    actionCell.appendChild(saveButton);
-    emptyRow.appendChild(actionCell);
-
-    return emptyRow;
+    cell.appendChild(saveButton);
+    return cell;
 }
 
 function saveDatapoint(id, name, datatype, address, deviceType) {
-    if (!name || !address || !datatype && deviceType === 's7') {
+    if (!isValidDatapoint(name, address, datatype, deviceType)) {
         alert('Please fill all fields before saving!');
         return;
     }
 
-    const datapointId = id ? id : Math.floor(Math.random() * 1000);
-
-    const newRow = document.createElement('tr');
-
-
-    // use datapointId when id is empty
-    if (!id) {
-        id = datapointId;
+    const datapointId = id || Math.floor(Math.random() * 1000);
+    const newRow = createSavedDatapointRow(datapointId, name, datatype, address);
+    
+    const tableBody = document.querySelector('#ipi-table tbody');
+    if (!tableBody) {
+        console.error('Tabelle nicht gefunden');
+        return;
     }
 
-    const idCell = document.createElement('td');
-    idCell.textContent = id;
-    idCell.style.color = 'rgb(121, 121, 121)';
-    newRow.appendChild(idCell);
+    // Wenn es eine leere Zeile gibt, füge die neue Zeile davor ein
+    const emptyRow = tableBody.querySelector('tr:last-child');
+    if (emptyRow) {
+        tableBody.insertBefore(newRow, emptyRow);
+        clearInputRow(emptyRow);
+    } else {
+        // Falls keine leere Zeile existiert, füge die neue Zeile hinzu und erstelle eine neue leere Zeile
+        tableBody.appendChild(newRow);
+        tableBody.appendChild(createEmptyRow(deviceType));
+    }
+}
 
-    const nameCell = document.createElement('td');
-    nameCell.textContent = name;
-    nameCell.style.color = 'rgb(121, 121, 121)';
-    newRow.appendChild(nameCell);
+function isValidDatapoint(name, address, datatype, deviceType) {
+    if (!name || !address) return false;
+    if (deviceType === DEVICE_TYPES.S7 && !datatype) return false;
+    return true;
+}
 
-    const datatypeCell = document.createElement('td');
-    datatypeCell.textContent = datatype;
-    datatypeCell.style.color = 'rgb(121, 121, 121)';
-    newRow.appendChild(datatypeCell);
+function createSavedDatapointRow(id, name, datatype, address) {
+    const row = document.createElement('tr');
+    row.setAttribute('datapoint-id', id);
 
-    const addressCell = document.createElement('td');
-    addressCell.textContent = address;
-    addressCell.style.color = 'rgb(121, 121, 121)';
-    newRow.appendChild(addressCell);
+    const createCell = (text) => {
+        const cell = document.createElement('td');
+        cell.textContent = text;
+        cell.style.color = 'rgb(121, 121, 121)';
+        return cell;
+    };
+
+    [id, name, datatype, address].forEach(text => 
+        row.appendChild(createCell(text))
+    );
 
     const actionCell = document.createElement('td');
     actionCell.innerHTML = `
-      <a href="#" class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" 
-         style="margin-left: 5px;" 
-         onclick="confirmDeleteDatapoint('${datapointId}', event)">
-          <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
-      </a>
+        <a href="#" class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" 
+            style="margin-left: 5px;" 
+            onclick="confirmDeleteDatapoint('${id}', event)">
+            <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
+        </a>
     `;
-    newRow.appendChild(actionCell);
+    row.appendChild(actionCell);
 
-    const tableBody = document.querySelector('#ipi-table tbody');
-    const lastRow = tableBody.lastChild;
-    tableBody.insertBefore(newRow, lastRow);
-
-    const inputs = lastRow.querySelectorAll('input, select');
-    inputs.forEach(input => (input.value = ''));
+    return row;
 }
 
+function clearInputRow(row) {
+    if (!row) return;
+    const inputs = row.querySelectorAll('input, select');
+    inputs.forEach(input => input.value = '');
+}
+
+// ==================== LÖSCHFUNKTIONEN ====================
 function confirmDeleteDatapoint(datapointId, event) {
-    // Standardverhalten verhindern (z. B. Absenden eines Formulars)
     if (event) {
         event.preventDefault();
     }
     
     if (confirm(`Möchten Sie den Datapoint mit der ID ${datapointId} wirklich löschen?`)) {
-        // Entfernen Sie nur die entsprechende Zeile aus der Tabelle.
         const row = document.querySelector(`tr[datapoint-id="${datapointId}"]`); 
         if (row) {
             row.remove();
@@ -429,19 +403,14 @@ function confirmDeleteDatapoint(datapointId, event) {
     }
 }
 
-// Ergänze diese Hilfsfunktion irgendwo im selben Skript (z. B. unterhalb von fetchAndPopulateDevices)
 function confirmDeleteDevice(deviceId) {
-    // Einfaches Bestätigungs-Dialogfenster
     if (confirm(`Möchten Sie das Gerät mit der ID ${deviceId} wirklich löschen?`)) {
-        // API-Aufruf an das Backend zum Löschen (per DELETE oder POST, je nach Server-Implementierung)
         fetch(`/api/delete-device/${deviceId}`, { method: 'DELETE' })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Fehler beim Löschen (HTTP ${response.status}).`);
                 }
                 alert('Gerät erfolgreich gelöscht!');
-                // Seite aktualisieren oder Tabelle neu laden, damit das gelöschte Gerät nicht mehr angezeigt wird
-                // fetchAndPopulateDevices();
                 location.reload();
             })
             .catch(error => {

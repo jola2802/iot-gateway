@@ -35,8 +35,11 @@ func forwardToREST(db *sql.DB, destinationURL string, devices []string, interval
 		currentTime := t // Das ist die aktuelle Zeit, wenn der Ticker ausgelöst wird
 		lastSentTime := currentTime.Add(-time.Duration(interval) * time.Second)
 
-		// Hole die Datenpunkte für die angegebenen Geräte
-		dataPoints, err := GetDataPoints(db, devices, lastSentTime, currentTime)
+		var dataPoints []DeviceData
+		var err error
+		// Hole die Datenpunkte für die angegebenen Geräte aus der influxdb
+		// dataPoints, err := GetDataPoints(db, devices, lastSentTime, currentTime)
+
 		if err != nil {
 			logrus.Errorf("Error getting data points: %v", err)
 			continue

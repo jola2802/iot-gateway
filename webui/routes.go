@@ -75,7 +75,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/list-img-processes", listImgCapProcesses)
 		authorized.GET("/api/list-opc-ua-devices", listDevices)
 		authorized.POST("/api/add-route", saveRouteConfig)
-		authorized.DELETE("/api/routes/:routeId", deleteRoute)
+		authorized.DELETE("/api/route/:routeId", deleteRoute)
 		authorized.GET("/api/route/:routeId", getRoutesById)
 		authorized.PUT("/api/route/:routeId", saveRouteConfig)
 		authorized.GET("/api/add-img-process", addImageProcess)

@@ -23,21 +23,25 @@ function openChartModal(deviceId, datapoint) {
         liveCharts[datapoint.id].destroy();
     }
 
-    // Neuen Chart erstellen
+    // Neuen Chart erstellen und in liveCharts speichern
     liveCharts[datapoint.id] = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: [], // Labels werden dynamisch hinzugefügt
+            labels: [],
             datasets: [{
                 label: datapoint.name,
-                data: [], // Daten werden dynamisch hinzugefügt
+                data: [],
                 borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 2,
+                borderWidth: 3,
                 fill: false
             }]
         },
         options: {
             responsive: true,
+            animation: {
+                duration: 0,
+                easing: 'linear'
+            },
             scales: {
                 x: {
                     title: {
@@ -54,31 +58,27 @@ function openChartModal(deviceId, datapoint) {
             }
         }
     });
-
     // Modal öffnen
     const modal = new bootstrap.Modal(document.getElementById('modal-chart'));
     modal.show();
 }
 
 // Funktion zum Aktualisieren des Charts
-function updateChart(chart, newValue) {
-    if (!chart) {
-        console.warn('Chart-Instanz ist undefined');
+function updateChart(datapoint, value, time) {
+    if (!liveCharts[datapoint.id]) {
         return;
     }
 
-    const currentTime = new Date().toLocaleTimeString();
-    chart.data.labels.push(currentTime);
-    chart.data.datasets[0].data.push(newValue);
+    // Aktualisieren des Charts mit den neuen Daten
+    liveCharts[datapoint.id].data.labels.push(time.toLocaleTimeString());
+    liveCharts[datapoint.id].data.datasets[0].data.push(value);
 
-    if (chart.data.labels.length > 20) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
+    // Begrenzen Sie die Anzahl der Datenpunkte auf die letzten 50
+    const maxDataPoints = 50;
+    if (liveCharts[datapoint.id].data.labels.length > maxDataPoints) {
+        liveCharts[datapoint.id].data.labels = liveCharts[datapoint.id].data.labels.slice(-maxDataPoints);
+        liveCharts[datapoint.id].data.datasets[0].data = liveCharts[datapoint.id].data.datasets[0].data.slice(-maxDataPoints);
     }
 
-    try {
-        chart.update('none'); // 'none' verhindert eine Animation
-    } catch (error) {
-        console.error('Fehler beim Aktualisieren des Charts:', error);
-    }
+    liveCharts[datapoint.id].update();
 }

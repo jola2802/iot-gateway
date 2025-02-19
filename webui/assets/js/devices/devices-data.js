@@ -20,6 +20,7 @@ async function initWebSocket() {
     wsDevices.onmessage = (event) => {
         const devices = JSON.parse(event.data);
         updateDeviceTables(devices);
+        // updateChart(devices);
     };
 
     wsDevices.onerror = (error) => {
@@ -96,10 +97,10 @@ async function saveEditDevice() {
                 document.getElementById('acquisition-time-2')?.value || '0',
                 10
             ),
-            username: document.getElementById('username')?.value || '',
-            password: document.getElementById('password')?.value || '',
-            rack: document.querySelector('#s7-config-1 [placeholder="0"]')?.value || '',
-            slot: document.querySelector('#s7-config-1 [placeholder="1"]')?.value || '',
+            username: document.getElementById('username')?.value || document.getElementById('username-1')?.value || '',
+            password: document.getElementById('password')?.value || document.getElementById('password-1')?.value || '',
+            rack: document.querySelector('#s7-config-1 [placeholder="0"]')?.value || document.querySelector('#s7-config-1 [placeholder="0"]')?.value || '',
+            slot: document.querySelector('#s7-config-1 [placeholder="1"]')?.value || document.querySelector('#s7-config-1 [placeholder="1"]')?.value || '',
             datapoints: Array.from(document.querySelectorAll('#ipi-table tbody tr')).map(row => {
                 // Alle Zellen in der Zeile abrufen
                 const cells = row.querySelectorAll('td');
@@ -151,7 +152,8 @@ async function saveEditDevice() {
 
 
         // document.getElementById('modal-edit-device').modal('hide');
-        location.reload(); // Alternativ: Nur die Tabelle aktualisieren
+        // location.reload(); // Alternativ: Nur die Tabelle aktualisieren
+        window.location.reload();
     } catch (error) {
         console.error('Fehler beim Aktualisieren des Geräts:', error);
         alert('Fehler beim Aktualisieren des Geräts. Bitte versuchen Sie es erneut.');

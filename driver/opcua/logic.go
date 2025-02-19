@@ -196,11 +196,9 @@ func clientOptsFromFlags(device DeviceConfig) ([]opcua.Option, error) {
 	if securityMode != ua.MessageSecurityModeNone {
 		var cert tls.Certificate
 		var err error
-		// Falls in der Konfiguration bereits Zertifikatspfad und Schlüsselpfad hinterlegt sind,
-		// versuchen wir, diese zu laden. Andernfalls wird automatisch ein neues Zertifikat generiert.
 		if device.CertFile != "" && device.KeyFile != "" {
 			cert, err = tls.LoadX509KeyPair(device.CertFile, device.KeyFile)
-			if err == nil {
+			if err != nil {
 				logrus.Warnf("failed to load provided certificate and key for device %v: %v; generating new certificate", device.Name, err)
 				cert, err = generateNewCertificateForDevice(device)
 				if err != nil {
@@ -214,13 +212,6 @@ func clientOptsFromFlags(device DeviceConfig) ([]opcua.Option, error) {
 			}
 		}
 
-		// Prüfe, ob das Zertifikat gültig im PEM-Format vorliegt.
-		// block, _ := pem.Decode(cert.Certificate[0])
-		// if block == nil || block.Type != "CERTIFICATE" {
-		// 	return nil, fmt.Errorf("malformed certificate: PEM block invalid")
-		// }
-
-		// Überprüfe, ob der private Schlüssel vom Typ *rsa.PrivateKey ist.
 		privateKey, ok := cert.PrivateKey.(*rsa.PrivateKey)
 		if !ok {
 			logrus.Warnf("unexpected private key type for device %v; generating new RSA certificate", device.Name)
@@ -237,10 +228,13 @@ func clientOptsFromFlags(device DeviceConfig) ([]opcua.Option, error) {
 		opts = append(opts, opcua.PrivateKey(privateKey), opcua.Certificate(cert.Certificate[0]))
 	}
 
-	// Authentifizierungsmethode wählen
-	if device.Username == "" && device.Password == "" {
+	// Authentifizierungsmethode wählen:
+	// Bei deaktivierter Sicherheit (None/none) erzwingen wir immer anonyme Authentifizierung,
+	// unabhängig davon, ob eventuell Username oder Password gesetzt sind.
+	if securityMode == ua.MessageSecurityModeNone && securityPolicy == ua.SecurityPolicyURINone {
 		opts = append(opts, opcua.AuthAnonymous())
 	} else {
+		// Falls Credentials angegeben sind, wird Username-Authentifizierung genutzt
 		opts = append(opts, opcua.AuthUsername(device.Username, device.Password))
 	}
 
@@ -300,8 +294,9 @@ func generateNewCertificateForDevice(device DeviceConfig) (tls.Certificate, erro
 
 // TestConnection versucht eine Verbindung zum OPC-UA Server herzustellen
 func TestConnection(device DeviceConfig) bool {
-	// Erstelle Client-Optionen
+	// Erstelle Client-Optionen mit den konfigurierten Einstellungen
 	clientOpts, err := clientOptsFromFlags(device)
+	logrus.Infof("OPC-UA: Client-Optionen für Gerät %v: %v", device.Name, clientOpts)
 	if err != nil {
 		logrus.Errorf("OPC-UA: Fehler beim Erstellen der Client-Optionen für Gerät %v: %v", device.Name, err)
 		return false

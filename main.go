@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
 
 	dataforwarding "iot-gateway/data-forwarding"
@@ -36,6 +38,14 @@ func main() {
 
 	go dataforwarding.StartDataForwarding(db, server)
 	defer dataforwarding.StopDataForwarding()
+
+	// starte die dataroutes zyklisch alle 1 sekunde
+	go func() {
+		for {
+			dataforwarding.StartDataRoutes(db)
+			time.Sleep(1 * time.Second)
+		}
+	}()
 
 	select {}
 }

@@ -153,7 +153,7 @@ func writeDeviceDataToInflux(db *sql.DB, device DeviceData) error {
 	influxBuffer = append(influxBuffer, point)
 	currentBufferSize := len(influxBuffer)
 	// Wenn 1100 Punkte erreicht sind, sofort flushen
-	if currentBufferSize >= 1100 {
+	if currentBufferSize >= 1000 {
 		// logrus.Infof("Buffer reached %d points, starting immediate flush", currentBufferSize)
 		bufferMutex.Unlock()
 		return flushBuffer(db)
@@ -161,7 +161,7 @@ func writeDeviceDataToInflux(db *sql.DB, device DeviceData) error {
 	// Falls kein Timer aktiv ist, starte einen Timer für 5 Sekunden
 	if flushTimer == nil {
 		// logrus.Infof("No flush timer active. Setting up flush timer for 5 seconds")
-		flushTimer = time.AfterFunc(5*time.Second, func() {
+		flushTimer = time.AfterFunc(1000*time.Millisecond, func() {
 			// logrus.Infof("Flush timer triggered")
 			if err := flushBuffer(db); err != nil {
 				logrus.Errorf("Fehler beim automatischen Flush: %v", err)

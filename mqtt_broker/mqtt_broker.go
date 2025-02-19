@@ -12,14 +12,14 @@ import (
 	"time"
 
 	_ "github.com/glebarez/go-sqlite" // Import für SQLite
-	mqtt "github.com/mochi-mqtt/server/v2"
+	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/listeners"
 	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
-var server *mqtt.Server
+var server *MQTT.Server
 var once sync.Once
 
 type ListenerConfig struct {
@@ -34,7 +34,7 @@ type Config struct {
 }
 
 // StartBroker initialisiert den Broker synchron und startet den blockierenden Serve-Loop asynchron.
-func StartBroker(db *sql.DB) *mqtt.Server {
+func StartBroker(db *sql.DB) *MQTT.Server {
 	once.Do(func() {
 		// Synchronously initialisieren und das Serverobjekt zuweisen.
 		server = startBrokerInstance(db)
@@ -50,7 +50,7 @@ func StartBroker(db *sql.DB) *mqtt.Server {
 }
 
 // startBrokerInstance erstellt und konfiguriert den MQTT Broker und gibt ihn synchron zurück.
-func startBrokerInstance(db *sql.DB) *mqtt.Server {
+func startBrokerInstance(db *sql.DB) *MQTT.Server {
 	// Verwaltung des Admin-Zugangs und der Benutzer-/Driver-Zugriffe.
 	if err := logic.AddAdminUser(db); err != nil {
 		logrus.Fatal("Failed to manage Admin access: ", err)
@@ -78,7 +78,7 @@ func startBrokerInstance(db *sql.DB) *mqtt.Server {
 	}
 
 	// Erzeugen des neuen MQTT-Servers.
-	s := mqtt.New(&mqtt.Options{
+	s := MQTT.New(&MQTT.Options{
 		InlineClient: true,
 	})
 
@@ -120,7 +120,7 @@ func loadConfig(filename string) (*Config, error) {
 	return &config, nil
 }
 
-func createListeners(server *mqtt.Server, tlsConfig *tls.Config) error {
+func createListeners(server *MQTT.Server, tlsConfig *tls.Config) error {
 	config, err := loadConfig("config.json")
 	if err != nil {
 		return err

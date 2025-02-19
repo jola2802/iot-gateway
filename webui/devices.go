@@ -240,7 +240,7 @@ func deviceDataWebSocket(c *gin.Context) {
 	}
 
 	// Abonniere den MQTT-Topic "data/#" einmalig.
-	if err := server.Subscribe("data/#", 2, callbackFn); err != nil {
+	if err := server.Subscribe("data/#", 0, callbackFn); err != nil {
 		logrus.Errorf("Error subscribing to topic data/#: %v", err)
 		return
 	}
@@ -251,8 +251,8 @@ func deviceDataWebSocket(c *gin.Context) {
 		return
 	}
 
-	// Ticker: Alle 1000ms werden aggregierte Daten verarbeitet und gesendet.
-	ticker := time.NewTicker(1000 * time.Millisecond)
+	// Ticker: Alle 500ms werden aggregierte Daten verarbeitet und gesendet.
+	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
 	for range ticker.C {

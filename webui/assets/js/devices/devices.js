@@ -6,43 +6,74 @@ function updateDeviceTables(devices) {
         const tableBody = document.querySelector(`#device-${device.device_id}-table`);
 
         if (tableBody) {
-            tableBody.innerHTML = ''; // Vorhandene Datenpunkte entfernen
+            // tableBody.innerHTML = ''; // Vorhandene Datenpunkte entfernen
 
+            // Wenn Datenpunkt bereits vorhanden, dann nur last value aktualisieren
+            const existingDatapoints = tableBody.querySelectorAll('tr');
+            const existingDatapointIds = new Set(Array.from(existingDatapoints).map(row => {
+                const idCell = row.querySelector('td:first-child');
+                return idCell ? idCell.textContent : null; // Handle case where idCell is null
+            }));
+
+            // Neue Datapoints hinzufügen oder bestehende aktualisieren
             device.datapoints.forEach(datapoint => {
-                const row = document.createElement('tr');
+                const existingRow = tableBody.querySelector(`tr[data-datapoint-id="${datapoint.id}"]`);
 
-                // Datapoint ID
-                const idCell = document.createElement('td');
-                idCell.textContent = datapoint.id;
-                row.appendChild(idCell);
+                if (existingDatapointIds.has(datapoint.id)) {
+                    // Datapoint existiert bereits, nur Wert aktualisieren
+                    const valueCell = existingRow.querySelector('td:nth-child(3)');
+                    valueCell.textContent = datapoint.value;
 
-                // Datapoint Name
-                const nameCell = document.createElement('td');
-                nameCell.textContent = datapoint.name;
-                row.appendChild(nameCell);
+                    // Chart Button hinzufügen (auch für bestehende Datapoints)
+                    const chartCell = existingRow.querySelector('td:last-child'); // Selektiere die letzte Zelle (Chart-Zelle)
+                    if (!chartCell) { //Nur hinzufügen wenn noch nicht vorhanden
+                        chartCell = document.createElement('td');
+                        const chartButton = document.createElement('button');
+                        chartButton.className = 'btn btn-outline-secondary';
+                        chartButton.innerHTML = '<i class="typcn typcn-chart-line"></i>';
+                        chartButton.addEventListener('click', () => openChartModal(device.device_id, datapoint));
+                        chartCell.appendChild(chartButton);
+                        existingRow.appendChild(chartCell);
+                    }
 
-                // Last Value
-                const valueCell = document.createElement('td');
-                valueCell.textContent = datapoint.value;
-                row.appendChild(valueCell);
-                
-                // Chart Button
-                const chartCell = document.createElement('td');
-                const chartButton = document.createElement('button');
-                chartButton.className = 'btn btn-outline-secondary';
-                chartButton.innerHTML = '<i class="typcn typcn-chart-line"></i>';
-                chartButton.addEventListener('click', () => openChartModal(device.device_id, datapoint));
-                chartCell.appendChild(chartButton);
-                row.appendChild(chartCell);
+                    updateChart(datapoint, datapoint.value, new Date());
+                } else {
+                    // Datapoint existiert noch nicht, neue Zeile erstellen
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-datapoint-id', datapoint.id); // Datapoint ID als Attribut hinzufügen
 
-                tableBody.appendChild(row);
-                
-                // Live-Daten in den Chart aktualisieren
-                if (liveCharts[datapoint.id]) {
-                    updateChart(liveCharts[datapoint.id], datapoint.value);
+                    // Datapoint ID
+                    const idCell = document.createElement('td');
+                    idCell.textContent = datapoint.id;
+                    row.appendChild(idCell);
+
+                    // Datapoint Name
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = datapoint.name;
+                    row.appendChild(nameCell);
+
+                    // Last Value
+                    const valueCell = document.createElement('td');
+                    valueCell.textContent = datapoint.value;
+                    row.appendChild(valueCell);
+
+                    // Chart Button
+                    const chartCell = document.createElement('td');
+                    const chartButton = document.createElement('button');
+                    chartButton.className = 'btn btn-outline-secondary';
+                    chartButton.innerHTML = '<i class="typcn typcn-chart-line"></i>';
+                    chartButton.addEventListener('click', () => openChartModal(device.device_id, datapoint));
+                    chartCell.appendChild(chartButton);
+                    row.appendChild(chartCell);
+
+                    tableBody.appendChild(row);
+
+                    updateChart(datapoint, datapoint.value, new Date());
                 }
             });
         }
+
+
     });
 }
 
@@ -162,6 +193,8 @@ async function fetchAndPopulateDevices() {
                     });
                     if (response.ok) {
                         alert('Driver has been restarted');
+                        // Device-Tabelle aktualisieren
+                        fetchAndPopulateDevices();
                     } else {
                         throw new Error('Error restarting driver');
                     }
@@ -183,7 +216,7 @@ async function fetchAndPopulateDevices() {
             editButton.addEventListener('click', () => {
                 // Speichere die device_id als data-Attribut am Modal
                 document.getElementById('modal-edit-device').setAttribute('data-device-id', device.id);
-                console.log('Device ID bei edit button:', device.id);
+                // console.log('Device ID bei edit button:', device.id);
             });
 
             actionsCell.appendChild(editButton);
@@ -266,7 +299,12 @@ document.getElementById('modal-new-device').addEventListener('show.bs.modal', in
 // #########
 
 // Event-Listener für Edit-Buttons
-document.addEventListener('click', async (event) => {
+function setupEditButtonListener() {
+    document.removeEventListener('click', handleEditButtonClick); // Alten Listener entfernen
+    document.addEventListener('click', handleEditButtonClick); // Neuen Listener hinzufügen
+}
+
+async function handleEditButtonClick(event) {
     const editButton = event.target.closest('.btn-flat.success');
     if (editButton) {
         event.preventDefault();
@@ -288,4 +326,8 @@ document.addEventListener('click', async (event) => {
             }
         }
     }
-});
+}
+
+// // Initialisiere den Event-Listener einmal
+setupEditButtonListener();
+

@@ -48,6 +48,6 @@
                 }
             }
         },
-        "menu-menu-item-sidebar": true
+        "menu-menu-item-sidebar": false
     }
 }

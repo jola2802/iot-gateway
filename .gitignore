@@ -1,13 +1,9 @@
 // Ignore all files in the node-red-data directory
-node-red-data/*
+node-red-data
 
-data/*
-
-// Ignore all files in the data directory
-files/*
+data
 
 // Ignore all files in the .vscode directory
-.vscode/*
+.vscode
 
-// Ignore all files in the .env directory
-.env/*
+/data

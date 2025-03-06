@@ -65,14 +65,20 @@ Das Gateway besteht aus mehreren Komponenten, die in Docker-Containern laufen:
 
 4. Auf die Weboberfläche zugreifen:
    - Gateway-UI: https://localhost/
-   - Node-RED: https://localhost/node-red/
+   - Node-RED: https://localhost/nodered/
    - InfluxDB: https://localhost/influxdb/
 
-### Ports
-
-- **5000-5003**: Reserviert für interne Dienste
-- **8088**: HTTP-Zugriff auf das Gateway
+### Ports (default)
 - **443**: HTTPS-Zugriff auf alle Dienste (über NGINX)
+- **5000**: MQTT via TCP (without TLS)
+- **5001**: MQTT via Websocket (without TLS)
+- **5100**: MQTT via Websocket (with TLS)
+- **5100**: MQTT via TCP (with TLS) 
+
+### Ports internal (default)
+- **8088**: Zugriff auf das Gateway
+- **1880**: Zugriff auf Node-RED
+- **8086**: Zugriff auf InfluxDB
 
 ## Konfiguration
 

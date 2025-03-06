@@ -1642,6 +1642,7 @@
         "id": "940b2b5baea63939",
         "type": "inject",
         "z": "4071c101bbc3e907",
+        "d": true,
         "name": "cyclic trigger",
         "props": [],
         "repeat": "15",

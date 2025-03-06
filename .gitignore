@@ -1,6 +1,8 @@
 // Ignore all files in the node-red-data directory
 node-red-data/*
 
+data/*
+
 // Ignore all files in the data directory
 files/*
 

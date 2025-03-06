@@ -19,6 +19,7 @@ import (
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/rand"
 )
 
 type Device struct {
@@ -72,7 +73,7 @@ func getDevices(c *gin.Context) {
 	}
 
 	var devices []Device
-	rows, err := db.Query("SELECT id, name, type, address, status FROM devices")
+	rows, err := db.Query("SELECT id, name, type, address, acquisition_time, status FROM devices")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -81,7 +82,7 @@ func getDevices(c *gin.Context) {
 
 	for rows.Next() {
 		var device Device
-		err := rows.Scan(&device.ID, &device.DeviceName, &device.DeviceType, &device.Address, &device.Status)
+		err := rows.Scan(&device.ID, &device.DeviceName, &device.DeviceType, &device.Address, &device.AcquisitionTime, &device.Status)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -177,49 +178,92 @@ type AggregatedData struct {
 	Datapoints []Datapoint `json:"datapoints"`
 }
 
+// Funktion zum Abrufen der aktuellen Gerätestatus aus der Datenbank
+func getDeviceStatuses(db *sql.DB) map[string]string {
+	deviceStatus := make(map[string]string)
+
+	rows, err := db.Query("SELECT id, type, status FROM devices")
+	if err != nil {
+		logrus.Errorf("Error querying device statuses: %v", err)
+		return deviceStatus
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id, deviceType, status string
+		if err := rows.Scan(&id, &deviceType, &status); err != nil {
+			logrus.Errorf("Error scanning device status: %v", err)
+			continue
+		}
+		key := fmt.Sprintf("%s_%s", deviceType, id)
+		deviceStatus[key] = status
+	}
+
+	return deviceStatus
+}
+
 // deviceDataWebSocket übernimmt die Funktionalität des Node-RED Nodes zur Aggregation
 // und Weitergabe der MQTT-Daten (Topic: "data/#") über eine WebSocket-Verbindung.
 func deviceDataWebSocket(c *gin.Context) {
+	// Token-Überprüfung
 	token := c.Query("token")
-
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is required"})
 		return
 	}
 
-	// Überprüfe den Token
-	wsTokenStore.RLock()
-	expriation, exists := wsTokenStore.tokens[token]
-	wsTokenStore.RUnlock()
-	if !exists || expriation.Before(time.Now()) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-		return
-	}
-
-	// WebSocket-Verbindung herstellen
+	// WebSocket-Verbindung
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		logrus.Errorf("Error upgrading to WebSocket: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "WebSocket upgrade failed"})
 		return
 	}
-	defer gracefulShutdown(conn)
+	defer conn.Close()
 
-	// Starte eine Goroutine, um Verbindungsabbrüche zu überwachen.
-	go monitorWebSocket(conn)
+	// Datenbankverbindung
+	db, err := getDBConnection(c)
+	if err != nil {
+		logrus.Errorf("Error getting database connection: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection failed"})
+		return
+	}
 
-	// Aggregationsspeicher und zugehöriger Mutex
+	// Maps mit Mutex-Schutz
 	aggregated := make(map[string]*AggregatedData)
+	deviceStatus := make(map[string]string)
+	lastSentStatus := make(map[string]string) // Neue Map für den letzten gesendeten Status
 	var aggMutex sync.Mutex
 
-	// MQTT-Server aus dem Context holen
-	server := c.MustGet("server").(*MQTT.Server)
-
-	// Callback-Funktion für eingehende MQTT-Nachrichten
+	// Verbesserte Status-Update-Verarbeitung
 	callbackFn := func(cl *MQTT.Client, sub packets.Subscription, pk packets.Packet) {
 		topic := pk.TopicName
 		payloadStr := string(pk.Payload)
 
-		// Erwartetes Topic-Format: "data/<device_type>/<device_id>/<measurement>"
+		if strings.HasPrefix(topic, "iot-gateway/driver/states/") {
+			parts := strings.Split(topic, "/")
+			if len(parts) >= 5 {
+				deviceType := parts[3]
+				deviceID := parts[4]
+
+				if deviceType == "" || deviceID == "" {
+					logrus.Warn("Invalid device type or ID in topic:", topic)
+					return
+				}
+
+				key := fmt.Sprintf("%s_%s", deviceType, deviceID)
+
+				aggMutex.Lock()
+				// Nur aktualisieren wenn sich der Status wirklich geändert hat
+				if deviceStatus[key] != payloadStr {
+					deviceStatus[key] = payloadStr
+				}
+				aggMutex.Unlock()
+				return
+			}
+		}
+
+		// Normale Datenpunkt-Verarbeitung
 		parts := strings.Split(topic, "/")
 		if len(parts) < 4 {
 			logrus.Warn("Ungültiges Topic-Format: " + topic)
@@ -227,7 +271,6 @@ func deviceDataWebSocket(c *gin.Context) {
 		}
 		deviceID, measurement := parts[2], parts[3]
 
-		// Formatierung des Payloads: Zahl mit zwei Dezimalstellen oder als String übernehmen.
 		var value string
 		if num, err := strconv.ParseFloat(payloadStr, 64); err == nil {
 			value = fmt.Sprintf("%.2f", num)
@@ -235,33 +278,86 @@ func deviceDataWebSocket(c *gin.Context) {
 			value = payloadStr
 		}
 
-		// Aktualisiere den Aggregationsspeicher
 		updateAggregation(aggregated, &aggMutex, deviceID, measurement, value)
 	}
 
-	// Abonniere den MQTT-Topic "data/#" einmalig.
-	if err := server.Subscribe("data/#", 0, callbackFn); err != nil {
+	// Verbesserte Ticker-Behandlung
+	dataTicker := time.NewTicker(500 * time.Millisecond)
+	statusTicker := time.NewTicker(5 * time.Second)
+	defer func() {
+		dataTicker.Stop()
+		statusTicker.Stop()
+	}()
+
+	// Initialer Status mit Fehlerbehandlung
+	aggMutex.Lock()
+	deviceStatus = getDeviceStatuses(db)
+	aggMutex.Unlock()
+
+	// MQTT-Server aus dem Context holen
+	server := c.MustGet("server").(*MQTT.Server)
+
+	// Abonniere die MQTT-Topics
+	if err := server.Subscribe("data/#", rand.Intn(100), callbackFn); err != nil {
 		logrus.Errorf("Error subscribing to topic data/#: %v", err)
 		return
 	}
 
-	// Abonniere den MQTT-Topic "iot-gateway/driver/states/#" einmalig.
-	if err := server.Subscribe("iot-gateway/driver/states/#", 2, callbackFn); err != nil {
+	if err := server.Subscribe("iot-gateway/driver/states/#", rand.Intn(100), callbackFn); err != nil {
 		logrus.Errorf("Error subscribing to topic iot-gateway/driver/states/#: %v", err)
 		return
 	}
 
-	// Ticker: Alle 500ms werden aggregierte Daten verarbeitet und gesendet.
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
+	for {
+		select {
+		case <-dataTicker.C:
+			aggMutex.Lock()
+			outputArray := buildOutput(&aggregated, deviceStatus)
 
-	for range ticker.C {
-		outputArray := buildOutput(&aggregated, &aggMutex)
-		if len(outputArray) > 0 {
-			if err := conn.WriteJSON(outputArray); err != nil {
-				logrus.Errorf("Error sending aggregated data: %v", err)
-				return
+			// Prüfe ob sich die Status geändert haben
+			statusChanged := false
+			for key, status := range deviceStatus {
+				if lastSentStatus[key] != status {
+					statusChanged = true
+					lastSentStatus[key] = status
+				}
 			}
+
+			// Nur senden wenn es Datenpunkte gibt oder sich Status geändert haben
+			if len(outputArray) > 0 || statusChanged {
+				if err := conn.WriteJSON(outputArray); err != nil {
+					logrus.Errorf("Error sending data: %v", err)
+					aggMutex.Unlock()
+					return
+				}
+			}
+			aggMutex.Unlock()
+
+		case <-statusTicker.C:
+			// Aktualisiere die Gerätestatus aus der Datenbank
+			aggMutex.Lock()
+			newStatus := getDeviceStatuses(db)
+
+			// Prüfe ob sich die Status wirklich geändert haben
+			statusChanged := false
+			for key, status := range newStatus {
+				if deviceStatus[key] != status {
+					statusChanged = true
+					deviceStatus[key] = status
+					lastSentStatus[key] = status
+				}
+			}
+
+			// Nur senden wenn sich Status geändert haben
+			if statusChanged {
+				outputArray := buildOutput(&aggregated, deviceStatus)
+				if err := conn.WriteJSON(outputArray); err != nil {
+					logrus.Errorf("Error sending status update: %v", err)
+					aggMutex.Unlock()
+					return
+				}
+			}
+			aggMutex.Unlock()
 		}
 	}
 }
@@ -299,22 +395,75 @@ func updateAggregation(aggregated map[string]*AggregatedData, aggMutex *sync.Mut
 }
 
 // buildOutput erstellt das Ausgabearray aus dem Aggregationsspeicher und leert diesen anschließend.
-func buildOutput(aggregated *map[string]*AggregatedData, aggMutex *sync.Mutex) []interface{} {
-	aggMutex.Lock()
-	defer aggMutex.Unlock()
-
+func buildOutput(aggregated *map[string]*AggregatedData, deviceStatus map[string]string) []interface{} {
 	var outputArray []interface{}
+
+	// Erstelle eine Map für bereits verarbeitete Geräte
+	processedDevices := make(map[string]bool)
+
+	// Füge die aggregierten Datenpunkte hinzu
 	for _, agg := range *aggregated {
-		if len(agg.Datapoints) > 0 {
-			// Sortiere die Datapoints alphabetisch nach ihrer ID
-			sort.Slice(agg.Datapoints, func(i, j int) bool {
-				return agg.Datapoints[i].ID < agg.Datapoints[j].ID
+		// Sortiere die Datapoints alphabetisch nach ihrer ID
+		sort.Slice(agg.Datapoints, func(i, j int) bool {
+			return agg.Datapoints[i].ID < agg.Datapoints[j].ID
+		})
+
+		// Füge den Status hinzu, falls vorhanden
+		deviceKey := fmt.Sprintf("opc-ua_%s", agg.DeviceID) // Versuche zuerst OPC UA
+		if status, exists := deviceStatus[deviceKey]; exists {
+			outputArray = append(outputArray, struct {
+				DeviceID   string      `json:"device_id"`
+				Datapoints []Datapoint `json:"datapoints"`
+				Status     string      `json:"status"`
+			}{
+				DeviceID:   agg.DeviceID,
+				Datapoints: agg.Datapoints,
+				Status:     status,
 			})
-			outputArray = append(outputArray, *agg)
+			processedDevices[deviceKey] = true
+			continue
+		}
+
+		deviceKey = fmt.Sprintf("s7_%s", agg.DeviceID) // Versuche dann S7
+		if status, exists := deviceStatus[deviceKey]; exists {
+			outputArray = append(outputArray, struct {
+				DeviceID   string      `json:"device_id"`
+				Datapoints []Datapoint `json:"datapoints"`
+				Status     string      `json:"status"`
+			}{
+				DeviceID:   agg.DeviceID,
+				Datapoints: agg.Datapoints,
+				Status:     status,
+			})
+			processedDevices[deviceKey] = true
+			continue
+		}
+
+		// Wenn kein Status gefunden wurde, sende ohne Status
+		outputArray = append(outputArray, *agg)
+	}
+
+	// Füge alle verbleibenden Gerätestatus hinzu (Geräte ohne Datenpunkte)
+	for deviceKey, status := range deviceStatus {
+		if !processedDevices[deviceKey] {
+			parts := strings.Split(deviceKey, "_")
+			if len(parts) == 2 {
+				outputArray = append(outputArray, struct {
+					DeviceID   string      `json:"device_id"`
+					Datapoints []Datapoint `json:"datapoints"`
+					Status     string      `json:"status"`
+				}{
+					DeviceID:   parts[1],
+					Datapoints: []Datapoint{},
+					Status:     status,
+				})
+			}
 		}
 	}
-	// Leere den Aggregationsspeicher für den nächsten Intervall.
+
+	// Leere den Aggregationsspeicher für den nächsten Intervall
 	*aggregated = make(map[string]*AggregatedData)
+
 	return outputArray
 }
 
@@ -685,18 +834,30 @@ func addDevice(c *gin.Context) {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	_, err = db.Exec(query, deviceData.DeviceType, deviceData.DeviceName, deviceData.Address,
-		deviceData.AcquisitionTime, deviceData.SecurityMode, deviceData.SecurityPolicy, deviceData.Rack, deviceData.Slot, deviceData.Username, deviceData.Password, "init")
+		deviceData.AcquisitionTime, deviceData.SecurityMode, deviceData.SecurityPolicy, deviceData.Rack, deviceData.Slot, deviceData.Username, deviceData.Password, logic.Initializing)
 	if err != nil {
 		logrus.Println("Error inserting device data into the database:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting device data"})
 		return
 	}
 
+	// Hole die device id für das neue Gerät
+	var deviceID int
+	err = db.QueryRow("SELECT id FROM devices WHERE name = ?", deviceData.DeviceName).Scan(&deviceID)
+	if err != nil {
+		logrus.Println("Error retrieving device ID:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device ID"})
+		return
+	}
+
 	// Erstelle das MQTT-Topic
-	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceData.DeviceType, deviceData.DeviceName)
+	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%d", deviceData.DeviceType, deviceID)
 	server.Publish(topic, []byte("2 (initializing)"), false, 2)
 
-	RestartGateway(c)
+	// Restarte den Treiber für das neue Gerät
+	// übergeben der device id
+	c.Set("device_id", deviceID)
+	RestartDriver(c)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Device added successfully"})
 }
@@ -790,6 +951,7 @@ func updateDevice(c *gin.Context) {
 		} `json:"datapoints,omitempty"`
 		Rack     string `json:"rack,omitempty"`
 		Slot     string `json:"slot,omitempty"`
+		Username string `json:"username,omitempty"`
 		Password string `json:"password,omitempty"`
 	}
 
@@ -872,8 +1034,8 @@ func updateDevice(c *gin.Context) {
 	// Gerätetyp-spezifische Logik für OPC UA
 	if updatedDevice.DeviceType == "opc-ua" {
 		// Aktualisiere die OPC-UA-spezifischen Felder
-		query = `UPDATE devices SET security_mode = ?, security_policy = ? WHERE id = ?`
-		_, err := db.Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, device_id)
+		query = `UPDATE devices SET security_mode = ?, security_policy = ?, username = ?, password = ? WHERE id = ?`
+		_, err := db.Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, updatedDevice.Username, updatedDevice.Password, device_id)
 		if err != nil {
 			logrus.Println("Error updating OPC-UA-specific fields:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating OPC-UA-specific fields"})
@@ -971,12 +1133,11 @@ func updateDevice(c *gin.Context) {
 			return
 		}
 
-		RestartGateway(c)
-
 		logrus.Infof("MQTT device and user updated successfully for %s", updatedDevice.DeviceName)
 	}
 
-	RestartGateway(c)
+	c.Set("device_id", device_id)
+	RestartDriver(c)
 
 	// Erfolgreiche Antwort senden
 	c.JSON(http.StatusOK, gin.H{"message": "success"})

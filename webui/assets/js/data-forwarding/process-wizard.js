@@ -5,6 +5,7 @@ let processData = {
     device: '',
     methodParentNode: '',
     methodImageNode: '',
+    methodArguments: [],
     imageNode: '',
     captureCompletedNode: '',
     readCompletedNode: '',
@@ -12,6 +13,7 @@ let processData = {
     interval: '',
     triggerNode: '',
     restUri: '',
+    timeout: 30,
     headers: []
 };
 
@@ -60,13 +62,16 @@ function setupEventListeners() {
     document.getElementById('btn-save').addEventListener('click', saveProcess);
 
     // Capture Mode Change im Image-Process-Modal
-    document.getElementById('capture-mode').addEventListener('change', function(e) {
+    document.getElementById('capture-mode-select').addEventListener('change', function(e) {
         processData.captureMode = e.target.value;
         toggleCaptureOptions();
     });
 
     // Header Hinzufügen im Image-Process-Modal
     document.getElementById('add-header-button-p').addEventListener('click', addHeader);
+
+    // Argument Hinzufügen im Image-Process-Modal
+    document.getElementById('add-argument-button').addEventListener('click', addMethodArgument);
 }
 
 // Geräte laden
@@ -174,7 +179,7 @@ function validateNodesStep() {
 }
 
 function validateCaptureStep() {
-    const captureMode = document.getElementById('capture-mode').value;
+    const captureMode = document.getElementById('capture-mode-select').value;
     processData.captureMode = captureMode;
     
     if (captureMode === 'interval') {
@@ -198,7 +203,8 @@ function validateCaptureStep() {
 }
 
 function validateRestStep() {
-    const restUri = document.getElementById('rest-uri-input').value;
+    const restUri = document.getElementById('rest-uri-wizard-input').value;
+    console.log('rest uri: ', restUri);
     if (!restUri) {
         alert('Please enter a REST-URI.');
         return false;
@@ -274,7 +280,7 @@ function updateProgressBar() {
 
 // Capture Mode Handling
 function setupCaptureMode() {
-    const captureMode = document.getElementById('capture-mode');
+    const captureMode = document.getElementById('capture-mode-select');
     captureMode.value = 'interval';
     toggleCaptureOptions();
 }
@@ -330,6 +336,53 @@ function removeHeader(index) {
     updateHeadersList();
 }
 
+// Methoden-Argument Funktionen
+function addMethodArgument() {
+    const nameInput = document.getElementById('argument-name-input');
+    const valueInput = document.getElementById('argument-value-input');
+    
+    const name = nameInput.value.trim();
+    const value = valueInput.value.trim();
+    
+    if (!name || !value) {
+        alert('Please enter both a name and a value for the argument.');
+        return;
+    }
+    
+    // Prüfe ob der Name bereits existiert
+    if (processData.methodArguments.some(arg => arg.name === name)) {
+        alert('Ein Argument mit diesem Namen existiert bereits.');
+        return;
+    }
+    
+    processData.methodArguments.push({ name, value });
+    updateMethodArgumentsList();
+    
+    // Felder zurücksetzen
+    nameInput.value = '';
+    valueInput.value = '';
+}
+
+function updateMethodArgumentsList() {
+    const argumentsList = document.getElementById('method-arguments-list');
+    argumentsList.innerHTML = '';
+    
+    processData.methodArguments.forEach((arg, index) => {
+        const li = document.createElement('div');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center mb-2';
+        li.innerHTML = `
+            <span><strong>${arg.name}</strong>: ${arg.value}</span>
+            <button class="btn btn-danger btn-sm" onclick="removeMethodArgument(${index})"><i class="fas fa-trash"></i></button>
+        `;
+        argumentsList.appendChild(li);
+    });
+}
+
+function removeMethodArgument(index) {
+    processData.methodArguments.splice(index, 1);
+    updateMethodArgumentsList();
+}
+
 // Wizard zurücksetzen
 function resetWizard() {
     currentStep = 1;
@@ -337,6 +390,7 @@ function resetWizard() {
         device: '',
         methodParentNode: '',
         methodImageNode: '',
+        methodArguments: [],
         imageNode: '',
         captureCompletedNode: '',
         readCompletedNode: '',
@@ -351,69 +405,18 @@ function resetWizard() {
     updateButtonStates();
     updateProgressBar();
     document.querySelectorAll('input').forEach(input => input.value = '');
-    document.getElementById('capture-mode').value = 'interval';
+    document.getElementById('capture-mode-select').value = 'interval';
     toggleCaptureOptions();
     updateHeadersList();
+    updateMethodArgumentsList();
 }
 
 // Speichern des Prozesses
 async function saveProcess() {
     try {
-        // Prüfe zuerst, ob alle erforderlichen Elemente existieren
-        const requiredElements = {
-            device: document.getElementById('select-opc-device'),
-            methodParentNode: document.getElementById('m-parent-node'),
-            methodImageNode: document.getElementById('m-image-node'),
-            imageNode: document.getElementById('img-node'),
-            capturedNode: document.getElementById('captured-node'),
-            completeNode: document.getElementById('read-complete-node'),
-            timeout: document.getElementById('timeout-input'),
-            captureMode: document.getElementById('capture-mode-select')
-        };
-
-        // Prüfe jedes Element
-        for (const [key, element] of Object.entries(requiredElements)) {
-            if (!element) {
-                console.error(`Suche nach Element mit ID: ${key}`);
-                throw new Error(`Element '${key}' nicht gefunden`);
-            }
-        }
-
-        // Sammle die Basisdaten
-        const processData = {
-            device: requiredElements.device.value,
-            methodParentNode: requiredElements.methodParentNode.value,
-            methodImageNode: requiredElements.methodImageNode.value,
-            imageNode: requiredElements.imageNode.value,
-            capturedNode: requiredElements.capturedNode.value,
-            completeNode: requiredElements.completeNode.value,
-            timeout: parseInt(requiredElements.timeout.value) || 30,
-            captureMode: requiredElements.captureMode.value,
-            additionalInput: '',
-            status: 'active'
-        };
-
-        // Hole die zusätzlichen Elemente basierend auf dem captureMode
-        if (processData.captureMode === 'interval') {
-            const intervalInput = document.getElementById('interval-time-input');
-            if (!intervalInput) {
-                throw new Error('Interval Input nicht gefunden');
-            }
-            processData.additionalInput = intervalInput.value;
-        } else if (processData.captureMode === 'trigger') {
-            const triggerNode = document.getElementById('trigger-node-input');
-            if (!triggerNode) {
-                throw new Error('Trigger Node Input nicht gefunden');
-            }
-            processData.additionalInput = triggerNode.value;
-        }
-
-        // Debug-Ausgabe
-        console.log('ProcessData:', processData);
-
         // Validiere die Pflichtfelder
         const missingFields = [];
-        ['device', 'methodParentNode', 'methodImageNode', 'imageNode', 'capturedNode', 'completeNode'].forEach(field => {
+        ['device', 'methodParentNode', 'methodImageNode', 'imageNode', 'readCompletedNode', 'captureCompletedNode'].forEach(field => {
             if (!processData[field]) {
                 missingFields.push(field);
             }
@@ -453,7 +456,7 @@ async function saveProcess() {
 }
 
 // Aktualisiere die Event-Listener für den Capture Mode
-document.getElementById('capture-mode')?.addEventListener('change', function(e) {
+document.getElementById('capture-mode-select')?.addEventListener('change', function(e) {
     const intervalInputGroup = document.getElementById('interval-input-group');
     const triggerInputGroup = document.getElementById('trigger-input-group');
     
@@ -478,6 +481,14 @@ function updateReviewContent() {
             <h5>Method Nodes</h5>
             <p>Parent Node: ${processData.methodParentNode}</p>
             <p>Image Node: ${processData.methodImageNode}</p>
+            ${processData.methodArguments.length > 0 ? `
+                <h6>Method Arguments:</h6>
+                <ul>
+                    ${processData.methodArguments.map(arg => `
+                        <li>${arg.name}: ${arg.value}</li>
+                    `).join('')}
+                </ul>
+            ` : ''}
         </div>
         <div class="mb-3">
             <h5>Status Nodes</h5>
@@ -561,84 +572,131 @@ async function fetchAndPopulateDevicesProcess() {
 // Aktualisiere die fetchAndPopulateImgProcesses Funktion
 async function fetchAndPopulateImgProcesses() {
     try {
+        const response = await fetch(`/api/list-img-processes`);
+        if (!response.ok) {
+            throw new Error(`Error fetching /api/list-img-processes: ${response.status}`);
+        }
+
+        const data = await response.json();
         const tableBody = document.querySelector('#table-image-capture-process tbody');
-        if (!tableBody) {
-            console.warn('Tabelle für Image Capture Processes nicht gefunden');
+        
+        if (!tableBody) return;
+        
+        tableBody.innerHTML = '';
+        
+        if (!data || !Array.isArray(data.processes) || data.processes.length === 0) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 7;
+            cell.textContent = 'Keine Prozesse gefunden';
+            cell.className = 'text-center';
+            row.appendChild(cell);
+            tableBody.appendChild(row);
             return;
         }
 
-        const response = await fetch('/api/list-img-processes');
-        if (!response.ok) {
-            throw new Error('Fehler beim Laden der Prozesse');
-        }
-        
-        const data = await response.json();
-        tableBody.innerHTML = '';
-        
-        if (!data || !Array.isArray(data)) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="9" class="text-center">No processes found</td>
-                </tr>
-            `;
-            return;
-        }
-        
-        data.forEach(process => {
+        data.processes.forEach(process => {
             const row = document.createElement('tr');
+            
+            // Parse headers wenn vorhanden
+            let headers = [];
+            try {
+                if (process.headers) {
+                    headers = JSON.parse(process.headers);
+                }
+            } catch (e) {
+                console.error('Fehler beim Parsen der Headers:', e);
+            }
+
             row.innerHTML = `
-                <td>${process.device || '-'}</td>
-                <td>${process.methodParentNode || '-'}</td>
-                <td>${process.methodImageNode || '-'}</td>
-                <td>${process.imageNode || '-'}</td>
-                <td>${process.capturedNode || '-'}</td>
-                <td>${process.completeNode || '-'}</td>
-                <td>${process.captureMode === 'interval' ? 
-                    `Interval: ${process.additionalInput}s` : 
-                    `Trigger: ${process.additionalInput}`}</td>
-                <td>${process.status || '-'}</td>
-                <td>
-                    <button class="btn btn-primary btn-sm edit-process" data-process-id="${process.id}">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm delete-process" data-process-id="${process.id}">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                <td class="text-center">${process.id || ''}</td>
+                <td class="text-center">${process.device || ''}</td>
+                <td class="text-center">${process.m_image_node || ''}</td>
+                <td class="text-center">${process.image_node || ''}</td>
+                <td class="text-center">${process.capture_mode + ' (' + process.trigger + ')'}</td>
+                <td class="text-center">${process.rest_uri || ''}</td>
+                <td class="text-center">
+                    <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" style="margin-left: 5px;">
+                        <i class="fas fa-eye btnNoBorders" style="color: #28A745;" data-process-id="${process.id}"></i>
+                    </a>
+                    <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" style="margin-left: 5px;">
+                        <i class="fas fa-trash btnNoBorders" style="color: #DC3545;" data-process-id="${process.id}"></i>
+                    </a>
                 </td>
             `;
 
-            // Event-Listener für Edit und Delete
-            const editBtn = row.querySelector('.edit-process');
-            const deleteBtn = row.querySelector('.delete-process');
-
+            // Event-Listener für Bearbeiten-Button
+            const editBtn = row.querySelector('.fa-pen');
             if (editBtn) {
-                editBtn.addEventListener('click', () => editProcess(process.id));
+                editBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Hier können Sie die Edit-Funktion aufrufen
+                    console.log('Edit process:', process.id);
+                });
             }
 
+            // Event-Listener für Löschen-Button
+            const deleteBtn = row.querySelector('.fa-trash');
             if (deleteBtn) {
-                deleteBtn.addEventListener('click', () => {
-                    if (confirm('Do you really want to delete this process?')) {
-                        deleteProcess(process.id);
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    if (confirm('Möchten Sie diesen Prozess wirklich löschen?')) {
+                        try {
+                            const response = await fetch(`/api/image-process/${process.id}`, {
+                                method: 'DELETE'
+                            });
+                            if (!response.ok) throw new Error('Fehler beim Löschen');
+                            await fetchAndPopulateImgProcesses(); // Tabelle neu laden
+                        } catch (error) {
+                            console.error('Fehler beim Löschen:', error);
+                            alert('Fehler beim Löschen des Prozesses');
+                        }
+                    }
+                });
+            }
+
+            // Event-Listener für das Auge-Icon
+            const viewBtn = row.querySelector('.fa-eye');
+            if (viewBtn) {
+                viewBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const processId = viewBtn.dataset.processId;
+                    try {
+                        const response = await fetch(`/api/img-process/${processId}/status`);
+                        if (!response.ok) throw new Error('Fehler beim Laden des Status');
+                        
+                        const data = await response.json();
+                        if (!data.status || !data.statusData) {
+                            alert('Kein Bild verfügbar');
+                            return;
+                        }
+
+                        // Öffne das Modal
+                        const imageModal = new bootstrap.Modal(document.getElementById('modal-captured-image'));
+                        const modalImage = document.querySelector('#modal-captured-image img');
+                        
+                        // Setze das Base64-Bild
+                        modalImage.src = `data:image/png;base64,${data.statusData}`;
+                        
+                        // Setze den Status als figure caption
+                        const statusCaption = document.querySelector('#modal-captured-image figcaption');
+                        statusCaption.textContent = ("Captured at: " + data.status + " from " + data.device);
+
+                        // Zeige das Modal
+                        imageModal.show();
+                    } catch (error) {
+                        console.error('Fehler beim Laden des Bildes:', error);
+                        alert('Fehler beim Laden des Bildes');
                     }
                 });
             }
 
             tableBody.appendChild(row);
         });
-        
+        console.log("Daten wurden geladen und angezeigt");
     } catch (error) {
-        console.error('Fehler beim Laden der Prozesse:', error);
-        const tableBody = document.querySelector('#table-image-capture-process tbody');
-        if (tableBody) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="9" class="text-center text-danger">
-                        <i class="fas fa-exclamation-circle"></i> 
-                        Error loading processes: ${error.message}
-                    </td>
-                </tr>
-            `;
-        }
+        console.error('Error fetching /api/list-img-processes:', error);
+        alert('Fehler beim Laden der Prozesse');
     }
 }
 
@@ -662,7 +720,7 @@ async function editProcess(processId) {
         document.getElementById('read-completed-node-input').value = process.completeNode;
         document.getElementById('timeout-input').value = process.timeout || 30;
         document.getElementById('capture-mode-select').value = process.captureMode;
-        document.getElementById('rest-uri-input').value = process.restUri;
+        document.getElementById('rest-uri-wizard-input').value = process.restUri;
         document.getElementById('header-list-p').innerHTML = process.headers.map(header => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <span><strong>${header.name}</strong>: ${header.value}</span>
@@ -710,4 +768,122 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saveButton) {
         saveButton.addEventListener('click', saveProcess);
     }
-}); 
+});
+
+// Neue Funktionen für die Bildanzeige
+async function fetchAndDisplayImages() {
+    try {
+        const response = await fetch('/api/list-captured-images');
+        if (!response.ok) {
+            throw new Error(`Fehler beim Laden der Bilder: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const container = document.getElementById('images-container');
+        container.innerHTML = ''; // Container leeren
+
+        if (!data || !Array.isArray(data.images) || data.images.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center">
+                    <p class="text-muted">Keine Bilder gefunden</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Bilder anzeigen
+        data.images.forEach(image => {
+            const timestamp = new Date(image.timestamp);
+            const size = (image.size / 1024).toFixed(2); // Größe in KB
+            const deviceName = image.filename.split('/')[0]; // Erster Teil des Pfads ist der Gerätename
+
+            const col = document.createElement('div');
+            col.className = 'col-md-4 col-lg-3 mb-4';
+            col.innerHTML = `
+                <div class="card h-100">
+                    <img src="/data/shared/${image.filename}" 
+                         class="card-img-top" 
+                         alt="${image.filename}"
+                         style="object-fit: cover; height: 200px;">
+                    <div class="card-body">
+                        <h6 class="card-title">${image.filename}</h6>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                Gerät: ${deviceName}<br>
+                                Aufgenommen: ${timestamp.toLocaleString()}<br>
+                                Größe: ${size} KB
+                            </small>
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100">
+                            <button class="btn btn-primary btn-sm view-image" 
+                                    data-filename="${image.filename}">
+                                <i class="fas fa-eye"></i> Anzeigen
+                            </button>
+                            <button class="btn btn-danger btn-sm delete-image" 
+                                    data-filename="${image.filename}">
+                                <i class="fas fa-trash"></i> Löschen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(col);
+
+            // Event-Listener für Anzeige-Button
+            const viewBtn = col.querySelector('.view-image');
+            viewBtn.addEventListener('click', () => {
+                const modal = new bootstrap.Modal(document.getElementById('modal-captured-image'));
+                const modalImage = document.querySelector('#modal-captured-image img');
+                const modalCaption = document.querySelector('#modal-captured-image figcaption');
+                
+                modalImage.src = `/data/shared/${image.filename}`;
+                modalCaption.textContent = `${deviceName} - ${timestamp.toLocaleString()}`;
+                modal.show();
+            });
+
+            // Event-Listener für Lösch-Button
+            const deleteBtn = col.querySelector('.delete-image');
+            deleteBtn.addEventListener('click', async () => {
+                if (confirm(`Möchten Sie das Bild "${image.filename}" wirklich löschen?`)) {
+                    await deleteImage(image.filename);
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error('Fehler beim Laden der Bilder:', error);
+        alert('Fehler beim Laden der Bilder: ' + error.message);
+    }
+}
+
+async function deleteImage(filename) {
+    try {
+        const response = await fetch(`/api/captured-image/${encodeURIComponent(filename)}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Fehler beim Löschen des Bildes');
+        }
+
+        await fetchAndDisplayImages(); // Aktualisiere die Anzeige
+        
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        alert('Fehler beim Löschen des Bildes: ' + error.message);
+    }
+}
+
+// // Event-Listener für den Refresh-Button
+// document.addEventListener('DOMContentLoaded', function() {
+//     // Initial laden
+//     fetchAndDisplayImages();
+
+//     // Refresh-Button
+//     const refreshBtn = document.getElementById('refresh-images-btn');
+//     if (refreshBtn) {
+//         refreshBtn.addEventListener('click', fetchAndDisplayImages);
+//     }
+// }); 

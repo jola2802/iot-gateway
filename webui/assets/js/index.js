@@ -35,12 +35,28 @@
                         const nodeRedElement = document.getElementById('node-red-connection');
                         nodeRedElement.textContent = data.nodeRedConnection ? 'Connected' : 'Disconnected';
                         nodeRedElement.style.color = data.nodeRedConnection ? 'green' : 'red';
+
+                        // Node-RED-URL aktualisieren nur wenn der Wert nicht leer ist
+                        if (data.nodeRedURL !== undefined) {
+                            fetch('/api/get-node-red-url')
+                                .then(response => response.json())
+                            .then(data => {
+                                nodeRedElement.href = data.nodeRedURL;
+                            });
+                        }
                     }
-                    // Node-RED-Adresse aktualisieren
-                    if (data.nodeRedAddress !== undefined) {
-                        const nodeRedAddressElement = document.getElementById('node-red-address');
-                        nodeRedAddressElement.textContent = data.nodeRedAddress;
-                        nodeRedAddressElement.href = data.nodeRedAddress;
+                    // Node-RED-Adresse aktualisieren wenn noch kein wert vorhanden ist
+                    const nodeRedAddressElement = document.getElementById('node-red-address');
+                    
+                    // Check ob bereits ein wert in nodeRedAddressElement gespeichert ist
+                    if (nodeRedAddressElement.href === undefined || nodeRedAddressElement.href === "" || nodeRedAddressElement.href === null) {
+                        // Node-RED-URL aktualisieren nur wenn der Wert nicht leer ist
+                        fetch('/api/get-node-red-url')
+                        .then(response => response.json())
+                        .then(data => {
+                            nodeRedAddressElement.href = data.nodeRedURL;
+                            nodeRedAddressElement.style.color = 'black';
+                        });
                     }
                 }
 

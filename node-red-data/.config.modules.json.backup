@@ -12,54 +12,5 @@
         "subpath": "",
         "builtin": false,
         "known": false
-    },
-    "fs-extra": {
-        "spec": "fs-extra",
-        "module": "fs-extra",
-        "subpath": "",
-        "builtin": false,
-        "known": false
-    },
-    "mqtt": {
-        "spec": "mqtt",
-        "module": "mqtt",
-        "subpath": "",
-        "builtin": false,
-        "known": false
-    },
-    "jsonwebtoken": {
-        "spec": "jsonwebtoken",
-        "module": "jsonwebtoken",
-        "subpath": "",
-        "builtin": false,
-        "known": false
-    },
-    "node-mqtt": {
-        "spec": "node-mqtt",
-        "module": "node-mqtt",
-        "subpath": "",
-        "builtin": false,
-        "known": false
-    },
-    "luxon": {
-        "spec": "luxon",
-        "module": "luxon",
-        "subpath": "",
-        "builtin": false,
-        "known": false
-    },
-    "s7": {
-        "spec": "s7",
-        "module": "s7",
-        "subpath": "",
-        "builtin": false,
-        "known": false
-    },
-    "modbus": {
-        "spec": "modbus",
-        "module": "modbus",
-        "subpath": "",
-        "builtin": false,
-        "known": false
     }
 }

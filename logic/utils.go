@@ -137,7 +137,7 @@ func readSecurityOptions(db *sql.DB, deviceID string) (security struct {
 
 // Hilfsfunktion: Lese alle OPC-UA-Knoten eines Gerätes
 func readOPCUANodes(db *sql.DB, deviceID string) ([]opcua.DataNode, error) {
-	nodeQuery := `SELECT name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
+	nodeQuery := `SELECT datapointId, name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
 	rows, err := db.Query(nodeQuery, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("DM: Error querying OPC-UA nodes: %v", err)
@@ -146,11 +146,12 @@ func readOPCUANodes(db *sql.DB, deviceID string) ([]opcua.DataNode, error) {
 
 	var nodes []opcua.DataNode
 	for rows.Next() {
-		var nodeName, nodeIdentifier string
-		if err := rows.Scan(&nodeName, &nodeIdentifier); err != nil {
+		var datapointId, nodeName, nodeIdentifier string
+		if err := rows.Scan(&datapointId, &nodeName, &nodeIdentifier); err != nil {
 			return nil, fmt.Errorf("DM: Error scanning node data: %v", err)
 		}
 		nodes = append(nodes, opcua.DataNode{
+			ID:   datapointId,
 			Name: nodeName,
 			Node: nodeIdentifier,
 		})
@@ -207,7 +208,7 @@ func readS7DeviceConfig(db *sql.DB, deviceID string) (opcua.DeviceConfig, error)
 
 // Liest die S7-Datenpunkte eines Gerätes aus der s7_datapoints-Tabelle
 func readS7Datapoints(db *sql.DB, deviceID string) ([]opcua.Datapoint, error) {
-	query := `SELECT name, datatype, address FROM s7_datapoints WHERE device_id = ?`
+	query := `SELECT datapointId, name, datatype, address FROM s7_datapoints WHERE device_id = ?`
 	rows, err := db.Query(query, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("DM: Error querying S7 datapoints: %v", err)
@@ -217,7 +218,7 @@ func readS7Datapoints(db *sql.DB, deviceID string) ([]opcua.Datapoint, error) {
 	var datapoints []opcua.Datapoint
 	for rows.Next() {
 		var dp opcua.Datapoint
-		if err := rows.Scan(&dp.Name, &dp.Datatype, &dp.Address); err != nil {
+		if err := rows.Scan(&dp.ID, &dp.Name, &dp.Datatype, &dp.Address); err != nil {
 			return nil, fmt.Errorf("DM: Error scanning S7 datapoint: %v", err)
 		}
 		datapoints = append(datapoints, dp)

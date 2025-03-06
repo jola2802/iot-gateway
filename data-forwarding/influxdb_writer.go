@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,14 +17,6 @@ import (
 	packets "github.com/mochi-mqtt/server/v2/packets"
 	"github.com/sirupsen/logrus"
 )
-
-// InfluxConfig speichert die InfluxDB-Konfiguration, die aus der SQLite-Tabelle influxdb geladen wird.
-type InfluxConfig struct {
-	URL    string
-	Token  string
-	Org    string
-	Bucket string
-}
 
 // Globale Variablen für das Buffering
 var (
@@ -39,6 +32,16 @@ var (
 	// Neu: Zeitpunkt der letzten empfangenen Nachricht
 	lastMessageReceived time.Time
 )
+
+func SetInfluxDBConfig(influxdbURL string, influxdbToken string, influxdbOrg string, influxdbBucket string) {
+	influxConfig = &InfluxConfig{
+		URL:    influxdbURL,
+		Token:  influxdbToken,
+		Org:    influxdbOrg,
+		Bucket: influxdbBucket,
+	}
+
+}
 
 // GetInfluxConfig lädt die korrekte InfluxDB-Konfiguration aus der SQLite-Datenbank.
 func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
@@ -66,7 +69,7 @@ func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
 			continue
 		}
 
-		logrus.Infof("Verwende InfluxDB Konfiguration: %s", config.URL)
+		// logrus.Infof("Verwende InfluxDB Konfiguration: %s", config.URL)
 		return &config, nil
 	}
 
@@ -144,7 +147,7 @@ func writeDeviceDataToInflux(db *sql.DB, device DeviceData) error {
 	measurement := device.Datapoint
 	point := influxdb2.NewPointWithMeasurement(measurement).
 		AddTag("deviceId", device.DeviceId).
-		AddTag("datapoint_Id", device.DatapointId).
+		AddTag("datapointId", device.DatapointId).
 		AddField("value", device.Value).
 		SetTime(time.Now())
 
@@ -158,9 +161,9 @@ func writeDeviceDataToInflux(db *sql.DB, device DeviceData) error {
 		bufferMutex.Unlock()
 		return flushBuffer(db)
 	}
-	// Falls kein Timer aktiv ist, starte einen Timer für 5 Sekunden
+	// Falls kein Timer aktiv ist, starte einen Timer für 1000 milliseconds
 	if flushTimer == nil {
-		// logrus.Infof("No flush timer active. Setting up flush timer for 5 seconds")
+		// logrus.Infof("No flush timer active. Setting up flush timer for 1000 milliseconds")
 		flushTimer = time.AfterFunc(1000*time.Millisecond, func() {
 			// logrus.Infof("Flush timer triggered")
 			if err := flushBuffer(db); err != nil {
@@ -185,13 +188,18 @@ func influxMessageCallback(db *sql.DB) func(client *MQTT.Client, sub packets.Sub
 		}
 		deviceId := parts[2]
 		measurement := parts[3]
+
+		// measurement ist der Name bestehend aus [DatapointId]_[DatapointName]
+		// wir müssen also DatapointId und DatapointName trennen --> DatapointId in der ersten Klammer, DatapointName in der zweiten Klammer
+		datapointId := strings.Split(measurement, "[")[1]
+		datapointId = strings.Split(datapointId, "]")[0]
 		fieldValue := processPayload(pk.Payload)
 
 		dd := DeviceData{
 			DeviceId:    deviceId,
 			DeviceName:  "", // nicht benötigt
 			Datapoint:   measurement,
-			DatapointId: "",
+			DatapointId: datapointId,
 			Value:       fieldValue,
 		}
 
@@ -205,7 +213,7 @@ func influxMessageCallback(db *sql.DB) func(client *MQTT.Client, sub packets.Sub
 func StartInfluxDBWriter(db *sql.DB, server *MQTT.Server) {
 	// logrus.Infof("Starte InfluxDB-Writer")
 	// Verwende den neuen Callback
-	server.Subscribe("data/#", 2, influxMessageCallback(db))
+	server.Subscribe("data/#", rand.Intn(100), influxMessageCallback(db))
 	// Setze den initialen Zeitpunkt auf jetzt
 	lastMessageReceived = time.Now()
 	go monitorServer(db, server)
@@ -223,7 +231,7 @@ func monitorServer(db *sql.DB, server *MQTT.Server) {
 			logrus.Warn("Keine Nachrichten in den letzten 5000 Millisekunden empfangen. Versuche, die MQTT-Verbindung wiederherzustellen (Re-Subscribe)...")
 			// Re-Subscribe: Die Verwendung unserer Callback-Hilfsfunktion stellt sicher,
 			// dass auch der Zeitstempel neu gesetzt wird, sobald eine Nachricht ankommt.
-			if err := server.Subscribe("data/#", 2, influxMessageCallback(db)); err != nil {
+			if err := server.Subscribe("data/#", rand.Intn(100), influxMessageCallback(db)); err != nil {
 				logrus.Errorf("Fehler beim erneuten Subscriben: %v", err)
 			} else {
 				logrus.Infof("Re-Subscribe erfolgreich")
@@ -280,11 +288,13 @@ func StartDataForwarding(db *sql.DB, server *MQTT.Server) {
 	var routes []DataRoute
 	for rows.Next() {
 		var route DataRoute
-		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Devices, &route.DestinationURL, &route.Headers, &route.FilePath, &route.Interval, &route.Status)
+		var interval int
+		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Devices, &route.DestinationURL, &route.Headers, &route.FilePath, &interval, &route.Status)
 		if err != nil {
 			logrus.Errorf("Fehler beim Scannen der Datenroute: %v", err)
 			continue
 		}
+		route.Interval = strconv.Itoa(interval)
 		logrus.Infof("Datenroute geladen: %v", route)
 	}
 

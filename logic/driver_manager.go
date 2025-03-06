@@ -14,14 +14,14 @@ import (
 
 // Define detailed device states
 const (
-	Stopped       = "0 (stopped)"
-	Running       = "1 (running)"
-	Initializing  = "2 (initializing)"
-	Error         = "3 (error)"
-	No_Datapoints = "4 (no datapoints)"
-	No_Connection = "5 (no connection)"
-	Paused        = "4 (paused)"
-	deleted       = "9 (deleted)"
+	Stopped         = "0 (stopped)"
+	Running         = "1 (running)"
+	Initializing    = "2 (initializing)"
+	Error           = "3 (error)"
+	No_Datapoints   = "4 (no datapoints)"
+	No_Connection   = "5 (no connection)"
+	Connection_Lost = "6 (connection lost)"
+	deleted         = "9 (deleted)"
 )
 
 var (
@@ -46,7 +46,7 @@ func StartAllDrivers(dbF *sql.DB, serverF *MQTT.Server) {
 	}
 
 	// Alle Gerätedaten zwischenlesen und in einem Slice speichern
-	query := `SELECT id, type, name, address, acquisition_time FROM devices`
+	query := `SELECT id, type, name FROM devices`
 	rows, err := db.Query(query)
 	if err != nil {
 		logrus.Fatalf("DM: Error querying devices from database: %v", err)
@@ -56,14 +56,13 @@ func StartAllDrivers(dbF *sql.DB, serverF *MQTT.Server) {
 	// Verwende ein Slice von []interface{} pro Zeile
 	var devicesData [][]interface{}
 	for rows.Next() {
-		var id, devType, name, address string
-		var acqTime int
-		if err := rows.Scan(&id, &devType, &name, &address, &acqTime); err != nil {
+		var id, devType, name string
+		if err := rows.Scan(&id, &devType, &name); err != nil {
 			logrus.Errorf("DM: Error scanning device data: %v", err)
 			continue
 		}
 		// Speichere die Zeile als Slice – ohne extra Struct
-		devicesData = append(devicesData, []interface{}{id, devType, name, address, acqTime})
+		devicesData = append(devicesData, []interface{}{id, devType, name})
 	}
 
 	// Am besten in einer eigenen Goroutine starten
@@ -74,8 +73,6 @@ func StartAllDrivers(dbF *sql.DB, serverF *MQTT.Server) {
 			deviceID := d[0].(string)
 			deviceType := d[1].(string)
 			deviceName := d[2].(string)
-			// deviceAddress := d[3].(string) // falls benötigt
-			// acquisitionTime := d[4].(int)   // falls benötigt
 
 			switch deviceType {
 			case "opc-ua":
@@ -112,7 +109,7 @@ func StopAllDrivers() {
 	logrus.Info("DM: All drivers have been stopped.")
 }
 
-func RestartAllDrivers(db *sql.DB) {
+func RestartAllDrivers(db *sql.DB, server *MQTT.Server) {
 	logrus.Info("DM: Restarting all drivers...")
 	StopAllDrivers()
 	time.Sleep(200 * time.Millisecond)
@@ -128,12 +125,12 @@ func RestartDevice(db *sql.DB, deviceID string) {
 
 	var deviceType string
 	if err := db.QueryRowContext(ctx, `SELECT type FROM devices WHERE id = ?`, deviceID).Scan(&deviceType); err != nil {
-		logrus.Errorf("DM: Fehler beim Abfragen des Gerätetyps: %v", err)
+		logrus.Errorf("DM: Error querying device type: %v", err)
 		return
 	}
 
 	switch deviceType {
-	case "opc-ua":
+	case "opc-ua", "opcua":
 		restartOPCUADriver(db, deviceID)
 	case "s7":
 		restartS7Driver(db, deviceID)
@@ -187,8 +184,7 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 	opcuaConfig.DataNode = nodes
 
 	// Verbindungstest vor dem Start des Treibers
-	if connected := opcua.TestConnection(opcuaConfig); !connected {
-		// Check if error because of missing wrong credentials or missing certificate etc.
+	if connected := opcua.TestConnection(opcuaConfig, db); !connected {
 		state.status = No_Connection
 		logrus.Errorf("DM: Keine Verbindung möglich zu OPC-UA Gerät %s", opcuaConfig.Name)
 		publishDeviceState(server, "opc-ua", deviceID, state.status)
@@ -198,7 +194,7 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 	stopChan := make(chan struct{})
 	opcuaStopChans[deviceID] = stopChan
 
-	// Starte den OPC-UA-Treiber in einer separaten Goroutine
+	// Starte den OPC-UA-Treiber in einer separaten Goroutine mit genauer Fehlerbehandlung
 	go func() {
 		if err := opcua.Run(opcuaConfig, db, stopChan, server); err != nil {
 			st := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
@@ -223,7 +219,7 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 //
 // Example:
 //
-//	stopOPCUADriver("device-123")
+//	stopOPCUADriver("123")
 func stopOPCUADriver(deviceID string) {
 	state := getOrCreateDeviceState(deviceID, opcuaDeviceStates)
 	state.mu.Lock()
@@ -260,7 +256,7 @@ func restartOPCUADriver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting OPC-UA driver for device %s...", deviceID)
 	stopOPCUADriver(deviceID)
 	time.Sleep(1 * time.Second)
-	StartOPCUADriver(db, deviceID)
+	go StartOPCUADriver(db, deviceID)
 }
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S7-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -352,5 +348,5 @@ func restartS7Driver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting S7 driver for device %s...", deviceID)
 	stopS7Driver(deviceID)
 	time.Sleep(1 * time.Second)
-	StartS7Driver(db, deviceID)
+	go StartS7Driver(db, deviceID)
 }

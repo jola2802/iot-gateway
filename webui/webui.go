@@ -1,9 +1,9 @@
 package webui
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"net/http"
-	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -44,12 +44,15 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
-	store := cookie.NewStore([]byte("secret"))
-	store.Options(sessions.Options{
-		MaxAge: int(1 * time.Minute),
-		Secure: true,
-	})
-	r.Use(sessions.Sessions("mysession", store))
+	randomKey := make([]byte, 32)
+	_, err = rand.Read(randomKey)
+	if err != nil {
+		logrus.Fatal("Failed to generate random key: ", err)
+	}
+
+	store := cookie.NewStore(randomKey)
+	sessionName := "idpm-gateway-session"
+	r.Use(sessions.Sessions(sessionName, store))
 
 	// Store the db connection and mqtt server in the context, so it can be accessed in route handlers
 	r.Use(func(c *gin.Context) {

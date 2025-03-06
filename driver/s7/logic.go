@@ -12,28 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Gerätekonfigurationsstruktur
-type DeviceConfig struct {
-	Type            string               `json:"type"`
-	Name            string               `json:"name"`
-	Address         string               `json:"address"`
-	AcquisitionTime int                  `json:"acquisitionTime"`
-	Rack            int                  `json:"rack"`
-	Slot            int                  `json:"slot"`
-	Datapoint       []Datapoint          `json:"datapoints"`
-	PLCClient       *s7.Client           `json:"-"`
-	PLCHandler      *s7.TCPClientHandler `json:"-"`
-	ID              string               `json:"id"` // ID des Geräts
-
-}
-
-// Datapoint defines a single datapoint to be read from the PLC
-type Datapoint struct {
-	Name     string `json:"name"`
-	DataType string `json:"datatype"`
-	Address  string `json:"address"`
-}
-
 // Run startet die Datenerfassung und -verarbeitung für ein einzelnes S7-Gerät
 func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
 	for {
@@ -48,6 +26,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 		data, err := initClient(device)
 		if err != nil {
 			logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
+			publishDeviceState(server, "s7", device.ID, "5 (no connection)", db)
 			// Warte 10 Sekunden vor dem nächsten Versuch
 			time.Sleep(10 * time.Second)
 			continue
@@ -57,15 +36,42 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 		mqttData, err := convData(data, device.Name)
 		if err != nil {
 			logrus.Errorf("S7: Error converting data: %v", err)
+			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
 			return err
 		}
 		if err := pubData(mqttData, device.ID, server); err != nil {
 			logrus.Errorf("S7: Error publishing data: %v", err)
+			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
 			return err
 		}
 
 		time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)
 	}
+}
+
+// MQTT-Publikation mit exponentiellem Backoff
+func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status string, db *sql.DB) {
+	topic := "iot-gateway/driver/states/" + deviceType + "/" + deviceID
+	publishWithBackoff(server, topic, status, 5)
+
+	// Publish the state to the db
+	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)
+	if err != nil {
+		logrus.Errorf("Error updating device state in the database: %v", err)
+	}
+}
+
+func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRetries int) {
+	backoff := 200 * time.Millisecond
+	for i := 0; i < maxRetries; i++ {
+		err := server.Publish(topic, []byte(payload), true, 2)
+		if err == nil {
+			return
+		}
+		time.Sleep(backoff)
+		backoff *= 2 // Exponentielles Wachstum der Wartezeit
+	}
+	logrus.Errorf("Failed to publish message after %d retries", maxRetries)
 }
 
 // TestConnection versucht eine Verbindung zur S7-SPS herzustellen

@@ -50,6 +50,21 @@ const (
 		);
 	`
 
+	createSettingsTable = `
+		CREATE TABLE IF NOT EXISTS settings (
+			id INTEGER PRIMARY KEY,
+			docker_ip TEXT,
+			use_custom_services BOOLEAN DEFAULT FALSE,
+			nodered_url TEXT,
+			influxdb_url TEXT,
+			use_external_broker BOOLEAN DEFAULT FALSE,
+			broker_url TEXT,
+			broker_port TEXT,
+			broker_username TEXT,
+			broker_password TEXT
+		);
+	`
+
 	createDevicesTable = `
 		CREATE TABLE IF NOT EXISTS devices (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,17 +146,17 @@ const (
 			device TEXT NOT NULL,
 			m_parent_node TEXT NOT NULL,
 			m_image_node TEXT NOT NULL,
+			method_arguments TEXT NOT NULL,
 			image_node TEXT NOT NULL,
 			captured_node TEXT NOT NULL,
 			timeout TEXT NOT NULL,
 			capture_mode TEXT NOT NULL,
 			trigger TEXT NOT NULL,
 			complete_node TEXT NOT NULL,
-			enableUpload BOOLEAN NOT NULL,
-			uploadUrl TEXT NOT NULL,
-			basePath TEXT NOT NULL,
-			logs TEXT DEFAULT NULL,
-			status TEXT DEFAULT NULL
+			rest_uri TEXT NOT NULL,
+			headers TEXT DEFAULT NULL,
+			status TEXT DEFAULT NULL,
+			status_data TEXT DEFAULT NULL
 		);
 	`
 
@@ -151,6 +166,15 @@ const (
 			token TEXT NOT NULL,
 			org TEXT NOT NULL,
 			bucket TEXT NOT NULL
+		);
+	`
+
+	createImagesTable = `
+		CREATE TABLE IF NOT EXISTS images (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			device TEXT NOT NULL,
+			image TEXT NOT NULL,
+			timestamp TEXT NOT NULL
 		);
 	`
 )
@@ -178,6 +202,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		createACLTable,
 		createUsersTable,
 		createBrokerSettingsTable,
+		createSettingsTable,
 		createDevicesTable,
 		createS7DatapointsTable,
 		createOPCUADatanodesTable,
@@ -186,6 +211,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		createdeviceDataTable,
 		createImageProcessTable,
 		createInfluxDBTable,
+		createImagesTable,
 	}
 
 	// Tabellen erstellen
@@ -195,12 +221,31 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		}
 	}
 
-	// Check if there are any users in the database
+	// Überprüfe, ob bereits Einstellungen in der settings-Tabelle existieren
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	db.QueryRow("SELECT COUNT(*) FROM settings").Scan(&count)
+
+	// Wenn keine Einstellungen vorhanden sind, erstelle Standardeinstellungen
+	if count == 0 {
+		_, err = db.Exec(`
+			INSERT INTO settings (
+				id, docker_ip, use_custom_services, nodered_url, influxdb_url,
+				use_external_broker, broker_url, broker_port, broker_username, broker_password
+			) VALUES (
+				1, '192.168.0.84', false, ':7777', ':8086', false, '', '', '', ''
+			)
+		`)
+		if err != nil {
+			logrus.Errorf("Fehler beim Erstellen der Standardeinstellungen: %v", err)
+		}
+	}
+
+	// Check if there are any users in the database
+	var countUsers int
+	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&countUsers)
 
 	// If no users are found, create a default admin user
-	if count == 0 {
+	if countUsers == 0 {
 		db.Exec(`
             INSERT INTO users (username, password, name, address, company, email)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -208,15 +253,32 @@ func InitDB(dbPath string) (*sql.DB, error) {
 	}
 
 	// Check if there are any broker settings in the database
-	db.QueryRow("SELECT COUNT(*) FROM broker_settings").Scan(&count)
+	var countBrokerSettings int
+	db.QueryRow("SELECT COUNT(*) FROM broker_settings").Scan(&countBrokerSettings)
 
 	// If no broker settings are found, create a default setting
-	if count == 0 {
+	if countBrokerSettings == 0 {
 		db.Exec(`
             INSERT INTO broker_settings (address, username, password)
             VALUES (?, ?, ?)
         `, "ws://127.0.0.1:5001", "admin", "abc+1247")
 	}
+
+	// Check if there are any InfluxDB settings in the database
+	var countInfluxDB int
+	db.QueryRow("SELECT COUNT(*) FROM influxdb").Scan(&countInfluxDB)
+
+	// If no InfluxDB settings are found, create a default setting
+	if countInfluxDB == 0 {
+		db.Exec(`
+			INSERT INTO influxdb (url, token, org, bucket)
+			VALUES (?, ?, ?, ?)
+		`, "http://influxdb:8086", "secret-token", "idpm", "iot-data")
+	}
+
+	// Check if there are any settings in the settings table
+	var countSettings int
+	db.QueryRow("SELECT COUNT(*) FROM settings").Scan(&countSettings)
 
 	return db, nil
 }

@@ -2,67 +2,14 @@ package opcua
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/tls"
 	"errors"
-	"time"
 
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
 	"github.com/sirupsen/logrus"
 )
 
-var opcuaClients = make(map[string]*opcua.Client) // Map to store OPC-UA clients by device name
-
-// InitClient initialisiert den OPC-UA-Client
-func InitClient(address, securityPolicy string, securityMode ua.MessageSecurityMode, certFile string, keyFile string, username, password string) (*opcua.Client, error) {
-	// Optionen initialisieren
-	opts := []opcua.Option{
-		opcua.SecurityMode(securityMode),
-		opcua.SecurityPolicy(securityPolicy),
-		opcua.AutoReconnect(true),
-		opcua.ReconnectInterval(15 * time.Second),
-		opcua.RequestTimeout(30 * time.Second),
-	}
-
-	// Zertifikat und Private Key für Sicherheit einbinden, wenn nötig
-	if securityMode != ua.MessageSecurityModeNone && securityPolicy != "None" {
-		if certFile != "" && keyFile != "" {
-			cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-			if err != nil {
-				logrus.Errorf("OPC-UA: failed to load client certificate and key: %v", err)
-				return nil, errors.New("failed to load client certificate and key")
-			}
-
-			// Typumwandlung des privaten Schlüssels
-			privateKey, ok := cert.PrivateKey.(*rsa.PrivateKey)
-			if !ok {
-				return nil, errors.New("OPC-UA: invalid private key type; expected RSA private key")
-			}
-
-			// Füge das Zertifikat und den privaten Schlüssel zu den Optionen hinzu
-			opts = append(opts, opcua.Certificate(cert.Certificate[0]), opcua.PrivateKey(privateKey))
-		} else {
-			logrus.Warn("Security mode and policy require a certificate and private key, but none were provided")
-		}
-	}
-
-	// OPC-UA Client erstellen
-	client, err := opcua.NewClient(address, opts...)
-	if err != nil {
-		logrus.Errorf("OPC-UA: failed to create OPC-UA client: %v", err)
-		return nil, errors.New("failed to create OPC-UA client")
-	}
-	ctx := context.Background()
-	if err := client.Connect(ctx); err != nil {
-		logrus.Errorf("OPC-UA: failed to connect to OPC-UA server: %v", err)
-		return nil, errors.New("failed to connect to OPC-UA server")
-	}
-
-	return client, nil
-}
-
-func ReadData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
+func readData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 	if client == nil {
 		return nil, errors.New("OPC-UA: client not connected")
 	}
@@ -87,7 +34,7 @@ func ReadData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 	ctx := context.Background()
 	readResponse, err := client.Read(ctx, readRequest)
 	if err != nil {
-		logrus.Errorf("OPC-UA: reading data failed: %v", err)
+		// logrus.Errorf("OPC-UA: reading data failed: %v", err)
 		return nil, errors.New("reading data failed")
 	}
 	// var errorMessages []string
@@ -105,6 +52,7 @@ func ReadData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 	return successfulResults, nil
 }
 
+// ---------------------- UNUSED --------------------------
 // UpdateDataNode aktualisiert einen OPC-UA-Datenpunkt
 func UpdateDataNode(client *opcua.Client, nodeID string, value interface{}) error {
 	if client == nil {

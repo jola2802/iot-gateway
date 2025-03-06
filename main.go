@@ -1,7 +1,7 @@
 package main
 
 import (
-	"time"
+	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -12,7 +12,12 @@ import (
 )
 
 var (
-	dbPath = "./iot_gateway.db"
+	dbPath         = "./iot_gateway.db"
+	noderedURL     = os.Getenv("NODE_RED_URL")
+	influxdbURL    = os.Getenv("INFLUXDB_URL")
+	influxdbToken  = os.Getenv("INFLUXDB_TOKEN")
+	influxdbOrg    = os.Getenv("INFLUXDB_ORG")
+	influxdbBucket = os.Getenv("INFLUXDB_BUCKET")
 )
 
 func main() {
@@ -20,32 +25,31 @@ func main() {
 	db, _ := logic.InitDB(dbPath)
 	defer db.Close()
 
+	// Set influxdb config
+	dataforwarding.SetInfluxDBConfig(influxdbURL, influxdbToken, influxdbOrg, influxdbBucket)
+
 	// Start MQTT-Broker
 	server := mqtt_broker.StartBroker(db)
 	logrus.Info("MAIN: Broker started.")
-
-	// InfluxDB-Writer
-	go dataforwarding.StartInfluxDBWriter(db, server)
-	defer dataforwarding.StopInfluxDBWriter()
 
 	// Web-UI
 	go webui.Main(db, server)
 	defer webui.StopWebUI()
 	logrus.Info("MAIN: Web-UI-server started.")
 
+	// InfluxDB-Writer
+	go dataforwarding.StartInfluxDBWriter(db, server)
+	defer dataforwarding.StopInfluxDBWriter()
+
 	// Start Driver
-	logic.StartAllDrivers(db, server)
+	go logic.StartAllDrivers(db, server)
+	defer logic.StopAllDrivers()
 
 	go dataforwarding.StartDataForwarding(db, server)
 	defer dataforwarding.StopDataForwarding()
 
-	// starte die dataroutes zyklisch alle 1 sekunde
-	go func() {
-		for {
-			dataforwarding.StartDataRoutes(db)
-			time.Sleep(1 * time.Second)
-		}
-	}()
+	webui.StartAllImageProcessWorkers(db, noderedURL)
+	// go webui.StartAllImageProcessWorkers(db, noderedURL)
 
 	select {}
 }

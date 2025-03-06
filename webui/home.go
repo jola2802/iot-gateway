@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	dataforwarding "iot-gateway/data-forwarding"
@@ -18,6 +20,7 @@ import (
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/rand"
 )
 
 type BrokerStatus struct {
@@ -25,12 +28,14 @@ type BrokerStatus struct {
 	NumberMessages    int    `json:"numberMessages"`
 	NumberDevices     int    `json:"numberDevices"`
 	NodeRedConnection bool   `json:"nodeRedConnection"`
-	NodeRedAddress    string `json:"nodeRedAddress"`
 }
 
 // Variable zum Speichern der Nachrichtenanzahl
 var messageCount int
 var brokerUptime string
+
+// Am Anfang der Datei einen Mutex für die driverIDs Map definieren
+var driverIDsMutex sync.RWMutex
 
 // showDashboard shows the dashboard page
 func showDashboard(c *gin.Context) {
@@ -74,7 +79,6 @@ func brokerStatusWebSocket(c *gin.Context) {
 
 	// Starte eine Goroutine, um den Broker-Status regelmäßig zu lesen
 	go func() {
-
 		// Subscribe to a filter and handle any received messages via a callback function.
 		callbackFn := func(cl *MQTT.Client, sub packets.Subscription, pk packets.Packet) {
 			topic := pk.TopicName
@@ -93,18 +97,20 @@ func brokerStatusWebSocket(c *gin.Context) {
 				// logrus.Infof("states Topic: %s mit Payload: %s", topic, payload)
 				const prefix = "iot-gateway/driver/states/"
 				if len(topic) >= len(prefix) && topic[:len(prefix)] == prefix {
-					// Extrahiere die Driver-ID aus dem Topic
+					// Hier den Mutex verwenden beim Schreiben in die Map
+					driverIDsMutex.Lock()
 					driverID := topic[len(prefix):]
 					driverIDs[driverID] = true
+					driverIDsMutex.Unlock()
 				} else {
 					logrus.Infof("Unbehandelte Topic: %s mit Payload: %s", topic, payload)
 				}
 			}
 		}
 
-		_ = server.Subscribe("$SYS/broker/messages/received", 1, callbackFn)
-		_ = server.Subscribe("iot-gateway/driver/states/#", 2, callbackFn)
-		_ = server.Subscribe("$SYS/broker/uptime", 3, callbackFn)
+		_ = server.Subscribe("$SYS/broker/messages/received", rand.Intn(100), callbackFn)
+		_ = server.Subscribe("iot-gateway/driver/states/#", rand.Intn(100), callbackFn)
+		_ = server.Subscribe("$SYS/broker/uptime", rand.Intn(100), callbackFn)
 	}()
 
 	httpClient := &http.Client{
@@ -113,11 +119,10 @@ func brokerStatusWebSocket(c *gin.Context) {
 
 	// Variable für den Node-RED-Status
 	var noderedconnection bool
-	var nodeRedAddress string
 
 	// Starte eine Goroutine für die Node-RED-Überprüfung
 	go func() {
-		nodeRedTicker := time.NewTicker(2 * time.Second) // Prüfe alle 5 Sekunden
+		nodeRedTicker := time.NewTicker(5 * time.Second) // Prüfe alle 5 Sekunden
 		defer nodeRedTicker.Stop()
 
 		// get own ip address
@@ -126,21 +131,18 @@ func brokerStatusWebSocket(c *gin.Context) {
 			logrus.Errorf("Error getting own IP address: %v", err)
 		}
 
-		logrus.Infof("Own IP address: %s", ip)
-
 		nodeRedUrls := []string{
-			"http://" + ip + ":7777",
-			"https://" + ip + "/nodered",
+			"http://" + ip + ":7777",  // local
+			"http://node-red:1880",    // docker
+			os.Getenv("NODE_RED_URL"), // env
 		}
 
-		var currentUrl string
 		var currentConnection bool
 		for _, url := range nodeRedUrls {
 			resp, err := httpClient.Get(url)
 			if err == nil {
 				if resp.StatusCode == 200 {
 					currentConnection = true
-					currentUrl = url
 					resp.Body.Close()
 					break
 				}
@@ -151,7 +153,6 @@ func brokerStatusWebSocket(c *gin.Context) {
 		// Nur aktualisieren wenn sich der Status geändert hat
 		if currentConnection != noderedconnection {
 			noderedconnection = currentConnection
-			nodeRedAddress = currentUrl
 		}
 	}()
 
@@ -171,13 +172,16 @@ func brokerStatusWebSocket(c *gin.Context) {
 			return
 		}
 
-		// Hier wird der Status an den Client gesendet, angepasst an das alte Format:
+		// Beim Lesen der Map auch den Mutex verwenden
+		driverIDsMutex.RLock()
+		deviceCount := len(driverIDs)
+		driverIDsMutex.RUnlock()
+
 		status := BrokerStatus{
 			Uptime:            brokerUptime,
 			NumberMessages:    messageCount,
-			NumberDevices:     len(driverIDs),
+			NumberDevices:     deviceCount,
 			NodeRedConnection: noderedconnection,
-			NodeRedAddress:    nodeRedAddress,
 		}
 
 		if err := conn.WriteJSON(status); err != nil {
@@ -210,16 +214,19 @@ func RestartGateway(c *gin.Context) {
 	var server *MQTT.Server
 	// var context *gin.Context
 
-	server = c.MustGet("server").(*MQTT.Server)
+	// server = c.MustGet("server").(*MQTT.Server)
 	db = c.MustGet("db").(*sql.DB)
 
 	dataforwarding.StopInfluxDBWriter()
 
 	// Restart MQTT Broker
-	mqtt_broker.RestartBroker(db)
+	server = mqtt_broker.RestartBroker(db)
+
+	// update server in context
+	c.Set("server", server)
 
 	// Restart All Drivers
-	logic.RestartAllDrivers(db)
+	logic.RestartAllDrivers(db, server)
 
 	dataforwarding.StartInfluxDBWriter(db, server)
 
@@ -228,4 +235,17 @@ func RestartGateway(c *gin.Context) {
 	// Manual trigger to run Garbage Collector
 	logrus.Info("Running garbage collector after restart.")
 	runtime.GC()
+}
+
+func RestartDriver(c *gin.Context) {
+	// get driver id from context
+	driverID := c.Param("device_id")
+
+	// get db from context
+	db := c.MustGet("db").(*sql.DB)
+
+	// restart driver
+	logic.RestartDevice(db, driverID)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Driver restarted successfully"})
 }

@@ -103,18 +103,238 @@ function initializeOpcUaSecuritySettings(prefix = '') {
     return handleOpcUaCredentials(prefix);
 }
 
+// Neue Funktionen für Node-Browser
+function showBrowseNodesButton(deviceType) {
+    const browseButton = document.getElementById('browse-nodes-btn');
+    if (browseButton) {
+        browseButton.style.display = deviceType === 'opc-ua' ? 'block' : 'none';
+    }
+}
+
+let selectedNodes = new Set();
+let currentNodes = [];
+let filteredNodes = [];
+let currentPage = 0;
+const nodesPerPage = 20;
+
+async function initializeNodeBrowser() {
+    const deviceId = localStorage.getItem('device_id');
+    const browseButton = document.getElementById('browse-nodes-btn');
+    const nodeBrowserModal = new bootstrap.Modal(document.getElementById('node-browser-modal'));
+    
+    // Füge Suchfeld zum Modal hinzu
+    const modalBody = document.querySelector('#node-browser-modal .modal-body');
+    modalBody.innerHTML = `
+        <div class="mb-3">
+            <input type="text" class="form-control" id="node-search" 
+                   placeholder="Suche nach Nodes..." style="margin-bottom: 15px;">
+        </div>
+        <div class="list-group mb-3"></div>
+        <nav aria-label="Node navigation" class="d-flex justify-content-between align-items-center">
+            <span class="text-muted">
+                Zeige <span id="showing-nodes">0-0</span> von <span id="total-nodes">0</span> Nodes
+            </span>
+            <ul class="pagination mb-0">
+                <li class="page-item">
+                    <button class="page-link" id="prev-page" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </button>
+                </li>
+                <li class="page-item">
+                    <button class="page-link" id="next-page" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    `;
+
+    let currentNodes = [];
+    let filteredNodes = [];
+    let currentPage = 0;
+    const nodesPerPage = 20;
+
+    function showLoadingState() {
+        const listGroup = document.querySelector('#node-browser-modal .list-group');
+        listGroup.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Lade Nodes...</span>
+                </div>
+                <div class="mt-2 text-muted">Lade verfügbare Nodes...</div>
+            </div>
+        `;
+        document.getElementById('node-search').disabled = true;
+        document.getElementById('prev-page').disabled = true;
+        document.getElementById('next-page').disabled = true;
+        document.getElementById('showing-nodes').textContent = '0-0';
+        document.getElementById('total-nodes').textContent = '0';
+    }
+
+    // Event Listener für die Suche
+    document.getElementById('node-search').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        filteredNodes = currentNodes.filter(node => 
+            node.NodeID.toLowerCase().includes(searchTerm) ||
+            node.BrowseName.toLowerCase().includes(searchTerm) ||
+            (node.Path && node.Path.toLowerCase().includes(searchTerm))
+        );
+        currentPage = 0;
+        displayNodes(filteredNodes.slice(0, nodesPerPage));
+        setupPagination(filteredNodes);
+    });
+
+    browseButton.addEventListener('click', async () => {
+        nodeBrowserModal.show();
+        showLoadingState();
+        
+        try {
+            const response = await fetch(`/api/browseNodes/${deviceId}`);
+            if (!response.ok) throw new Error('Fehler beim Laden der Nodes');
+            
+            const data = await response.json();
+            currentNodes = data.nodes || [];
+            filteredNodes = [...currentNodes];
+            
+            // Sortiere die Nodes alphabetisch nach NodeID
+            currentNodes.sort((a, b) => a.NodeID.localeCompare(b.NodeID));
+            
+            document.getElementById('total-nodes').textContent = currentNodes.length;
+            document.getElementById('node-search').disabled = false;
+            selectedNodes.clear();
+            currentPage = 0;
+            displayNodes(currentNodes.slice(0, nodesPerPage));
+            setupPagination(currentNodes);
+        } catch (error) {
+            console.error('Fehler:', error);
+            displayErrorInModal(nodeBrowserModal._element, 'Fehler beim Laden der Nodes: ' + error.message);
+        }
+    });
+
+    function displayNodes(nodes) {
+        const listGroup = document.querySelector('#node-browser-modal .list-group');
+        listGroup.innerHTML = '';
+        
+        const start = currentPage * nodesPerPage;
+        const end = Math.min(start + nodesPerPage, nodes.length);
+        document.getElementById('showing-nodes').textContent = `${start + 1}-${end}`;
+        
+        nodes.forEach(node => {
+            const listItem = document.createElement('div');
+            listItem.className = 'list-group-item py-2';
+            
+            listItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-truncate" style="max-width: 90%;">
+                        <div class="d-flex align-items-center">
+                            <strong class="me-2" style="font-size: 0.9rem;">${node.NodeID}</strong>
+                            <small class="text-muted" style="font-size: 0.85rem;">
+                                ${node.BrowseName}
+                            </small>
+                        </div>
+                        ${node.Path ? `
+                            <small class="text-muted d-block text-truncate" style="font-size: 0.8rem;">
+                                ${node.Path}
+                            </small>
+                        ` : ''}
+                    </div>
+                    <div class="form-check ms-2">
+                        <input type="checkbox" class="form-check-input" 
+                            ${selectedNodes.has(node.NodeID) ? 'checked' : ''}>
+                    </div>
+                </div>
+            `;
+            
+            const checkbox = listItem.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    selectedNodes.add(node.NodeID);
+                } else {
+                    selectedNodes.delete(node.NodeID);
+                }
+            });
+            
+            listGroup.appendChild(listItem);
+        });
+    }
+
+    function setupPagination(nodes) {
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+        const pageCount = Math.ceil(nodes.length / nodesPerPage);
+        
+        prevButton.disabled = currentPage === 0;
+        nextButton.disabled = currentPage >= pageCount - 1;
+        
+        prevButton.onclick = () => {
+            if (currentPage > 0) {
+                currentPage--;
+                displayNodes(nodes.slice(currentPage * nodesPerPage, (currentPage + 1) * nodesPerPage));
+                setupPagination(nodes);
+            }
+        };
+        
+        nextButton.onclick = () => {
+            if (currentPage < pageCount - 1) {
+                currentPage++;
+                displayNodes(nodes.slice(currentPage * nodesPerPage, (currentPage + 1) * nodesPerPage));
+                setupPagination(nodes);
+            }
+        };
+    }
+
+    document.getElementById('save-selected-nodes').addEventListener('click', () => {
+        addSelectedNodesToTable();
+        nodeBrowserModal.hide();
+    });
+}
+
+// Hilfsfunktion zum Anzeigen von Fehlermeldungen
+function displayErrorInModal(modalElement, message) {
+    const modalBody = modalElement.querySelector('.modal-body');
+    if (!modalBody) return;
+
+    modalBody.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            ${message}
+        </div>
+    `;
+}
+
+function addSelectedNodesToTable() {
+    const datapointsTable = document.querySelector('#ipi-table tbody');
+    
+    selectedNodes.forEach(nodeId => {
+        const datapointId = Math.floor(10000 + Math.random() * 90000).toString(); // Random 5 digit number
+        // use only last 3 parts of nodeId
+        const nodeIdParts = nodeId.split(';').pop().replace(/[^a-zA-Z0-9]/g, '_').split('_').slice(-3);
+        const lastThreeParts = nodeIdParts.join('_'); 
+        const row = createSavedDatapointRow(
+            datapointId,
+            `${lastThreeParts}`,
+            'N/A',
+            nodeId
+        );
+        
+        const emptyRow = datapointsTable.querySelector('tr:last-child');
+        if (emptyRow) {
+            datapointsTable.insertBefore(row, emptyRow);
+        } else {
+            datapointsTable.appendChild(row);
+        }
+    });
+}
+
 async function initializeEditDeviceModal(device_id) {
     return new Promise(async (resolve, reject) => {
         try {
-            // Prüfen ob device_id gültig ist
             if (!device_id) {
                 throw new Error('Keine gültige Device ID');
             }
 
-            // Speichere device_id im localStorage für spätere Verwendung
             localStorage.setItem('device_id', device_id);
             
-            // Hole die Referenz zum select Element
             const selectDeviceType = document.getElementById('select-device-type-1');
             if (!selectDeviceType) {
                 throw new Error('select-device-type-1 Element nicht gefunden');
@@ -128,19 +348,13 @@ async function initializeEditDeviceModal(device_id) {
 
             const deviceData = deviceDataArr.device; 
 
-            console.log('Device Data:', deviceData);
-
-            // Gerätedaten in das Modal einfügen
             document.getElementById('device-name-1').value = deviceData.deviceName || '';
             
-            // Setze den Device Type und deaktiviere das Feld
             selectDeviceType.value = deviceData.deviceType || 'opc-ua';
             selectDeviceType.disabled = true;
 
-            // Deaktiviere das Namensfeld
             document.getElementById('device-name-1').disabled = true;
 
-            // Zeige die entsprechende Konfiguration
             const configIds = ['opc-ua-config-1', 's7-config-1', 'mqtt-config-1'];
             configIds.forEach(id => {
                 const config = document.getElementById(id);
@@ -150,19 +364,16 @@ async function initializeEditDeviceModal(device_id) {
             });
 
             if (deviceData.deviceType === 'opc-ua') {
-                // Clear old values
                 document.getElementById('address-1').value = '';
                 document.getElementById('select-security-policy-1').value = 'none';
                 document.getElementById('select-authentication-settings-1').value = 'anonymous';
                 document.getElementById('select-security-mode-1').value = 'None';
 
-                // Fill new values
                 document.getElementById('address-1').value = deviceData.address || '';
                 document.getElementById('select-security-policy-1').value = deviceData.securityPolicy.String || 'none';
                 document.getElementById('select-authentication-settings-1').value = deviceData.authentication || 'anonymous';
                 document.getElementById('select-security-mode-1').value = deviceData.securityMode.String || 'None';
 
-                // Credentials verwalten
                 const credentialIds = handleOpcUaCredentials('-1');
                 
                 if (deviceData.username.String !== '' && deviceData.password.String !== '') {
@@ -173,26 +384,23 @@ async function initializeEditDeviceModal(device_id) {
                     document.getElementById(credentialIds.select).value = 'anonymous';
                 }
                 
-                // Trigger change event to update visibility
                 document.getElementById(credentialIds.select).dispatchEvent(new Event('change'));
 
                 document.getElementById('acquisition-time-opc-ua-1').value = deviceData.acquisitionTime;
                 
             } else if (deviceData.deviceType === 's7') {
-                document.querySelector('#s7-config-1 [placeholder="192.168.2.100:102"]').value = deviceData.address || '';
-                document.querySelector('#s7-config-1 [placeholder="0"]').value = deviceData.rack.String || '';
-                document.querySelector('#s7-config-1 [placeholder="1"]').value = deviceData.slot.String || '';
+                document.querySelector('#address-2').value = deviceData.address || '';
+                document.querySelector('#rack').value = deviceData.rack.String || '';
+                document.querySelector('#slot').value = deviceData.slot.String || '';
                 document.getElementById('acquisition-time-2').value = deviceData.acquisitionTime;
             } else if (deviceData.deviceType === 'mqtt') {
                 document.querySelector('#mqtt-config-1 [placeholder="Type in password"]').value = deviceData.password.String || '';
             }
 
-            // Tabelle der Datenpunkte leeren
             const datapointsTableBody = document.querySelector('#ipi-table tbody');
             datapointsTableBody.innerHTML = '';
 
             if (deviceData.datapoint) {
-                // Tabelle für Datenpunkte
                 const datapointsTableBody = document.querySelector('#ipi-table tbody');
                 datapointsTableBody.innerHTML = '';
 
@@ -235,7 +443,9 @@ async function initializeEditDeviceModal(device_id) {
             }
             datapointsTableBody.appendChild(createEmptyRow(deviceData.deviceType));
 
-            // Am Ende der Funktion:
+            showBrowseNodesButton(deviceData.deviceType);
+            initializeNodeBrowser();
+
             resolve();
         } catch (error) {
             console.error(`Error in initializeEditDeviceModal: ${error.message}`);
@@ -275,7 +485,6 @@ function createDatatypeCell(deviceType) {
     if (deviceType === DEVICE_TYPES.OPC_UA) {
         cell.textContent = 'N/A';
         
-        // Verstecktes Eingabefeld für Konsistenz
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
         hiddenInput.value = 'N/A';
@@ -286,7 +495,7 @@ function createDatatypeCell(deviceType) {
     
     const datatypeSelect = document.createElement('select');
     datatypeSelect.className = 'form-select';
-    ['INT', 'REAL', 'BOOL', 'STRING'].forEach(type => {
+    ['-', 'BOOL', 'INT', 'DINT', 'REAL', 'WORD', 'DWORD', 'STRING'].forEach(type => {
         const option = document.createElement('option');
         option.value = type;
         option.textContent = type;
@@ -337,13 +546,11 @@ function saveDatapoint(id, name, datatype, address, deviceType) {
         return;
     }
 
-    // Wenn es eine leere Zeile gibt, füge die neue Zeile davor ein
     const emptyRow = tableBody.querySelector('tr:last-child');
     if (emptyRow) {
         tableBody.insertBefore(newRow, emptyRow);
         clearInputRow(emptyRow);
     } else {
-        // Falls keine leere Zeile existiert, füge die neue Zeile hinzu und erstelle eine neue leere Zeile
         tableBody.appendChild(newRow);
         tableBody.appendChild(createEmptyRow(deviceType));
     }
@@ -395,7 +602,7 @@ function confirmDeleteDatapoint(datapointId, event) {
         event.preventDefault();
     }
     
-    if (confirm(`Möchten Sie den Datapoint mit der ID ${datapointId} wirklich löschen?`)) {
+    if (confirm(`Are you sure you want to delete the datapoint with the ID ${datapointId}?`)) {
         const row = document.querySelector(`tr[datapoint-id="${datapointId}"]`); 
         if (row) {
             row.remove();
@@ -404,13 +611,12 @@ function confirmDeleteDatapoint(datapointId, event) {
 }
 
 function confirmDeleteDevice(deviceId) {
-    if (confirm(`Möchten Sie das Gerät mit der ID ${deviceId} wirklich löschen?`)) {
+    if (confirm(`Are you sure you want to delete the device with the ID ${deviceId}?`)) {
         fetch(`/api/delete-device/${deviceId}`, { method: 'DELETE' })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Fehler beim Löschen (HTTP ${response.status}).`);
                 }
-                alert('Gerät erfolgreich gelöscht!');
                 location.reload();
             })
             .catch(error => {

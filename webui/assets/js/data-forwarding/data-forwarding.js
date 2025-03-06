@@ -131,6 +131,7 @@ async function fetchAndPopulateDataForwarding() {
     }
 }
 
+
 // Event-Listener für das Dokument
 document.addEventListener('DOMContentLoaded', () => {
     // Initialisiere die DOM-Elemente
@@ -142,6 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dataForwardingTable: document.getElementById('table-data-forwarding'),
         imageProcessTable: document.getElementById('table-image-capture-process')
     };
+
+    loadNodeRedURLFlow();
+    initializeImagesFiles();
 
     // Initialisiere den Event-Listener für destinationTypeSelect
     const { destinationTypeSelect } = window.dataForwarding.elements;
@@ -165,64 +169,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Rest der Initialisierung...
-    fetchAndPopulateDataForwarding();
+    // fetchAndPopulateDataForwarding();
     fetchAndPopulateImgProcesses();
     initializeLupeButtons();
 });
 
 // Exportiere die benötigten Funktionen
 window.dataForwarding.functions = {
-    fetchAndPopulateDataForwarding,
+    // fetchAndPopulateDataForwarding,
     fetchAndPopulateImgProcesses,
     loadRouteData,
     deleteRoute
 };
 
-async function fetchAndPopulateImgProcesses() {
-    try {
-        const response = await fetch(`/api/list-img-processes`);
-        if (!response.ok) {
-            throw new Error(`Error fetching /api/list-img-processes: ${response.status}`);
-        }
+async function loadNodeRedURLFlow() {
 
-        const data = await response.json();
-        const tableBody = document.querySelector('#table-image-capture-process tbody');
-        
-        if (!tableBody) return;
-        
-        tableBody.innerHTML = '';
-        
-        if (!data || !Array.isArray(data)) {
-            const row = document.createElement('tr');
-            const cell = document.createElement('td');
-            cell.colSpan = 5;
-            cell.textContent = 'Keine Prozesse gefunden';
-            row.appendChild(cell);
-            tableBody.appendChild(row);
-            return;
-        }
-
-        data.forEach(process => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${process.process_id || ''}</td>
-                <td>${process.device || ''}</td>
-                <td>${process.address || ''}</td>
-                <td>${process.last_capture || 'N/A'}</td>
-                <td>
-                    <a class="btn btnMaterial btn-flat success semicircle" href="#">
-                        <i class="fas fa-pen"></i>
-                    </a>
-                    <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" style="margin-left: 5px;" href="#">
-                        <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
-                    </a>
-                </td>
-            `;
-            tableBody.appendChild(row);
+    fetch('/api/get-node-red-url')
+        .then(response => response.json())
+        .then(data => {
+            const nodeRedURLFlow = document.getElementById('node-red-data-forwarding-flow');
+            nodeRedURLFlow.src = data.nodeRedURL;
         });
-    } catch (error) {
-        console.error('Error fetching /api/list-img-processes:', error);
-    }
 }
 
 async function fetchAndPopulateDevicesProcess() {
@@ -477,7 +444,7 @@ function updateBrowsedNodesModal(data) {
 // Exportiere die benötigten Funktionen
 window.dataForwarding.functions = {
     ...window.dataForwarding.functions,
-    fetchAndPopulateDataForwarding,
+    // fetchAndPopulateDataForwarding,
     fetchAndPopulateImgProcesses,
     loadRouteData
 };
@@ -498,5 +465,114 @@ async function deleteRoute(routeId) {
     } catch (error) {
         console.error('Fehler beim Löschen der Route:', error);
         alert('Fehler beim Löschen der Route: ' + error.message);
+    }
+}
+
+function initializeNodeBrowser(deviceId) {
+    const modalBody = document.querySelector('#node-browser-modal .modal-body');
+    modalBody.innerHTML = `
+        <div class="mb-3">
+            <input type="text" class="form-control" id="node-search" 
+                   placeholder="Suche nach Nodes..." style="margin-bottom: 15px;">
+        </div>
+        <div class="list-group mb-3"></div>
+        <nav aria-label="Node navigation" class="d-flex justify-content-between align-items-center">
+            <span class="text-muted">
+                Zeige <span id="showing-nodes">0-0</span> von <span id="total-nodes">0</span> Nodes
+            </span>
+            <ul class="pagination mb-0">
+                <li class="page-item">
+                    <button class="page-link" id="prev-page" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </button>
+                </li>
+                <li class="page-item">
+                    <button class="page-link" id="next-page" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    `;
+
+    let currentNodes = [];
+    let filteredNodes = [];
+    let currentPage = 0;
+    const nodesPerPage = 20;
+
+    // Event Listener für die Suche
+    document.getElementById('node-search').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        filteredNodes = currentNodes.filter(node => 
+            node.NodeID.toLowerCase().includes(searchTerm) ||
+            node.BrowseName.toLowerCase().includes(searchTerm) ||
+            (node.Path && node.Path.toLowerCase().includes(searchTerm))
+        );
+        currentPage = 0;
+        displayNodes(filteredNodes.slice(0, nodesPerPage));
+        setupPagination(filteredNodes);
+    });
+
+    function displayNodes(nodes) {
+        const listGroup = document.querySelector('#node-browser-modal .list-group');
+        listGroup.innerHTML = '';
+        
+        const start = currentPage * nodesPerPage;
+        const end = Math.min(start + nodesPerPage, nodes.length);
+        document.getElementById('showing-nodes').textContent = `${start + 1}-${end}`;
+        
+        nodes.forEach(node => {
+            const listItem = document.createElement('div');
+            listItem.className = 'list-group-item py-2'; // Reduzierte Polsterung
+            
+            listItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-truncate" style="max-width: 90%;">
+                        <div class="d-flex align-items-center">
+                            <strong class="me-2" style="font-size: 0.9rem;">${node.NodeID}</strong>
+                            <small class="text-muted" style="font-size: 0.85rem;">
+                                ${node.BrowseName}
+                            </small>
+                        </div>
+                        ${node.Path ? `
+                            <small class="text-muted d-block text-truncate" style="font-size: 0.8rem;">
+                                ${node.Path}
+                            </small>
+                        ` : ''}
+                    </div>
+                    <div class="form-check ms-2">
+                        <input type="radio" name="node-selection" class="form-check-input" 
+                            value="${node.NodeID}">
+                    </div>
+                </div>
+            `;
+            
+            listGroup.appendChild(listItem);
+        });
+    }
+
+    function setupPagination(nodes) {
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+        const pageCount = Math.ceil(nodes.length / nodesPerPage);
+        
+        prevButton.disabled = currentPage === 0;
+        nextButton.disabled = currentPage >= pageCount - 1;
+        
+        prevButton.onclick = () => {
+            if (currentPage > 0) {
+                currentPage--;
+                displayNodes(nodes.slice(currentPage * nodesPerPage, (currentPage + 1) * nodesPerPage));
+                setupPagination(nodes);
+            }
+        };
+        
+        nextButton.onclick = () => {
+            if (currentPage < pageCount - 1) {
+                currentPage++;
+                displayNodes(nodes.slice(currentPage * nodesPerPage, (currentPage + 1) * nodesPerPage));
+                setupPagination(nodes);
+            }
+        };
     }
 }

@@ -9,7 +9,13 @@ const mqttConfig = document.getElementById('mqtt-config');
 const lupeButtons = document.querySelectorAll('.btn-open-browsed-nodes');
 
 // Initialisierung beim Laden der Seite
-document.addEventListener('DOMContentLoaded', initializeModals);
+document.addEventListener('DOMContentLoaded', function() {
+    initializeModals();
+    // Wenn die Funktion in images.js definiert ist, rufe sie auf
+    if (typeof initializeImagesFiles === 'function') {
+        initializeImagesFiles();
+    }
+});
 
 // Event-Listener für den Save-Button
 document.getElementById('btn-save-route').addEventListener('click', async function() {

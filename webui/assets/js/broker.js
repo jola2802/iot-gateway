@@ -100,6 +100,9 @@ async function fetchAndPopulateBrokerUsers() {
             deleteButton.setAttribute('data-bs-toggle', 'modal');
             deleteButton.setAttribute('data-bs-target', '#delete-modal');
             deleteButton.innerHTML = '<i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>';
+            deleteButton.addEventListener('click', () => {
+                deleteBrokerUser(user.username);
+            });
             actionsCell.appendChild(deleteButton);
 
             row.appendChild(actionsCell);
@@ -110,6 +113,21 @@ async function fetchAndPopulateBrokerUsers() {
     } catch (error) {
         console.error('Error fetching broker users:', error);
     }
+}
+
+async function deleteBrokerUser(username) {
+    const response = await fetch(`/api/delete-broker-user/${username}`, {
+        method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    // Tabelle neu laden
+    fetchAndPopulateBrokerUsers();
+
+    alert("User deleted successfully");
 }
 
 // Aufruf der Funktion, um die Tabelle zu befüllen
@@ -165,7 +183,7 @@ document.querySelector('.btn-primary[type="button"]').addEventListener('click', 
 document.getElementById("btn-save-new-user").addEventListener('click', () => {
     // Werte aus den Eingabefeldern abrufen
     const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim(); // Stellen Sie sicher, dass das Passwortfeld die id="password" hat
+    const password = document.getElementById('password').value.trim();
 
     // Validierung der Eingabefelder
     if (username === '' || password === '') {
@@ -179,7 +197,8 @@ document.getElementById("btn-save-new-user").addEventListener('click', () => {
 
     aclListItems.forEach(item => {
         const topic = item.getAttribute('data-topic');
-        const permission = item.getAttribute('data-permission');
+        // Permission als Integer parsen
+        const permission = parseInt(item.getAttribute('data-permission'), 10);
         acls.push({ topic, permission });
     });
 
@@ -196,52 +215,43 @@ document.getElementById("btn-save-new-user").addEventListener('click', () => {
         acls
     };
 
-    try {
-        // POST-Anfrage mit fetch an den REST-Endpunkt senden
-        const response = fetch(`${BASE_PATH}/getBrokerUser`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userData)
-        });
-
-        if (response.ok) {
-            // Eingabefelder und ACL-Liste leeren
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            document.getElementById('list-permission-topics').innerHTML = '';
-
-            // Modal schließen (Bootstrap 5)
-            const modalElement = document.getElementById('modal-new-user');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
-            } else {
-                // Falls das Modal nicht instanziiert wurde, initialisieren und schließen
-                const newModal = new bootstrap.Modal(modalElement);
-                newModal.hide();
-            }
-
-            // Benutzer über den Erfolg informieren
-            alert('Benutzer erfolgreich hinzugefügt!');
-        } else {
-            // Fehler behandeln, basierend auf dem Statuscode
-            let errorMessage = 'Unbekannter Fehler';
-            try {
-                const errorData = response.json();
-                errorMessage = errorData.message || response.statusText;
-            } catch (e) {
-                errorMessage = response.statusText;
-            }
-            console.error('Fehler beim Hinzufügen des Benutzers:', errorMessage);
-            alert(`Benutzer konnte nicht hinzugefügt werden. Fehler: ${errorMessage}`);
+    // POST-Anfrage mit fetch an den REST-Endpunkt senden
+    fetch(`/api/add-broker-user`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
         }
-    } catch (error) {
-        // Netzwerk- oder andere Fehler behandeln
+        return response.json();
+    })
+    .then(() => {
+        // Eingabefelder und ACL-Liste leeren
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('list-permission-topics').innerHTML = '';
+
+        // Modal schließen
+        const modalElement = document.getElementById('modal-new-user');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+            modal.hide();
+        }
+
+        // Benutzer über den Erfolg informieren
+        alert('Benutzer erfolgreich hinzugefügt!');
+        
+        // Tabelle neu laden
+        fetchAndPopulateBrokerUsers();
+    })
+    .catch(error => {
         console.error('Fehler beim Hinzufügen des Benutzers:', error);
-        alert('Benutzer konnte nicht hinzugefügt werden. Bitte versuchen Sie es erneut.');
-    }
+        alert(`Benutzer konnte nicht hinzugefügt werden. Fehler: ${error.message || 'Unbekannter Fehler'}`);
+    });
 });
 
 async function editBrokerUser(username) {
@@ -298,47 +308,47 @@ async function editBrokerUser(username) {
 
         // Save-Button-Handler aktualisieren
         const saveButton = document.getElementById('btn-save-new-user');
-        saveButton.onclick = async () => {
-            const updatedPassword = document.getElementById('password').value.trim();
-            const aclListItems = document.querySelectorAll('#list-permission-topics li');
-            const updatedAcls = Array.from(aclListItems).map(item => ({
-                topic: item.getAttribute('data-topic'),
-                permission: item.getAttribute('data-permission')
-            }));
+        // saveButton.onclick = async () => {
+        //     const updatedPassword = document.getElementById('password').value.trim();
+        //     const aclListItems = document.querySelectorAll('#list-permission-topics li');
+        //     const updatedAcls = Array.from(aclListItems).map(item => ({
+        //         topic: item.getAttribute('data-topic'),
+        //         permission: item.getAttribute('data-permission')
+        //     }));
 
-            if (updatedPassword === '' || updatedAcls.length === 0) {
-                alert('Password und mindestens ein ACL-Topic müssen angegeben werden.');
-                return;
-            }
+        //     if (updatedPassword === '' || updatedAcls.length === 0) {
+        //         alert('Password und mindestens ein ACL-Topic müssen angegeben werden.');
+        //         return;
+        //     }
 
-            // PUT-Request mit aktualisierten Daten senden
-            try {
-                const putResponse = await fetch(`${BASE_PATH}/api/getBrokerUser/${username}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        password: updatedPassword,
-                        acls: updatedAcls
-                    })
-                });
+        //     // PUT-Request mit aktualisierten Daten senden
+        //     try {
+        //         const putResponse = await fetch(`/api/update-broker-user/${username}`, {
+        //             method: 'PUT',
+        //             headers: {
+        //                 'Content-Type': 'application/json'
+        //             },
+        //             body: JSON.stringify({
+        //                 password: updatedPassword,
+        //                 acls: updatedAcls
+        //             })
+        //         });
 
-                if (!putResponse.ok) {
-                    throw new Error(`HTTP error! Status: ${putResponse.status}`);
-                }
+        //         if (!putResponse.ok) {
+        //             throw new Error(`HTTP error! Status: ${putResponse.status}`);
+        //         }
 
-                alert('User erfolgreich aktualisiert!');
-                const modalElement = document.getElementById('modal-new-user');
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                modal.hide();
-                // Optional: Seite aktualisieren oder Tabelle neu laden
-                fetchAndPopulateBrokerUsers();
-            } catch (error) {
-                console.error('Fehler beim Aktualisieren des Benutzers:', error);
-                alert('Fehler beim Aktualisieren des Benutzers. Bitte versuchen Sie es erneut.');
-            }
-        };
+        //         alert('User erfolgreich aktualisiert!');
+        //         const modalElement = document.getElementById('modal-new-user');
+        //         const modal = bootstrap.Modal.getInstance(modalElement);
+        //         modal.hide();
+        //         // Optional: Seite aktualisieren oder Tabelle neu laden
+        //         fetchAndPopulateBrokerUsers();
+        //     } catch (error) {
+        //         console.error('Fehler beim Aktualisieren des Benutzers:', error);
+        //         alert('Fehler beim Aktualisieren des Benutzers. Bitte versuchen Sie es erneut.');
+        //     }
+        // };
 
         // Modal öffnen
         const modalElement = document.getElementById('modal-new-user');
@@ -457,7 +467,7 @@ function renderTree(tree, container) {
 }
 
 // Verbindung herstellen und Topics anzeigen
-connectToBrokerAndDisplayTopics();
+// connectToBrokerAndDisplayTopics();
 
 // Funktion zum Zurücksetzen des Modals
 function resetModal() {

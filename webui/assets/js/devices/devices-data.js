@@ -25,10 +25,12 @@ async function initWebSocket() {
 
     wsDevices.onerror = (error) => {
         console.error('WebSocket-Fehler:', error);
+        window.location.reload();
     };
 
     wsDevices.onclose = (event) => {
         console.warn('WebSocket-Verbindung geschlossen:', event.reason);
+        window.location.reload();
     };
 }
 
@@ -49,7 +51,18 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
             slot: document.querySelector('#s7-config [placeholder="1"]')?.value || '',
         };
 
-        console.log('Neues Gerät:', deviceData);
+        // Prüfen, ob alle Felder ausgefüllt sind
+        if (deviceData.deviceType === 'opc-ua') {
+            if (!deviceData.deviceName || !deviceData.address || !deviceData.securityPolicy || !deviceData.securityMode || !deviceData.acquisitionTime) {
+                alert('Bitte füllen Sie alle Felder aus.');
+                return;
+            }
+        } else if (deviceData.deviceType === 's7') {
+            if (!deviceData.deviceName || !deviceData.address || !deviceData.rack || !deviceData.slot) {
+                alert('Bitte füllen Sie alle Felder aus.');
+                return;
+            }
+        }
 
         // API-Request senden
         const response = await fetch('/api/add-device', {
@@ -64,12 +77,11 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
             throw new Error(`Fehler beim Hinzufügen des Geräts: ${response.statusText}`);
         }
 
-        const result = await response.json();
-        alert('Gerät erfolgreich hinzugefügt!');
+        // alert('Gerät erfolgreich hinzugefügt!');
 
         // Modal schließen und Seite aktualisieren
         // document.getElementById('modal-new-device').modal('hide');
-        location.reload(); // Alternativ: Nur die Tabelle aktualisieren
+        window.location.reload(); // Alternativ: Nur die Tabelle aktualisieren
         
     } catch (error) {
         console.error('Fehler beim Speichern des Geräts:', error);
@@ -77,12 +89,12 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
     }
 });
 
-
-document.getElementById('btn-edit-device').onclick=async () => {
-    await saveEditDevice();
+document.getElementById('btn-edit-device').onclick = async () => {
+    saveEditDevice(); // 5 Sekunden warten
+    // window.location.reload();
 };
 
-async function saveEditDevice() {
+function saveEditDevice() {
     try {
         // Erfassung der Eingabewerte
         const deviceData = {
@@ -99,8 +111,8 @@ async function saveEditDevice() {
             ),
             username: document.getElementById('username')?.value || document.getElementById('username-1')?.value || '',
             password: document.getElementById('password')?.value || document.getElementById('password-1')?.value || '',
-            rack: document.querySelector('#s7-config-1 [placeholder="0"]')?.value || document.querySelector('#s7-config-1 [placeholder="0"]')?.value || '',
-            slot: document.querySelector('#s7-config-1 [placeholder="1"]')?.value || document.querySelector('#s7-config-1 [placeholder="1"]')?.value || '',
+            rack: document.querySelector('#rack')?.value || document.querySelector('#s7-config-1 [placeholder="0"]')?.value || '',
+            slot: document.querySelector('#slot')?.value || document.querySelector('#s7-config-1 [placeholder="1"]')?.value || '',
             datapoints: Array.from(document.querySelectorAll('#ipi-table tbody tr')).map(row => {
                 // Alle Zellen in der Zeile abrufen
                 const cells = row.querySelectorAll('td');
@@ -114,8 +126,8 @@ async function saveEditDevice() {
                 return {
                     datapointId: row.querySelector('td').textContent.trim(),
                     name: nameInput ? nameInput.value.trim() : cells[1]?.textContent.trim() || '',
-                    datatype: isOpcUa ? '' : cells[3]?.textContent.trim() || '',
-                    address: isOpcUa ? cells[3]?.textContent.trim() || '' : cells[3]?.textContent.trim() || '',
+                    datatype: isOpcUa ? '' : datatypeInput ? datatypeInput.value.trim() : cells[2]?.textContent.trim() || '',
+                    address: addressInput ? addressInput.value.trim() : cells[3]?.textContent.trim() || '',
                 };
             }),
         };
@@ -125,20 +137,19 @@ async function saveEditDevice() {
         console.log('Zu aktualisierende Gerätedaten:', deviceData);
 
         // API-Request senden
-        const response = await fetch(`/api/update-device/${deviceData.deviceId}`, {
+        fetch(`/api/update-device/${deviceData.deviceId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(deviceData),
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`Fehler beim Aktualisieren des Geräts: ${response.statusText}`);
+            }
+        }).catch(error => {
+            console.error('Fehler beim Aktualisieren des Geräts:', error);
         });
-
-        if (!response.ok) {
-            throw new Error(`Fehler beim Aktualisieren des Geräts: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        alert('Gerät erfolgreich aktualisiert!');
 
         // Modal schließen und Seite aktualisieren
         const modalEl = document.getElementById('modal-edit-device');
@@ -149,13 +160,8 @@ async function saveEditDevice() {
             modalInstance = new bootstrap.Modal(modalEl);
         }
         modalInstance.hide();
-
-
-        // document.getElementById('modal-edit-device').modal('hide');
-        // location.reload(); // Alternativ: Nur die Tabelle aktualisieren
-        window.location.reload();
     } catch (error) {
         console.error('Fehler beim Aktualisieren des Geräts:', error);
-        alert('Fehler beim Aktualisieren des Geräts. Bitte versuchen Sie es erneut.');
+        // alert('Fehler beim Aktualisieren des Geräts. Bitte versuchen Sie es erneut.');
     }
 }

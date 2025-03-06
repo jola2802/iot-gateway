@@ -5,31 +5,11 @@ import (
 	"fmt"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	opcua "github.com/gopcua/opcua"
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
 
 var mqttClient mqtt.Client
-
-// AddOpcuaClient adds an OPC-UA client to the map of clients.
-//
-// Args:
-//
-//   - deviceID (string): The id of the device.
-//   - client (*opcua.Client): The OPC-UA client.
-//
-// Returns:
-//
-//	None
-//
-// Example:
-//
-//	client := opcua.NewClient("opc.tcp://localhost:4840")
-//	addOpcuaClient("1", client)
-func addOpcuaClient(deviceID string, client *opcua.Client) {
-	opcuaClients[deviceID] = client
-}
 
 // StartMqttDataUpdateListener starts the MQTT listener for data point updates.
 //
@@ -101,16 +81,16 @@ func handleMqttDataUpdate(client mqtt.Client, message mqtt.Message) {
 //	    fmt.Println(err)
 //	}
 func pubData(data map[string]interface{}, deviceName string, deviceId string, server *MQTT.Server) error {
-	for name, value := range data {
+	for id, value := range data {
 		payload, err := json.Marshal(value)
 		if err != nil {
-			return fmt.Errorf("OPC-UA: Failed to marshal data for node-name %s: %v", name, err)
+			return fmt.Errorf("OPC-UA: Failed to marshal data for node-name %s: %v", id, err)
 		}
 
-		topic := fmt.Sprintf("data/opc-ua/%s/%s", deviceId, name)
+		topic := fmt.Sprintf("data/opc-ua/%s/%s", deviceId, id)
 		err = server.Publish(topic, []byte(payload), false, 2)
 		if err != nil {
-			return fmt.Errorf("OPC-UA: Failed to publish data for node-name %s: %v", name, err)
+			return fmt.Errorf("OPC-UA: Failed to publish data for node-name %s: %v", id, err)
 		}
 
 	}

@@ -1,73 +1,85 @@
-// Lade die aktuellen Einstellungen beim Seitenstart
-document.addEventListener('DOMContentLoaded', loadSettings);
+// Event Listener für das Laden der Seite
+// document.addEventListener('DOMContentLoaded', loadSettings);
 
+// Checkbox Event Listener
+document.getElementById('use-custom-services').addEventListener('change', function(e) {
+    const container = document.getElementById('custom-services-container');
+    const inputs = container.querySelectorAll('input');
+    container.style.display = e.target.checked ? 'block' : 'none';
+    inputs.forEach(input => input.disabled = !e.target.checked);
+});
+
+document.getElementById('use-external-broker').addEventListener('change', function(e) {
+    const container = document.getElementById('external-broker-container');
+    const inputs = container.querySelectorAll('input');
+    container.style.display = e.target.checked ? 'block' : 'none';
+    inputs.forEach(input => input.disabled = !e.target.checked);
+});
+
+// Laden der Einstellungen
 async function loadSettings() {
     try {
         const response = await fetch('/api/settings');
-        const config = await response.json();
+        const settings = await response.json();
 
-        console.log(config);
-        
-        // Setze Web UI Einstellungen
-        document.getElementById('http-port').value = config.webui.http_port;
-        document.getElementById('https-port').value = config.webui.https_port;
-        document.getElementById('use-https').value = config.webui.use_https.toString();
+        // Setze die Werte in die Formularfelder
+        document.getElementById('docker-ip').value = settings.docker_ip || '';
 
-        // Füge Listener hinzu
-        const container = document.getElementById('listeners-container');
-        container.innerHTML = ''; // Lösche bestehende Listener
-        
-        config.listeners.forEach(listener => {
-            addListener(listener);
-        });
+        // Externe Dienste
+        if (settings.use_custom_services) {
+            document.getElementById('use-custom-services').checked = true;
+            document.getElementById('custom-services-container').style.display = 'block';
+            document.getElementById('nodered-url').value = settings.nodered_url || '';
+            document.getElementById('nodered-url').disabled = false;
+            document.getElementById('influxdb-url').value = settings.influxdb_url || '';
+            document.getElementById('influxdb-url').disabled = false;
+        }
+
+        // Externer Broker
+        if (settings.use_external_broker) {
+            document.getElementById('use-external-broker').checked = true;
+            document.getElementById('external-broker-container').style.display = 'block';
+            document.getElementById('broker-url').value = settings.broker_url || '';
+            document.getElementById('broker-url').disabled = false;
+            document.getElementById('broker-port').value = settings.broker_port || '';
+            document.getElementById('broker-port').disabled = false;
+            document.getElementById('broker-username').value = settings.broker_username || '';
+            document.getElementById('broker-username').disabled = false;
+            document.getElementById('broker-password').value = settings.broker_password || '';
+            document.getElementById('broker-password').disabled = false;
+        }
     } catch (error) {
         console.error('Fehler beim Laden der Einstellungen:', error);
         alert('Fehler beim Laden der Einstellungen!');
     }
 }
 
-function addListener(data = {}) {
-    const template = document.getElementById('listener-template');
-    const container = document.getElementById('listeners-container');
-    const clone = template.content.cloneNode(true);
-    
-    if (data.id) {
-        clone.querySelector('.listener-id').value = data.id;
-        clone.querySelector('.listener-address').value = data.address;
-        clone.querySelector('.listener-type').value = data.type;
-        clone.querySelector('.listener-tls').value = (data.tls || false).toString();
-    }
-    
-    clone.querySelector('.remove-listener').addEventListener('click', function(e) {
-        e.target.closest('.listener-entry').remove();
-    });
-    
-    container.appendChild(clone);
-}
-
+// Speichern der Einstellungen
 document.getElementById('settings-form').addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    const config = {
-        webui: {
-            http_port: document.getElementById('http-port').value,
-            https_port: document.getElementById('https-port').value,
-            use_https: document.getElementById('use-https').value === 'true',
-            tls_cert: "server.crt", // Behalte Standardwerte bei
-            tls_key: "server.key"
-        },
-        listeners: []
+    const useCustomServices = document.getElementById('use-custom-services').checked;
+    const useExternalBroker = document.getElementById('use-external-broker').checked;
+
+    const settings = {
+        docker_ip: document.getElementById('docker-ip').value,
+        use_custom_services: useCustomServices,
+        use_external_broker: useExternalBroker
     };
 
-    // Sammle alle Listener-Einstellungen
-    document.querySelectorAll('.listener-entry').forEach(entry => {
-        config.listeners.push({
-            id: entry.querySelector('.listener-id').value,
-            address: entry.querySelector('.listener-address').value,
-            type: entry.querySelector('.listener-type').value,
-            tls: entry.querySelector('.listener-tls').value === 'true'
-        });
-    });
+    // Füge die benutzerdefinierten Dienst-URLs hinzu, wenn aktiviert
+    if (useCustomServices) {
+        settings.nodered_url = document.getElementById('nodered-url').value;
+        settings.influxdb_url = document.getElementById('influxdb-url').value;
+    }
+
+    // Füge die externen Broker-Einstellungen hinzu, wenn aktiviert
+    if (useExternalBroker) {
+        settings.broker_url = document.getElementById('broker-url').value;
+        settings.broker_port = document.getElementById('broker-port').value;
+        settings.broker_username = document.getElementById('broker-username').value;
+        settings.broker_password = document.getElementById('broker-password').value;
+    }
 
     try {
         const response = await fetch('/api/settings', {
@@ -75,21 +87,17 @@ document.getElementById('settings-form').addEventListener('submit', async (event
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(config)
+            body: JSON.stringify(settings)
         });
 
         if (response.ok) {
-            alert('Einstellungen wurden gespeichert! Bitte starten Sie den Container neu, damit die Änderungen wirksam werden.');
+            alert('Settings saved successfully!');
         } else {
-            alert('Fehler beim Speichern der Einstellungen!');
+            const error = await response.json();
+            alert('Error saving settings: ' + error.message);
         }
     } catch (error) {
-        console.error('Fehler:', error);
-        alert('Fehler beim Speichern der Einstellungen!');
+        console.error('Error:', error);
+        alert('Error saving settings!');
     }
-});
-
-// Button zum Hinzufügen neuer Listener
-document.getElementById('add-listener').addEventListener('click', () => {
-    addListener();
 });

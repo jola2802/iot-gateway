@@ -1,18 +1,25 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
         {
             "name": "Launch main.go",
             "type": "go",
             "request": "launch",
-            "mode": "auto", // auto: entscheidet zwischen "debug" und "run" basierend auf der Umgebung
+            "mode": "debug", // auto: entscheidet zwischen "debug" und "run" basierend auf der Umgebung
             "program": "${workspaceFolder}/main.go", // Pfad zur main.go Datei
-            "env": {}, // Hier kannst du Umgebungsvariablen definieren, falls notwendig
+            "env": {
+                "INFLUXDB_URL": "http://192.168.0.84:8086",
+                "INFLUXDB_TOKEN": "secret-token",
+                "INFLUXDB_ORG": "idpm",
+                "INFLUXDB_BUCKET": "iot-data",
+                "NODE_RED_URL": "http://192.168.0.84:7777",
+                "NODE_RED_USERNAME": "admin",
+                "NODE_RED_PASSWORD": "$2a$12$74fx3fUVLCv2NFexw9X8ZO8bZirzLRfVL8K1D4siMHq77s5f4McC2", // bycryted password "password"
+                "FILE_DROP_PATH": "data/shared"
+            }, // Hier kannst du Umgebungsvariablen definieren, falls notwendig
             "args": [], // Argumente, die du an main.go übergeben möchtest
             "buildFlags": "", // Falls zusätzliche Build-Flags benötigt werden
             "showLog": true, // Um Logs während der Ausführung anzuzeigen
-            "dlvToolPath": "${env:GOPATH}/bin/dlv" // Path to Delve (Go Debugger)
         }
     ]
 }

@@ -1,5 +1,5 @@
 # Stage 1: Build your Go application
-FROM golang:1.22 AS builder
+FROM golang:1.24 AS builder
 
 # Install CA certificates
 # RUN apt-get update && apt-get install -y ca-certificates
@@ -25,6 +25,9 @@ FROM alpine:latest
 
 # Füge tzdata hinzu, damit Zeitzoneninformationen verfügbar sind
 RUN apk add --no-cache tzdata
+
+# set timezone Europe/Berlin
+RUN cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 
 # WORKDIR /data
 # # Kopiere die Dateien korrekt in das Verzeichnis
@@ -92,7 +95,8 @@ RUN chmod +x /app/iot-gateway
 # COPY flows.json /data/flows.json
 
 # Expose necessary ports
-EXPOSE 8443 50000 5001 5101 5100 
+# EXPOSE 8443 5000 5001 5101 5100 
+EXPOSE $PUBLIC_HTTP_LISTEN_PORT $PUBLIC_HTTPS_LISTEN_PORT $PUBLIC_TCP_LISTEN_PORT $PUBLIC_WS_LISTEN_PORT
 # 7777 8086
 
 # Command to run Go application, Node-RED, and InfluxDB

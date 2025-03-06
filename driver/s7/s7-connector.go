@@ -80,23 +80,6 @@ func newS7Handler(address string, rack int, slot int) (*s7.TCPClientHandler, err
 	return handler, nil
 }
 
-type ParsedAddress struct {
-	Type     VariableType
-	DBNum    int
-	ByteAddr int
-	BitAddr  int
-	DataType string
-}
-
-type VariableType int
-
-const (
-	Input VariableType = iota
-	Output
-	Merker
-	DataBlock
-)
-
 // parseAddress converts variable addresses into individual byte and bit values as well as the corresponding variable types.
 //
 // Parameters:
@@ -105,7 +88,7 @@ const (
 // Returns:
 //   - ParsedAddress: A struct containing the parsed address information.
 //   - error: An error if the address format is invalid.
-func parseAddress(address string) (ParsedAddress, error) {
+func parseAddress(address string, datatype string) (ParsedAddress, error) {
 	var parsed ParsedAddress
 	var err error
 
@@ -123,29 +106,73 @@ func parseAddress(address string) (ParsedAddress, error) {
 	case strings.HasPrefix(address, "DB"):
 		parsed.Type = DataBlock
 		address = strings.TrimPrefix(address, "DB")
-		parts := strings.SplitN(address, ".", 2)
-		if len(parts) != 2 {
-			return parsed, fmt.Errorf("invalid DB address format")
+
+		// Unterstütze sowohl DB5.0.0 oder DB5.0 Format
+		if strings.Contains(address, ".") {
+			// Neues Format: DB5.0.0 oder DB5.0 usw.
+			parts := strings.SplitN(address, ".", 2)
+			if len(parts) != 2 {
+				return parsed, fmt.Errorf("invalid DB address format")
+			}
+
+			// DB-Nummer extrahieren
+			parsed.DBNum, err = strconv.Atoi(parts[0])
+			if err != nil {
+				return parsed, fmt.Errorf("invalid DB number: %v", err)
+			}
+
+			// Adresstyp und Offset extrahieren
+			if strings.Contains(parts[1], ".") {
+				addrParts := strings.SplitN(parts[1], ".", 2)
+				if len(addrParts) != 2 {
+					return parsed, fmt.Errorf("invalid DB address format")
+				}
+
+				// Bit Offset extrahieren
+				parsed.BitAddr, err = strconv.Atoi(addrParts[1])
+				if err != nil {
+					return parsed, fmt.Errorf("invalid bit address: %v", err)
+				}
+
+				// Datentyp bestimmen
+				parsed.DataType = datatype
+
+				return parsed, nil
+			} else {
+				parsed.ByteAddr, err = strconv.Atoi(parts[1])
+				if err != nil {
+					return parsed, fmt.Errorf("invalid byte address: %v", err)
+				}
+				parsed.BitAddr = -1
+
+				// Datentyp bestimmen
+				parsed.DataType = datatype
+
+				return parsed, nil
+			}
+
+		} else {
+			// Altes Format: DB5.DBX0.1
+			parts := strings.SplitN(address, ".", 2)
+			if len(parts) != 2 {
+				return parsed, fmt.Errorf("invalid DB address format")
+			}
+			parsed.DBNum, err = strconv.Atoi(parts[0])
+			if err != nil {
+				return parsed, fmt.Errorf("invalid DB number: %v", err)
+			}
+			parsed.ByteAddr, _ = strconv.Atoi(parts[1])
+
+			// Datentyp bestimmen
+			parsed.DataType = datatype
+
+			return parsed, nil
 		}
-		parsed.DBNum, err = strconv.Atoi(parts[0])
-		if err != nil {
-			return parsed, fmt.Errorf("invalid DB number: %v", err)
-		}
-		address = parts[1]
 	default:
 		return parsed, fmt.Errorf("unknown variable type")
 	}
 
-	// Determine the data type based on the address suffix
-	if strings.HasPrefix(address, "W") {
-		parsed.DataType = "Word"
-		address = strings.TrimLeft(address, "W")
-	} else if strings.HasPrefix(address, "D") {
-		parsed.DataType = "DWord"
-		address = strings.TrimLeft(address, "D")
-	} else {
-		parsed.DataType = "Byte" // Default to BYTE if no suffix is found
-	}
+	parsed.DataType = datatype
 
 	// Now split the address by "." to separate byte and bit part (if present)
 	parts := strings.Split(address, ".")
@@ -159,8 +186,8 @@ func parseAddress(address string) (ParsedAddress, error) {
 		return parsed, fmt.Errorf("invalid byte address: %v", err)
 	}
 
-	// Handle bit part only for BYTE type and if a bit address is provided
-	if parsed.DataType == "Byte" && len(parts) == 2 {
+	// Handle bit part only for BOOL type and if a bit address is provided
+	if datatype == "BOOL" && len(parts) == 2 {
 		parsed.BitAddr, err = strconv.Atoi(parts[1])
 		if err != nil {
 			return parsed, fmt.Errorf("invalid bit address: %v", err)
@@ -170,7 +197,7 @@ func parseAddress(address string) (ParsedAddress, error) {
 			return parsed, fmt.Errorf("bit address out of range: %d", parsed.BitAddr)
 		}
 	} else {
-		// No bit address for WORD, DWORD or BYTE without bit specification
+		// No bit address for other data types
 		parsed.BitAddr = -1 // Set to -1 if no bit address is provided
 	}
 	return parsed, nil
@@ -187,7 +214,7 @@ func parseAddress(address string) (ParsedAddress, error) {
 func readData(client s7.Client, device opcua.DeviceConfig) ([]map[string]interface{}, error) {
 	results := make([]map[string]interface{}, len(device.Datapoint))
 	for i, dp := range device.Datapoint {
-		parsedAddr, err := parseAddress(dp.Address)
+		parsedAddr, err := parseAddress(dp.Address, dp.Datatype)
 		if err != nil {
 			return nil, fmt.Errorf("S7: failed to parse address %s: %v", dp.Address, err)
 		}
@@ -212,6 +239,7 @@ func readData(client s7.Client, device opcua.DeviceConfig) ([]map[string]interfa
 		}
 
 		results[i] = map[string]interface{}{
+			"id":    dp.ID,
 			"name":  dp.Name,
 			"value": value,
 		}
@@ -220,38 +248,12 @@ func readData(client s7.Client, device opcua.DeviceConfig) ([]map[string]interfa
 	return results, nil
 }
 
-// readInputValue reads the value of an input from an S7 client.
-//
-// Parameters:
-//   - client: An s7.Client instance to communicate with the PLC.
-//   - addr: A ParsedAddress struct containing the parsed address information.
-//   - datatype: A string representing the data type of the variable.
-//
-// Returns:
-//   - The read value as an interface{}, or an error if reading the value fails.
-func readInputValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
-	var size int
-	switch addr.DataType {
-	case "Byte":
-		size = 1
-	case "Word":
-		size = 2
-	case "DWord":
-		size = 4
-	}
-	buffer := make([]byte, size)
-	err := client.AGReadEB(addr.ByteAddr, size, buffer)
-	if err != nil {
-		return nil, err
-	}
-	if addr.BitAddr >= 0 {
-		return (buffer[0] >> addr.BitAddr) & 1, nil
-	}
-	// Rückgabe der Daten entsprechend des Datentyps
-	switch datatype {
+// Zentrale Funktion zur Konvertierung der Bytes in den entsprechenden Datentyp
+func convertBufferToType(buffer []byte, datatype string, bitAddr int) (interface{}, error) {
+	switch strings.ToUpper(datatype) {
 	case "BOOL":
-		if addr.BitAddr >= 0 {
-			return (buffer[0] >> addr.BitAddr) & 1, nil
+		if bitAddr >= 0 {
+			return (buffer[0] >> bitAddr) & 1, nil
 		}
 		return nil, fmt.Errorf("invalid bit address for BOOL type")
 	case "BYTE":
@@ -259,7 +261,7 @@ func readInputValue(client s7.Client, addr ParsedAddress, datatype string) (inte
 	case "INT":
 		return int16(binary.BigEndian.Uint16(buffer)), nil
 	case "DINT":
-		return int16(binary.BigEndian.Uint16(buffer)), nil
+		return int32(binary.BigEndian.Uint32(buffer)), nil
 	case "REAL":
 		bits := binary.BigEndian.Uint32(buffer)
 		return math.Float32frombits(bits), nil
@@ -267,9 +269,27 @@ func readInputValue(client s7.Client, addr ParsedAddress, datatype string) (inte
 		return binary.BigEndian.Uint16(buffer), nil
 	case "DWORD":
 		return binary.BigEndian.Uint32(buffer), nil
+	case "STRING":
+		// Entferne Nullbytes am Ende
+		return strings.TrimRight(string(buffer), "\x00"), nil
 	default:
 		return nil, fmt.Errorf("unsupported data type: %s", datatype)
 	}
+}
+
+// readInputValue Funktion
+func readInputValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
+	size, err := getDataTypeSize(addr.DataType)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := make([]byte, size)
+	if err := client.AGReadEB(addr.ByteAddr, size, buffer); err != nil {
+		return nil, err
+	}
+
+	return convertBufferToType(buffer, datatype, addr.BitAddr)
 }
 
 // writeInputValue writes a value to an input on an S7 client.
@@ -309,59 +329,19 @@ func writeInputValue(client s7.Client, addr ParsedAddress, value interface{}) er
 	return client.AGWriteEB(addr.ByteAddr, 1, buffer)
 }
 
-// readOutputValue reads the value of an output from an S7 client.
-//
-// Parameters:
-//   - client: An s7.Client instance to communicate with the PLC.
-//   - addr: A ParsedAddress struct containing the parsed address information.
-//   - datatype: A string representing the data type of the variable.
-//
-// Returns:
-//   - The read value as an interface{}, or an error if reading the value fails.
+// readOutputValue Funktion
 func readOutputValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
-	var size int
-	switch addr.DataType {
-	case "Byte":
-		size = 1
-	case "Word":
-		size = 2
-	case "DWord":
-		size = 4
-	}
-	buffer := make([]byte, size)
-
-	err := client.AGReadAB(addr.ByteAddr, size, buffer)
+	size, err := getDataTypeSize(addr.DataType)
 	if err != nil {
 		return nil, err
 	}
-	// Rückgabe der Daten entsprechend des Datentyps
-	switch datatype {
-	case "BOOL":
-		if addr.BitAddr >= 0 {
-			return (buffer[0] >> addr.BitAddr) & 1, nil
-		}
-		return nil, fmt.Errorf("invalid bit address for BOOL type")
-	case "BYTE":
-		return buffer[0], nil
-	case "INT":
-		// INT ist ein int16, konvertiert mit BigEndian
-		return int16(binary.BigEndian.Uint16(buffer)), nil
-	case "DINT":
-		// INT ist ein int16, konvertiert mit BigEndian
-		return int16(binary.BigEndian.Uint16(buffer)), nil
-	case "REAL":
-		// REAL ist eine 32-Bit-Gleitkommazahl (float32)
-		bits := binary.BigEndian.Uint32(buffer)
-		return math.Float32frombits(bits), nil
-	case "WORD":
-		// WORD ist ein uint16, konvertiert mit BigEndian
-		return binary.BigEndian.Uint16(buffer), nil
-	case "DWORD":
-		// DWORD ist ein uint32, konvertiert mit BigEndian
-		return binary.BigEndian.Uint32(buffer), nil
-	default:
-		return nil, fmt.Errorf("unsupported data type: %s", datatype)
+
+	buffer := make([]byte, size)
+	if err := client.AGReadAB(addr.ByteAddr, size, buffer); err != nil {
+		return nil, err
 	}
+
+	return convertBufferToType(buffer, datatype, addr.BitAddr)
 }
 
 // writeOutputValue writes a value to an output on an S7 client.
@@ -413,55 +393,19 @@ func writeOutputValue(client s7.Client, addr ParsedAddress, value interface{}) e
 	return client.AGWriteAB(addr.ByteAddr, size, buffer)
 }
 
-// readMerkerValue reads the value of a marker from an S7 client.
-//
-// Parameters:
-//   - client: An s7.Client instance to communicate with the PLC.
-//   - addr: A ParsedAddress struct containing the parsed address information.
-//   - datatype: A string representing the data type of the variable.
-//
-// Returns:
-//   - The read value as an interface{}, or an error if reading the value fails.
+// readMerkerValue Funktion
 func readMerkerValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
-	var size int
-	switch addr.DataType {
-	case "Byte":
-		size = 1
-	case "Word":
-		size = 2
-	case "DWord":
-		size = 4
-	}
-	buffer := make([]byte, size)
-
-	err := client.AGReadMB(addr.ByteAddr, size, buffer)
+	size, err := getDataTypeSize(addr.DataType)
 	if err != nil {
 		return nil, err
 	}
 
-	// Rückgabe der Daten basierend auf dem Datentyp
-	switch datatype {
-	case "BOOL":
-		if addr.BitAddr >= 0 {
-			return (buffer[0] >> addr.BitAddr) & 1, nil
-		}
-		return nil, fmt.Errorf("invalid bit address for BOOL type")
-	case "BYTE":
-		return buffer[0], nil
-	case "INT":
-		return int16(binary.BigEndian.Uint16(buffer)), nil
-	case "DINT":
-		return int32(binary.BigEndian.Uint32(buffer)), nil
-	case "REAL":
-		bits := binary.BigEndian.Uint32(buffer)
-		return math.Float32frombits(bits), nil
-	case "WORD":
-		return binary.BigEndian.Uint16(buffer), nil
-	case "DWORD":
-		return binary.BigEndian.Uint32(buffer), nil
-	default:
-		return nil, fmt.Errorf("unsupported data type: %s", datatype)
+	buffer := make([]byte, size)
+	if err := client.AGReadMB(addr.ByteAddr, size, buffer); err != nil {
+		return nil, err
 	}
+
+	return convertBufferToType(buffer, datatype, addr.BitAddr)
 }
 
 // writeMerkerValue writes a value to a marker on an S7 client.
@@ -513,56 +457,19 @@ func writeMerkerValue(client s7.Client, addr ParsedAddress, value interface{}) e
 	return client.AGWriteMB(addr.ByteAddr, size, buffer)
 }
 
-// readDBValue reads the value of a data block from an S7 client.
-//
-// Parameters:
-//   - client: An s7.Client instance to communicate with the PLC.
-//   - addr: A ParsedAddress struct containing the parsed address information.
-//   - datatype: A string representing the data type of the variable.
-//
-// Returns:
-//   - The read value as an interface{}, or an error if reading the value fails.
+// readDBValue Funktion
 func readDBValue(client s7.Client, addr ParsedAddress, datatype string) (interface{}, error) {
-	var size int
-	switch addr.DataType {
-	case "Byte":
-		size = 1
-	case "Word":
-		size = 2
-	case "DWord":
-		size = 4
-	}
-	buffer := make([]byte, size)
-
-	// Lese die Daten aus dem Datenbaustein (DB)
-	err := client.AGReadDB(addr.DBNum, addr.ByteAddr, size, buffer)
+	size, err := getDataTypeSize(addr.DataType)
 	if err != nil {
 		return nil, err
 	}
 
-	// Rückgabe der Daten basierend auf dem Datentyp
-	switch datatype {
-	case "BOOL":
-		if addr.BitAddr >= 0 {
-			return (buffer[0] >> addr.BitAddr) & 1, nil
-		}
-		return nil, fmt.Errorf("invalid bit address for BOOL type")
-	case "BYTE":
-		return buffer[0], nil
-	case "INT":
-		return int16(binary.BigEndian.Uint16(buffer)), nil
-	case "DINT":
-		return int32(binary.BigEndian.Uint32(buffer)), nil
-	case "REAL":
-		bits := binary.BigEndian.Uint32(buffer)
-		return math.Float32frombits(bits), nil
-	case "WORD":
-		return binary.BigEndian.Uint16(buffer), nil
-	case "DWORD":
-		return binary.BigEndian.Uint32(buffer), nil
-	default:
-		return nil, fmt.Errorf("unsupported data type: %s", datatype)
+	buffer := make([]byte, size)
+	if err := client.AGReadDB(addr.DBNum, addr.ByteAddr, size, buffer); err != nil {
+		return nil, err
 	}
+
+	return convertBufferToType(buffer, datatype, addr.BitAddr)
 }
 
 // writeDBValue writes a value to a data block on an S7 client.
@@ -635,7 +542,16 @@ func updateDataPoint(device *DeviceConfig, address string, value interface{}) er
 		return fmt.Errorf("S7: could not create client for PLC %s", device.Name)
 	}
 
-	parsedAddr, err := parseAddress(address)
+	// suche nach datatype dort wo address steht
+	datatype := ""
+	for _, dp := range device.Datapoint {
+		if dp.Address == address {
+			datatype = dp.DataType
+			break
+		}
+	}
+
+	parsedAddr, err := parseAddress(address, datatype)
 	if err != nil {
 		return fmt.Errorf("S7: failed to parse address %s: %v", address, err)
 	}
@@ -651,5 +567,23 @@ func updateDataPoint(device *DeviceConfig, address string, value interface{}) er
 		return writeDBValue(client, parsedAddr, value)
 	default:
 		return fmt.Errorf("S7: unknown variable type for address %s", address)
+	}
+}
+
+// Zentrale Funktion zur Bestimmung der Größe und Validierung des Datentyps
+func getDataTypeSize(dataType string) (int, error) {
+	switch strings.ToUpper(dataType) {
+	case "BOOL":
+		return 1, nil
+	case "BYTE":
+		return 1, nil
+	case "WORD", "INT":
+		return 2, nil
+	case "DWORD", "DINT", "REAL":
+		return 4, nil
+	case "STRING":
+		return 256, nil
+	default:
+		return 0, fmt.Errorf("unsupported data type: %s", dataType)
 	}
 }

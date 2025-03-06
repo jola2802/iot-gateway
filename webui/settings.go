@@ -2,11 +2,9 @@ package webui
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -34,39 +32,83 @@ type ACLEntry struct {
 	Permission int    `json:"permission"` // Als int definiert
 }
 
+// Settings repräsentiert die Einstellungen der Anwendung
+type Settings struct {
+	DockerIP          string `json:"docker_ip"`
+	UseCustomServices bool   `json:"use_custom_services"`
+	NodeRedURL        string `json:"nodered_url,omitempty"`
+	InfluxDBURL       string `json:"influxdb_url,omitempty"`
+	UseExternalBroker bool   `json:"use_external_broker"`
+	BrokerURL         string `json:"broker_url,omitempty"`
+	BrokerPort        string `json:"broker_port,omitempty"`
+	BrokerUsername    string `json:"broker_username,omitempty"`
+	BrokerPassword    string `json:"broker_password,omitempty"`
+}
+
 func getSettings(c *gin.Context) {
-	configFile, err := os.ReadFile("config.json")
+	db, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Datenbankverbindung nicht gefunden"})
+		return
+	}
+
+	dbConn := db.(*sql.DB)
+
+	var settings Settings
+	err := dbConn.QueryRow(`
+		SELECT docker_ip, use_custom_services, nodered_url, influxdb_url, 
+		       use_external_broker, broker_url, broker_port, broker_username, broker_password 
+		FROM settings WHERE id = 1
+	`).Scan(
+		&settings.DockerIP, &settings.UseCustomServices, &settings.NodeRedURL, &settings.InfluxDBURL,
+		&settings.UseExternalBroker, &settings.BrokerURL, &settings.BrokerPort, &settings.BrokerUsername, &settings.BrokerPassword,
+	)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Konnte Konfigurationsdatei nicht lesen"})
+		if err == sql.ErrNoRows {
+			// Wenn keine Einstellungen gefunden wurden, sende leere Einstellungen
+			c.JSON(http.StatusOK, Settings{})
+			return
+		}
+		log.Printf("Fehler beim Lesen der Einstellungen: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Fehler beim Lesen der Einstellungen"})
 		return
 	}
 
-	var config map[string]interface{}
-	if err := json.Unmarshal(configFile, &config); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Parsen der Konfiguration"})
-		return
-	}
-
-	c.JSON(http.StatusOK, config)
+	c.JSON(http.StatusOK, settings)
 }
 
 func updateSettings(c *gin.Context) {
-	var newConfig map[string]interface{}
-	if err := c.BindJSON(&newConfig); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Eingabedaten"})
+	db, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Datenbankverbindung nicht gefunden"})
 		return
 	}
 
-	// Konvertiere die Konfiguration zurück in JSON mit schöner Formatierung
-	configJSON, err := json.MarshalIndent(newConfig, "", "  ")
+	dbConn := db.(*sql.DB)
+
+	var settings Settings
+	if err := c.ShouldBindJSON(&settings); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Ungültige Einstellungsdaten"})
+		return
+	}
+
+	// Aktualisiere oder füge neue Einstellungen ein
+	_, err := dbConn.Exec(`
+		INSERT OR REPLACE INTO settings (
+			id, docker_ip, use_custom_services, nodered_url, influxdb_url,
+			use_external_broker, broker_url, broker_port, broker_username, broker_password
+		) VALUES (
+			1, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`,
+		settings.DockerIP, settings.UseCustomServices, settings.NodeRedURL, settings.InfluxDBURL,
+		settings.UseExternalBroker, settings.BrokerURL, settings.BrokerPort, settings.BrokerUsername, settings.BrokerPassword,
+	)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Erstellen der JSON-Konfiguration"})
-		return
-	}
-
-	// Schreibe die neue Konfiguration in die Datei
-	if err := os.WriteFile("config.json", configJSON, 0644); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Speichern der Konfiguration"})
+		log.Printf("Fehler beim Speichern der Einstellungen: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Fehler beim Speichern der Einstellungen"})
 		return
 	}
 
@@ -302,71 +344,6 @@ func getCachedBrokerSettings(db *sql.DB) (BrokerSettings, error) {
 	return settings, nil
 }
 
-// updateBrokerUser aktualisiert das Passwort und die ACL-Einträge für einen Benutzer
-func updateBrokerUser(c *gin.Context) {
-	// Holen Sie die DB-Instanz aus dem Context
-	db, exists := c.Get("db")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Database connection not found"})
-		return
-	}
-
-	dbConn := db.(*sql.DB)
-
-	// Struktur für die erhaltenen JSON-Daten
-	var userData struct {
-		Username   string     `json:"username"`
-		Password   string     `json:"password"`
-		AclEntries []ACLEntry `json:"aclEntries"`
-	}
-
-	// JSON Body in die userData Struktur binden
-	if err := c.ShouldBindJSON(&userData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request data"})
-		return
-	}
-
-	// Überprüfen, ob der Benutzer existiert
-	var existsInAuth bool
-	err := dbConn.QueryRow("SELECT EXISTS(SELECT 1 FROM auth WHERE username = ?)", userData.Username).Scan(&existsInAuth)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error checking user existence"})
-		return
-	}
-
-	if !existsInAuth {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "User does not exist"})
-		return
-	}
-
-	// Schritt 1: Aktualisieren des Passworts in der auth-Tabelle
-	_, err = dbConn.Exec("UPDATE auth SET password = ? WHERE username = ?", userData.Password, userData.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating password"})
-		return
-	}
-
-	// Schritt 2: Löschen der alten ACL-Einträge für den Benutzer
-	_, err = dbConn.Exec("DELETE FROM acl WHERE username = ?", userData.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting old ACL entries"})
-		return
-	}
-
-	// Schritt 3: Hinzufügen der neuen ACL-Einträge
-	for _, entry := range userData.AclEntries {
-		_, err = dbConn.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)",
-			userData.Username, entry.Topic, entry.Permission)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting ACL entries"})
-			return
-		}
-	}
-
-	// Erfolgsmeldung zurückgeben
-	c.JSON(http.StatusOK, gin.H{"message": "User and ACL entries updated successfully"})
-}
-
 // deleteUserHandler löscht einen Benutzer und seine ACL-Einträge.
 func deleteUserHandler(c *gin.Context) {
 	username := c.Param("username")
@@ -498,4 +475,23 @@ func createUserHandler(c *gin.Context) {
 
 	// Success response
 	c.JSON(http.StatusOK, gin.H{"message": "User added successfully"})
+}
+
+// InitSettingsTable erstellt die settings-Tabelle, falls sie nicht existiert
+func InitSettingsTable(db *sql.DB) error {
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS settings (
+			id INTEGER PRIMARY KEY,
+			docker_ip TEXT,
+			use_custom_services BOOLEAN DEFAULT FALSE,
+			nodered_url TEXT,
+			influxdb_url TEXT,
+			use_external_broker BOOLEAN DEFAULT FALSE,
+			broker_url TEXT,
+			broker_port TEXT,
+			broker_username TEXT,
+			broker_password TEXT
+		)
+	`)
+	return err
 }

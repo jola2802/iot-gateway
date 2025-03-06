@@ -5,8 +5,8 @@ function getHostInfo() {
     const BASE_PATH = `https://${hostname}/nodered/`;
     const WS_PATH = `wss://${hostname}/nodered/`;
 
-    console.log('BASE_PATH:', BASE_PATH);
-    console.log('WS_PATH:', WS_PATH);
+    // console.log('BASE_PATH:', BASE_PATH);
+    // console.log('WS_PATH:', WS_PATH);
 
     return { BASE_PATH, WS_PATH };
 }

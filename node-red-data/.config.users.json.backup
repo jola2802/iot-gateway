@@ -14,15 +14,8 @@
             },
             "tours": {
                 "welcome": "4.0.8"
-            },
-            "dialog": {
-                "export": {
-                    "pretty": true,
-                    "json-view": false
-                }
             }
         },
-        "menu-menu-item-palette": true,
         "menu-menu-item-sidebar": true
     },
     "admin": {
@@ -35,8 +28,8 @@
                 "view-grid-size": "20",
                 "view-node-status": true,
                 "view-node-show-label": true,
-                "view-show-tips": true,
-                "view-show-welcome-tours": true
+                "view-show-tips": false,
+                "view-show-welcome-tours": false
             },
             "tours": {
                 "welcome": "4.0.8"
@@ -44,10 +37,10 @@
             "dialog": {
                 "export": {
                     "pretty": true,
-                    "json-view": true
+                    "json-view": false
                 }
             }
         },
-        "menu-menu-item-sidebar": true
+        "menu-menu-item-sidebar": false
     }
 }

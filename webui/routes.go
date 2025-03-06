@@ -3,7 +3,6 @@ package webui
 import (
 	"net/http"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,14 +25,8 @@ var wsTokenStore = struct {
 //	r := gin.Default()
 //	setupRoutes(r)
 func setupRoutes(r *gin.Engine) {
-	// Registriere die benutzerdefinierte Funktion
-	r.SetFuncMap(template.FuncMap{
-		"getPermissionText": getPermissionText,
-	})
-
 	// Serving static files (CSS and JS)
 	r.Static("/assets/", "./webui/assets/")
-	// r.StaticFS("/static", http.FS(staticFS))
 
 	// Loading HTML templates
 	r.LoadHTMLGlob("webui/templates/*")
@@ -46,15 +39,22 @@ func setupRoutes(r *gin.Engine) {
 	r.GET("/api/ws-broker-status", brokerStatusWebSocket)
 	r.GET("/api/ws-device-data", deviceDataWebSocket)
 
+	// Files
+	r.POST("/api/save-image", saveImage)
+	// authorized.POST("/api/get-files", getFiles)
+
 	// Protected routes
 	authorized := r.Group("/")
-	authorized.Use(authRequired)
+	authorized.Use(AuthRequired)
 	{
 		/// #############
 		// NEUE ROUTEN HIER
 		authorized.GET("/api/getBrokerUsers", getAllBrokerUsers)
 		authorized.GET("/api/getBrokerUser/:username", getBrokerUser)
 		authorized.GET("/api/getBrokerLogin", getBrokerLogin)
+		authorized.POST("/api/add-broker-user", addBrokerUser)
+		authorized.PUT("/api/update-broker-user/:username", addBrokerUser)
+		authorized.DELETE("/api/delete-broker-user/:username", deleteBrokerUser)
 
 		// Devices
 		authorized.GET("/api/getDevices", getDevices)
@@ -78,8 +78,18 @@ func setupRoutes(r *gin.Engine) {
 		authorized.DELETE("/api/route/:routeId", deleteRoute)
 		authorized.GET("/api/route/:routeId", getRoutesById)
 		authorized.PUT("/api/route/:routeId", saveRouteConfig)
-		authorized.GET("/api/add-img-process", addImageProcess)
+
+		authorized.GET("/api/get-node-red-url", getNodeRedURL)
+
+		// Image Process
+		authorized.GET("/api/list-captured-images", listCapturedImages)
+		authorized.POST("/api/add-img-process", saveImageProcess)
+		authorized.DELETE("/api/image-process/:id", deleteImageProcess)
+		authorized.GET("/api/img-process/:id/status", getImageProcessStatus)
+		// authorized.POST("/api/start-image-process/:id", startImageProcessREST)
 		authorized.GET("/api/browseNodes/:deviceID", browseNodes) // Get device attributes
+		authorized.GET("/api/images", getImages)
+		authorized.GET("/api/images/download", downloadImagesAsZip) // Neue Route für ZIP-Download
 
 		// Profile
 		authorized.GET("/api/profile", getProfile)
@@ -92,13 +102,8 @@ func setupRoutes(r *gin.Engine) {
 
 		authorized.POST("/api/restart", restartGatewayHandler)
 
-		// WSS for dashboard data
-		// authorized.GET("/api/ws-broker-status", brokerStatusWebSocket)
-		// WSS for device data
-		// authorized.GET("/api/ws-device-data", deviceDataWebSocket)
-
 		/// #############
-		// Show the pages
+		// Show pages
 		authorized.GET("/", showDashboard)
 		authorized.GET("/home", showDashboard)
 		authorized.GET("/devices", showDevicesPage) // show devices page
@@ -108,6 +113,8 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/node-red", showNodeRedPage)
 		authorized.GET("/profile", showProfilePage)
 		authorized.GET("/settings", showSettingsPage)
+
+		// authorized.GET("/files", showFilesPage)
 		// ############
 
 		// Data Routes
@@ -134,30 +141,11 @@ func setupRoutes(r *gin.Engine) {
 		// authorized.POST("/users", createUserHandler)
 
 		// Features
-		authorized.GET("/latest-image/:deviceName", latestImage)
-		authorized.POST("/start-image-process/:id", startImageProcess)
-		authorized.GET("/stop-image-process/:id", stopImageProcess)
-		authorized.POST("/api/delete-image-process/:id", deleteImageProcess)
-		authorized.GET("/add-image-process", addImageProcess)
+		// authorized.GET("/latest-image/:deviceName", latestImage)
+		// authorized.GET("/add-image-process", addImageProcess)
 
 		authorized.GET("/browse-nodes/:deviceID", browseNodes)
 
-	}
-}
-
-// getPermissionText wandelt eine Permission-Zahl in einen Text um
-func getPermissionText(permission int) string {
-	switch permission {
-	case 0:
-		return "NA"
-	case 1:
-		return "R"
-	case 2:
-		return "W"
-	case 3:
-		return "R/W"
-	default:
-		return "unknown"
 	}
 }
 

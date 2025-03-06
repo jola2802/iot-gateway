@@ -3,3 +3,9 @@ node-red-data/*
 
 // Ignore all files in the data directory
 files/*
+
+// Ignore all files in the .vscode directory
+.vscode/*
+
+// Ignore all files in the .env directory
+.env/*

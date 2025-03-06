@@ -1,6 +1,6 @@
 module iot-gateway
 
-go 1.22
+go 1.24
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3
@@ -14,6 +14,7 @@ require (
 	github.com/mochi-mqtt/server/v2 v2.6.4
 	github.com/robinson/gos7 v0.0.0-20240315073918-1f14519e4846
 	github.com/sirupsen/logrus v1.8.1
+	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -50,7 +51,6 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect

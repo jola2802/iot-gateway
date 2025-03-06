@@ -1,3 +1,5 @@
 {
-    "editor.codeActionsOnSave": {}
+    "editor.codeActionsOnSave": {},
+    "go.toolsEnvVars": {},
+    "git.ignoreLimitWarning": true
 }

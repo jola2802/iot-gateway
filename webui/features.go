@@ -3,14 +3,19 @@ package webui
 import (
 	"bytes"
 	"context"
+	"database/sql"
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
+
+	"crypto/tls"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gopcua/opcua"
@@ -19,244 +24,105 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func startImageProcessOLD(c *gin.Context) {
-	var requestData struct {
-		API_URL          string `json:"api_url"`
-		API_Header       string `json:"api_header"`
-		DatapointId      string `json:"datapointId"`
-		Device           string `json:"device"`
-		MethodParentNode string `json:"methodParentNode"`
-		MethodImageNode  string `json:"methodImageNode"`
-		ImageNode        string `json:"imageNode"`
-		CapturedNode     string `json:"capturedNode"`
-		CompleteNode     string `json:"completeNode"`
-		Timeout          string `json:"timeout"`
-		CaptureMode      string `json:"captureMode"`
-		AdditionalInput  string `json:"additionalInput"`
-		Status           string `json:"status"`
-		Logs             string `json:"logs"`
-	}
+var NodeRED_URL, NodeRED_URL_OPC string
 
-	// Parse JSON request body into requestData
-	if err := c.BindJSON(&requestData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
+func listCapturedImages(c *gin.Context) {
+	// Basis-Verzeichnis für die Bilder
+	baseDir := "/data/shared"
 
-	// Log the received data
-	logrus.Infof("Received image processing request: %+v", requestData)
+	// Slice für alle gefundenen Bilder
+	var images []gin.H
 
-	// TODO: Speichern der Daten in der Datenbank
-	db, err := getDBConnection(c)
+	// Durchsuche rekursiv alle Unterverzeichnisse
+	err := filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Überspringe Verzeichnisse
+		if info.IsDir() {
+			return nil
+		}
+
+		// Prüfe ob es sich um ein Bild handelt
+		ext := strings.ToLower(filepath.Ext(path))
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+			// Erstelle relativen Pfad vom baseDir aus
+			relPath, err := filepath.Rel(baseDir, path)
+			if err != nil {
+				return err
+			}
+
+			// Füge Bildinformationen hinzu
+			images = append(images, gin.H{
+				"filename":  relPath, // Relativer Pfad als Dateiname
+				"timestamp": info.ModTime().Format(time.RFC3339),
+				"size":      info.Size(),
+			})
+		}
+		return nil
+	})
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error connecting to database", "error": err.Error()})
-		return
-	}
-
-	// Füge das Gerät direkt in die 'devices'-Tabelle ein
-	query := `
-        INSERT INTO img_process (device, m_parent_node, m_image_node, image_node, captured_node, complete_node, timeout, capture_mode, trigger, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
-	_, err = db.Exec(query, requestData.Device, requestData.MethodParentNode, requestData.MethodImageNode, requestData.ImageNode,
-		requestData.CapturedNode, requestData.CompleteNode, requestData.Timeout, requestData.CaptureMode, requestData.AdditionalInput, requestData.Status, "configured")
-	if err != nil {
-		logrus.Println("Error inserting device data into the database:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting device data"})
-		return
-	}
-
-	// Geräteeinstellungen abrufen (Adresse, Sicherheitsrichtlinie und Modus)
-	query = "SELECT address, security_policy, security_mode FROM devices WHERE name = ?"
-	row := db.QueryRow(query, requestData.Device)
-
-	var address, securityPolicy, securityMode string
-	if err := row.Scan(&address, &securityPolicy, &securityMode); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error fetching device settings", "error": err.Error()})
-		return
-	}
-
-	// Füge hier den Code ein, der den Endpunkt :1880/opc-image mit dem Body aufruft
-	//
-
-	// // OPC UA Client konfigurieren
-	// client, err := opcua.NewClient(address)
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"message": "Error creating OPC UA client", "error": err.Error()})
-	// 	return
-	// }
-
-	// logrus.Println(client)
-
-	// filePath := filepath.Join("./files", requestData.Device)
-
-	// // TODO: start der bildverarbeitung
-	// features.StartImageCapture(client, requestData.MethodParentNode, requestData.MethodImageNode, requestData.ImageNode,
-	// 	requestData.CapturedNode, requestData.CompleteNode, filePath, requestData.DatapointId, requestData.API_URL,
-	// 	requestData.Timeout, requestData.CaptureMode, requestData.AdditionalInput)
-
-	// Send a response
-	c.JSON(http.StatusOK, gin.H{"message": "Image processing started successfully"})
-}
-
-func startImageProcess(c *gin.Context) {
-	// processID := c.Param("id")
-
-}
-
-func deleteImageProcess(c *gin.Context) {
-	// processID := c.Param("id")
-
-}
-
-func stopImageProcess(c *gin.Context) {
-	// processID := c.Param("id")
-
-}
-
-func addImageProcess(c *gin.Context) {
-	var requestData struct {
-		API_URL          string `json:"api_url"`
-		API_Header       string `json:"api_header"`
-		DatapointId      string `json:"datapointId"`
-		Device           string `json:"device"`
-		MethodParentNode string `json:"methodParentNode"`
-		MethodImageNode  string `json:"methodImageNode"`
-		ImageNode        string `json:"imageNode"`
-		CapturedNode     string `json:"capturedNode"`
-		CompleteNode     string `json:"completeNode"`
-		Timeout          string `json:"timeout"`
-		CaptureMode      string `json:"captureMode"`
-		AdditionalInput  string `json:"additionalInput"`
-		Status           string `json:"status"`
-		Logs             string `json:"logs"`
-	}
-
-	// Parse JSON request body into requestData
-	if err := c.BindJSON(&requestData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
-
-	// Log the received data
-	logrus.Infof("Received image processing request: %+v", requestData)
-
-	// 1) Datenbankverbindung herstellen
-	db, err := getDBConnection(c)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error connecting to database", "error": err.Error()})
-		return
-	}
-	defer db.Close()
-
-	// 2) Datensatz in Tabelle img_process anlegen
-	query := `
-        INSERT INTO img_process (device, m_parent_node, m_image_node, image_node, captured_node, complete_node, timeout, capture_mode, trigger, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
-	_, err = db.Exec(query,
-		requestData.Device,
-		requestData.MethodParentNode,
-		requestData.MethodImageNode,
-		requestData.ImageNode,
-		requestData.CapturedNode,
-		requestData.CompleteNode,
-		requestData.Timeout,
-		requestData.CaptureMode,
-		requestData.AdditionalInput,
-		requestData.Status,
-	)
-	if err != nil {
-		logrus.Println("Error inserting device data into the database:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting device data"})
-		return
-	}
-
-	// 3) Geräteeinstellungen abrufen (z.B. address, security_policy, security_mode)
-	query = "SELECT address, security_policy, security_mode FROM devices WHERE name = ?"
-	row := db.QueryRow(query, requestData.Device)
-
-	var (
-		address        string
-		securityPolicy string
-		securityMode   string
-	)
-	if err := row.Scan(&address, &securityPolicy, &securityMode); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error fetching device settings", "error": err.Error()})
-		return
-	}
-
-	// 4) Body für den POST-Aufruf an Node-RED bauen:
-	//    Der Inhalt sollte deinem benötigten JSON entsprechen.
-	postBody := map[string]interface{}{
-		"endpoint":          address, // z.B. "opc.tcp://127.0.0.1:48010"
-		"objectId":          requestData.MethodParentNode,
-		"methodId":          requestData.MethodImageNode,
-		"checkNodeId":       requestData.CapturedNode,
-		"imageNodeId":       requestData.ImageNode,
-		"ackNodeId":         requestData.CompleteNode,
-		"basePath":          "C:/Users/jonas/Documents/iot-gateway2/files",
-		"device":            requestData.Device,
-		"enableUpload":      "true",
-		"uploadUrl":         "http://127.0.0.1:1880/opc-upload",
-		"securityModeVar":   securityMode,   // z.B. "NONE"
-		"securityPolicyVar": securityPolicy, // z.B. "NONE"
-		"username":          "",             // falls nicht nötig, leer
-		"password":          "",
-	}
-
-	// Falls bestimmte Felder aus requestData.API_URL o.ä. gebraucht werden, füge sie hinzu.
-	// z.B. "uploadUrl": requestData.API_URL, etc.
-
-	// 5) Das Ganze nach JSON serialisieren
-	jsonBytes, err := json.Marshal(postBody)
-	if err != nil {
-		logrus.Errorf("Error marshaling JSON for Node-RED call: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error building JSON for Node-RED"})
-		return
-	}
-
-	// 6) HTTP-Request an Node-RED aufbauen
-	nodeRedURL := "http://127.0.0.1:1880/opc-image" // Dein Node-RED-Endpunkt
-	req, err := http.NewRequest("POST", nodeRedURL, bytes.NewBuffer(jsonBytes))
-	if err != nil {
-		logrus.Errorf("Error creating POST request to Node-RED: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error creating request to Node-RED"})
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// 7) Request abschicken
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		logrus.Errorf("Error calling Node-RED endpoint: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error calling Node-RED endpoint"})
-		return
-	}
-	defer resp.Body.Close()
-
-	// 8) Response-Body von Node-RED (optional) einlesen
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logrus.Errorf("Error reading response from Node-RED: %v", err)
-		// trotzdem 200 oder 500 schicken, je nach Wunsch
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		logrus.Errorf("Node-RED returned error (status %d): %s", resp.StatusCode, string(bodyBytes))
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": fmt.Sprintf("Node-RED returned non-2xx status: %d", resp.StatusCode),
-			"body":    string(bodyBytes),
+			"message": "Error reading images",
+			"error":   err.Error(),
 		})
 		return
 	}
 
-	// Optional: könnte man in die DB loggen oder so
-	logrus.Infof("Node-RED call successful: %s", string(bodyBytes))
+	c.JSON(http.StatusOK, gin.H{"images": images})
+}
 
-	// Abschließende Antwort an den Client
-	c.JSON(http.StatusOK, gin.H{"message": "Image processing started successfully"})
+// getImageProcessStatus holt den Status des Bildverarbeitungsprozesses aus der Datenbank (Base64-Bild)
+func getImageProcessStatus(c *gin.Context) {
+	processID := c.Param("id")
+
+	// Datenbankverbindung herstellen
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error connecting to database", "error": err.Error()})
+		return
+	}
+
+	// Status aus der Datenbank holen
+	var status, statusData, device string
+	query := "SELECT status, status_data, device FROM img_process WHERE id = ?"
+	err = db.QueryRow(query, processID).Scan(&status, &statusData, &device)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Process not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error fetching status", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": status, "statusData": statusData, "device": device})
+}
+
+func deleteImageProcess(c *gin.Context) {
+	processID := c.Param("id")
+
+	// Stoppe den Bildverarbeitung Worker
+	stopImgProcess(processID)
+
+	// Datenbankverbindung herstellen
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error connecting to database", "error": err.Error()})
+		return
+	}
+
+	// Datensatz aus der Tabelle img_process löschen
+	query := "DELETE FROM img_process WHERE id = ?"
+	_, err = db.Exec(query, processID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting image process", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Image process deleted successfully"})
 }
 
 func listImgCapProcesses(c *gin.Context) {
@@ -274,7 +140,6 @@ func listImgCapProcesses(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error fetching image processing processes", "error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
 	// Spaltennamen ermitteln
 	columns, err := rows.Columns()
@@ -309,6 +174,10 @@ func listImgCapProcesses(c *gin.Context) {
 
 	// Prüfen auf Fehler beim Iterieren
 	if err := rows.Err(); err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusOK, gin.H{"processes": []map[string]interface{}{}})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error iterating rows", "error": err.Error()})
 		return
 	}
@@ -507,49 +376,8 @@ func browseNodes(c *gin.Context) {
 	// Enferne alle Nodes die nicht vom Typ Variable sind
 	nodeList = removeNonVariableNodes(nodeList)
 
-	// logrus.Println(nodeList)
-
 	// Knoten als JSON zurückgeben
 	c.JSON(http.StatusOK, gin.H{"nodes": nodeList})
-
-	// // speichere die Nodeliste in einer csv datei mit dem namen "nodelist.csv" in dem die nodes sortiert nach browsenamen gespeichert sind
-	// file, err := os.Create("nodelist.csv")
-	// if err != nil {
-	// 	logrus.Errorf("Error creating CSV file: %v", err)
-	// 	return
-	// }
-	// defer file.Close()
-
-	// writer := csv.NewWriter(file)
-	// defer writer.Flush()
-
-	// // Schreibe die Header-Zeile
-	// if err := writer.Write([]string{"NodeID", "NodeClass", "BrowseName", "Description", "Path"}); err != nil {
-	// 	logrus.Errorf("Error writing header to CSV file: %v", err)
-	// 	return
-	// }
-
-	// // Sortiere die NodeList nach BrowseName
-	// sort.Slice(nodeList, func(i, j int) bool {
-	// 	return nodeList[i].BrowseName < nodeList[j].BrowseName
-	// })
-
-	// // Schreibe die Nodes in die CSV-Datei
-	// for _, node := range nodeList {
-	// 	record := []string{
-	// 		node.NodeID.String(),
-	// 		node.NodeClass.String(),
-	// 		node.BrowseName,
-	// 		node.Description,
-	// 		node.Path,
-	// 	}
-	// 	if err := writer.Write(record); err != nil {
-	// 		logrus.Errorf("Error writing record to CSV file: %v", err)
-	// 		return
-	// 	}
-	// }
-
-	// logrus.Println("Node list saved to nodelist.csv")
 }
 
 func removeNonVariableNodes(nodeList []NodeDef) []NodeDef {
@@ -559,4 +387,414 @@ func removeNonVariableNodes(nodeList []NodeDef) []NodeDef {
 		}
 	}
 	return nodeList
+}
+
+// HeaderEntry repräsentiert einen einzelnen Header-Eintrag
+type HeaderEntry struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type Argument struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+func saveImageProcess(c *gin.Context) {
+	var requestData struct {
+		Device               string        `json:"device"`
+		MethodParentNode     string        `json:"methodParentNode"`
+		MethodImageNode      string        `json:"methodImageNode"`
+		MethodArguments      []Argument    `json:"methodArguments"`
+		ImageNode            string        `json:"imageNode"`
+		CaptureCompletedNode string        `json:"captureCompletedNode"`
+		ReadCompletedNode    string        `json:"readCompletedNode"`
+		Timeout              int           `json:"timeout"`
+		CaptureMode          string        `json:"captureMode"`
+		Interval             int           `json:"interval"`
+		TriggerNode          string        `json:"triggerNode"`
+		RestUri              string        `json:"restUri"`
+		Headers              []HeaderEntry `json:"headers"`
+	}
+
+	// Parse JSON request body
+	if err := c.BindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Headers in JSON-String umwandeln
+	headersJSON, err := json.Marshal(requestData.Headers)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing headers"})
+		return
+	}
+
+	// entweder triggerNode oder interval, das was nicht leer ist soll dann in additionalInput gespeichert werden
+	var additionalInput string
+	if requestData.TriggerNode != "" {
+		additionalInput = requestData.TriggerNode
+	} else if requestData.Interval != 0 {
+		additionalInput = strconv.Itoa(requestData.Interval)
+	}
+
+	if requestData.Timeout == 0 {
+		requestData.Timeout = 30
+	}
+
+	// Datenbankverbindung herstellen
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error connecting to database", "error": err.Error()})
+		return
+	}
+
+	logrus.Infof("Method Arguments: %v", requestData.MethodArguments)
+	methodArgumentsJSON, err := json.Marshal(requestData.MethodArguments)
+
+	// Datensatz in Tabelle img_process anlegen
+	query := `
+        INSERT INTO img_process (device, m_parent_node, m_image_node, method_arguments, image_node, captured_node, complete_node, timeout, capture_mode, trigger, rest_uri, headers, status, status_data)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+
+	result, err := db.Exec(query,
+		requestData.Device,
+		requestData.MethodParentNode,
+		requestData.MethodImageNode,
+		methodArgumentsJSON,
+		requestData.ImageNode,
+		requestData.CaptureCompletedNode,
+		requestData.ReadCompletedNode,
+		requestData.Timeout,
+		requestData.CaptureMode,
+		additionalInput,
+		requestData.RestUri,
+		string(headersJSON), // Headers als JSON-String speichern
+		"configured",
+		"e",
+	)
+	if err != nil {
+		logrus.Println("Error inserting device data into the database:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting device data"})
+		return
+	}
+
+	// Get the ID of the inserted record
+	id, err := result.LastInsertId()
+	if err != nil {
+		logrus.Println("Error getting last insert ID:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error getting process ID"})
+		return
+	}
+
+	// Starte die Bildverarbeitung
+	startImageProcessWorker(db, requestData.Device, strconv.Itoa(int(id)), NodeRED_URL_OPC, requestData.Interval)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Image process saved successfully",
+		"id":      id,
+	})
+}
+
+// imageProcessWorkers speichert pro route_id die jeweilige Stop-Funktion
+var imageProcessWorkers = make(map[string]func())
+
+// Typdefinitionen für die aus der DB geladenen Daten
+type ImageProcessData struct {
+	ID              int
+	Device          string
+	MParentNode     string
+	MImageNode      string
+	MethodArguments string
+	ImageNode       string
+	CapturedNode    string
+	Timeout         string
+	CaptureMode     string
+	Trigger         string
+	CompleteNode    string
+	RestURI         string
+	Headers         string
+	Status          string
+	StatusData      string
+}
+
+type DeviceSettings struct {
+	Address        string
+	SecurityPolicy string
+	SecurityMode   string
+	Username       sql.NullString
+	Password       sql.NullString
+}
+
+type NodeRedResponse struct {
+	Success        bool   `json:"success"`
+	Endpoint       string `json:"endpoint"`
+	SecurityMode   string `json:"securityMode"`
+	SecurityPolicy string `json:"securityPolicy"`
+	Username       string `json:"username"`
+	SavedFilePath  string `json:"savedFilePath"`
+	Uploaded       bool   `json:"uploaded"`
+	Image          struct {
+		Type string `json:"type"`
+		Data []byte `json:"data"`
+	} `json:"image"`
+}
+
+// fetchImageProcessData liest die Bildprozessdaten aus der Datenbank anhand der device-ID.
+func fetchImageProcessData(db *sql.DB, deviceID string) (*ImageProcessData, error) {
+	query := "SELECT id, device, m_parent_node, m_image_node, method_arguments, image_node, captured_node, timeout, capture_mode, trigger, complete_node, rest_uri, headers, status, status_data FROM img_process WHERE device = ?"
+	row := db.QueryRow(query, deviceID)
+
+	var data ImageProcessData
+	err := row.Scan(&data.ID, &data.Device, &data.MParentNode, &data.MImageNode, &data.MethodArguments, &data.ImageNode,
+		&data.CapturedNode, &data.Timeout, &data.CaptureMode, &data.Trigger, &data.CompleteNode,
+		&data.RestURI, &data.Headers, &data.Status, &data.StatusData)
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+// fetchDeviceSettings holt die Geräteeinstellungen anhand der device-ID (als int) aus der Datenbank.
+func fetchDeviceSettings(db *sql.DB, deviceID int) (*DeviceSettings, error) {
+	query := "SELECT address, security_policy, security_mode, username, password FROM devices WHERE id = ?"
+	row := db.QueryRow(query, deviceID)
+
+	var settings DeviceSettings
+	err := row.Scan(&settings.Address, &settings.SecurityPolicy, &settings.SecurityMode, &settings.Username, &settings.Password)
+	if err != nil {
+		return nil, err
+	}
+	return &settings, nil
+
+}
+
+// buildPostBody erstellt das Request-Body-Objekt für den Node-RED Aufruf.
+func buildPostBody(imgData *ImageProcessData, devSettings *DeviceSettings) map[string]interface{} {
+	upload := "false"
+	if imgData.RestURI != "" {
+		upload = "true"
+	}
+	return map[string]interface{}{
+		"endpoint":          devSettings.Address,
+		"objectId":          imgData.MParentNode,
+		"methodId":          imgData.MImageNode,
+		"methodArguments":   imgData.MethodArguments,
+		"checkNodeId":       imgData.CapturedNode,
+		"imageNodeId":       imgData.ImageNode,
+		"ackNodeId":         imgData.CompleteNode,
+		"basePath":          "/data/images",
+		"device":            imgData.Device,
+		"enableUpload":      upload,
+		"uploadUrl":         imgData.RestURI,
+		"securityModeVar":   devSettings.SecurityMode,
+		"securityPolicyVar": devSettings.SecurityPolicy,
+		"username":          devSettings.Username,
+		"password":          devSettings.Password,
+	}
+}
+
+// callNodeRED sendet den HTTP-POST Request an Node-RED und gibt die Response-Daten zurück.
+func callNodeRED(noderedURL string, postBody map[string]interface{}, timeoutSeconds int) ([]byte, error) {
+	jsonBytes, err := json.Marshal(postBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", noderedURL, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Client mit deaktivierter SSL-Verifizierung
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   time.Duration(timeoutSeconds) * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, &httpError{StatusCode: resp.StatusCode, Body: string(bodyBytes)}
+	}
+
+	return bodyBytes, nil
+}
+
+// parseNodeRedResponse wandelt die Response von Node-RED in das entsprechende Struct um.
+func parseNodeRedResponse(bodyBytes []byte) (*NodeRedResponse, error) {
+	var response NodeRedResponse
+	err := json.Unmarshal(bodyBytes, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
+}
+
+// updateImageProcessStatus speichert den Status und die Bilddaten (als Base64) in der Datenbank.
+func updateImageProcessStatus(db *sql.DB, processID int, statusData string) error {
+	query := "UPDATE img_process SET status = ?, status_data = ? WHERE id = ?"
+
+	timezone, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		logrus.Errorf("Error loading timezone: %v", err)
+		return err
+	}
+	timestamp := time.Now().In(timezone).Format("2006-01-02 15:04:05")
+
+	_, err = db.Exec(query, timestamp, statusData, processID)
+	return err
+}
+
+// httpError definiert einen Fehler, falls der HTTP-Status nicht im 2xx-Bereich liegt.
+type httpError struct {
+	StatusCode int
+	Body       string
+}
+
+func (he *httpError) Error() string {
+	return "HTTP error: status code " + strconv.Itoa(he.StatusCode) + ", body: " + he.Body
+}
+
+// runImageProcess fasst den kompletten Ablauf zusammen.
+func runImageProcess(db *sql.DB, deviceID string, noderedURL string) {
+	// Hole Bildprozess-Daten
+	imgData, err := fetchImageProcessData(db, deviceID)
+	if err != nil {
+		logrus.Errorf("Error fetching image process data: %v", err)
+		return
+	}
+
+	// Konvertiere deviceID in int für den Geräteabruf
+	deviceIDInt, err := strconv.Atoi(deviceID)
+	if err != nil {
+		logrus.Errorf("Error converting deviceID to int: %v", err)
+		return
+	}
+
+	// Hole Geräteeinstellungen
+	devSettings, err := fetchDeviceSettings(db, deviceIDInt)
+	if err != nil {
+		logrus.Errorf("Error fetching device settings: %v", err)
+	}
+
+	// Erstelle Body für den Node-RED Request
+	postBody := buildPostBody(imgData, devSettings)
+
+	// Timeout als Integer parsen
+	timeoutInt, err := strconv.Atoi(imgData.Timeout)
+	if err != nil {
+		logrus.Errorf("Error converting timeout to int: %v", err)
+		timeoutInt = 10 // Fallback-Wert
+	}
+
+	// Sende den Request an Node-RED
+	bodyBytes, err := callNodeRED(noderedURL, postBody, timeoutInt)
+	if err != nil {
+		logrus.Errorf("Error calling Node-RED endpoint: %v", err)
+		return
+	}
+
+	// Parse die Node-RED Antwort
+	nodeRedResp, err := parseNodeRedResponse(bodyBytes)
+	if err != nil {
+		logrus.Errorf("Error parsing Node-RED response: %v", err)
+		return
+	}
+
+	// Wenn Bilddaten vorhanden, in Base64 konvertieren
+	var statusData string
+	if len(nodeRedResp.Image.Data) > 0 {
+		statusData = base64.StdEncoding.EncodeToString(nodeRedResp.Image.Data)
+	} else {
+		statusData = string(bodyBytes)
+	}
+
+	// Update der Datenbank mit dem neuen Status
+	err = updateImageProcessStatus(db, imgData.ID, statusData)
+	if err != nil {
+		logrus.Errorf("Error saving status to database: %v", err)
+	}
+
+	// logrus.Infof("Node-RED call successful.")
+}
+
+func StartAllImageProcessWorkers(db *sql.DB, noderedURL string) {
+	NodeRED_URL = noderedURL
+	NodeRED_URL_OPC = noderedURL + "/opc-image"
+
+	// query := "SELECT id, device, trigger FROM img_process"
+	// rows, err := db.Query(query)
+	// if err != nil {
+	// 	logrus.Errorf("Error querying image processes: %v", err)
+	// 	return
+	// }
+
+	// for rows.Next() {
+	// 	var id, trigger int
+	// 	var device string
+	// 	err := rows.Scan(&id, &device, &trigger)
+	// 	if err != nil {
+	// 		logrus.Errorf("Error scanning image process: %v", err)
+	// 		continue
+	// 	}
+	// 	startImageProcessWorker(db, device, strconv.Itoa(id), NodeRED_URL_OPC, trigger)
+	// }
+	// rows.Close()
+}
+
+func startImageProcessWorker(db *sql.DB, deviceID string, routeID string, noderedURL string, intervalSeconds int) func() {
+	stopChan := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
+		defer ticker.Stop()
+		// Initiale Ausführung
+		runImageProcess(db, deviceID, noderedURL)
+		for {
+			select {
+			case <-ticker.C:
+				runImageProcess(db, deviceID, noderedURL)
+			case <-stopChan:
+				logrus.Infof("Image process worker stopped for route %s", routeID)
+				return
+			}
+		}
+	}()
+	stopFunc := func() {
+		close(stopChan)
+	}
+	// Speichere die Stop-Funktion in der globalen Map unter dem Schlüssel routeID
+	imageProcessWorkers[routeID] = stopFunc
+	return stopFunc
+}
+
+// stopImgProcess beendet den laufenden Bildverarbeitungsprozess für die übergebene routeID.
+func stopImgProcess(routeID string) {
+	if stopFunc, exists := imageProcessWorkers[routeID]; exists {
+		stopFunc()
+		delete(imageProcessWorkers, routeID)
+		logrus.Infof("Stopped image process worker for route %s", routeID)
+	} else {
+		logrus.Warnf("No image process worker found for route %s", routeID)
+	}
+}
+
+func getNodeRedURL(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"nodeRedURL": NodeRED_URL})
 }

@@ -13,10 +13,6 @@ import (
 // This function is used to handle GET requests to the login page.
 // It renders the login.html template with no data.
 func showLoginPage(c *gin.Context) {
-	// c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// if err := tmpl.ExecuteTemplate(c.Writer, "login.html", nil); err != nil {
-	// 	c.String(http.StatusInternalServerError, "Error rendering template: %v", err)
-	// }
 	c.HTML(http.StatusOK, "login.html", nil)
 }
 

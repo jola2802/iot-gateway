@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/sirupsen/logrus"
 
 	dataforwarding "iot-gateway/data-forwarding"
@@ -12,21 +10,14 @@ import (
 )
 
 var (
-	dbPath         = "./iot_gateway.db"
-	noderedURL     = os.Getenv("NODE_RED_URL")
-	influxdbURL    = os.Getenv("INFLUXDB_URL")
-	influxdbToken  = os.Getenv("INFLUXDB_TOKEN")
-	influxdbOrg    = os.Getenv("INFLUXDB_ORG")
-	influxdbBucket = os.Getenv("INFLUXDB_BUCKET")
+	dbPath = "./iot_gateway.db"
+	// noderedURL = os.Getenv("NODE_RED_URL")
 )
 
 func main() {
 	// Initialisiere die SQLite-Datenbank mit dem übergebenen Pfad
 	db, _ := logic.InitDB(dbPath)
 	defer db.Close()
-
-	// Set influxdb config
-	dataforwarding.SetInfluxDBConfig(influxdbURL, influxdbToken, influxdbOrg, influxdbBucket)
 
 	// Start MQTT-Broker
 	server := mqtt_broker.StartBroker(db)
@@ -45,10 +36,10 @@ func main() {
 	go logic.StartAllDrivers(db, server)
 	defer logic.StopAllDrivers()
 
-	go dataforwarding.StartDataForwarding(db, server)
-	defer dataforwarding.StopDataForwarding()
+	// go dataforwarding.StartDataForwarding(db, server)
+	// defer dataforwarding.StopDataForwarding()
 
-	webui.StartAllImageProcessWorkers(db, noderedURL)
+	// webui.StartAllImageProcessWorkers(db, noderedURL)
 	// go webui.StartAllImageProcessWorkers(db, noderedURL)
 
 	select {}

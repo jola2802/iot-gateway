@@ -26,6 +26,7 @@ type Config struct {
 }
 
 var server *MQTT.Server
+var stateConnection bool
 
 // Main function to start the web server
 func Main(db *sql.DB, serverF *MQTT.Server) {
@@ -35,8 +36,8 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 		logrus.Fatal("Database connection is not initalized.")
 	}
 
-	// Lade die Konfiguration aus der config.json
-	config, err := loadConfig("config.json")
+	// Lade die Konfiguration
+	config, err := loadConfigFromEnv()
 	if err != nil {
 		logrus.Fatal("Failed to load config: ", err)
 	}

@@ -4,16 +4,15 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"fmt"
+	dataforwarding "iot-gateway/data-forwarding"
+	"iot-gateway/logic"
+	"iot-gateway/mqtt_broker"
 	"net/http"
 	"os"
-	"strconv"
-	"sync"
+	"runtime"
 	"time"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	MQTT "github.com/mochi-mqtt/server/v2"
@@ -38,99 +37,20 @@ func getMQTTServer(c *gin.Context) (*MQTT.Server, error) {
 	return server.(*MQTT.Server), nil
 }
 
-var mqttClientPool *sync.Pool
+func loadConfigFromEnv() (*Config, error) {
+	config := &Config{}
 
-// Funktion, um einen MQTT-Client-Pool basierend auf Broker-Daten zu erstellen
-func createMQTTClientPool(brokerAddress, username, password string) *sync.Pool {
-	return &sync.Pool{
-		New: func() interface{} {
-			return createMQTTClient(brokerAddress, username, password)
-		},
-	}
-}
+	config.WebUI.HTTPPort = os.Getenv("WEBUI_HTTP_PORT")
+	config.WebUI.HTTPSPort = os.Getenv("WEBUI_HTTPS_PORT")
+	config.WebUI.TLSCert = os.Getenv("WEBUI_TLS_CERT")
+	config.WebUI.TLSKey = os.Getenv("WEBUI_TLS_KEY")
 
-// Hole oder initialisiere den Pool dynamisch nach dem Abrufen der Broker-Daten
-func getPooledMQTTClient(pool *sync.Pool, db *sql.DB) mqtt.Client {
-	if mqttClientPool == nil {
-		logrus.Warn("MQTT client pool is not initialized, fetching broker settings from database")
-
-		// Hole die Broker-Einstellungen aus der Datenbank
-		settings, err := getCachedBrokerSettings(db)
-		if err != nil {
-			logrus.Fatalf("Error fetching broker settings: %v", err)
-		}
-
-		// Erstelle den MQTT-Client-Pool mit den abgerufenen Einstellungen
-		mqttClientPool = createMQTTClientPool(settings.Address, settings.Username, settings.Password)
-	}
-	client := pool.Get().(mqtt.Client)
-	if !client.IsConnected() {
-		logrus.Warn("MQTT client is not connected | should reconnect |")
-		// client = createMQTTClientPool()
-	}
-
-	return client
-}
-
-func releaseMQTTClient(pool *sync.Pool, client mqtt.Client) {
-	pool.Put(client)
-}
-
-func createMQTTClient(brokerAddress, username, password string) mqtt.Client {
-	opts := mqtt.NewClientOptions().
-		AddBroker(brokerAddress).
-		SetClientID(fmt.Sprintf("client_%d", time.Now().UnixNano())).
-		SetUsername(username).
-		SetPassword(password).
-		// SetAutoReconnect(true).
-		// SetConnectRetryInterval(2 * time.Second).
-		SetConnectRetry(true)
-
-	opts.OnConnectionLost = func(client mqtt.Client, err error) {
-		// try to reconnect
-		logrus.Errorf("WEB-UI: Connection lost to MQTT broker: %v", err)
-	}
-
-	client := mqtt.NewClient(opts)
-	for {
-		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			logrus.Errorf("WEB-UI: Error connecting to MQTT broker: %v", token.Error())
-			time.Sleep(2 * time.Second)
-		} else {
-			break
-		}
-	}
-	return client
-}
-
-// Hilfsfunktion zum Parsen von Strings in Int
-func parseInt(str string) int {
-	val, err := strconv.Atoi(str)
-	if err != nil {
-		logrus.Errorf("Error parsing integer: %v", err)
-		return 0
-	}
-	return val
-}
-
-func loadConfig(filename string) (*Config, error) {
-	configBytes, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var config Config
-	err = json.Unmarshal(configBytes, &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
+	return config, nil
 }
 
 func generateToken(c *gin.Context) {
 	token, _ := generateRandomToken()
-	expiration := time.Now().Add(10 * time.Minute)
+	expiration := time.Now().Add(30 * time.Minute)
 
 	wsTokenStore.Lock()
 	wsTokenStore.tokens[token] = expiration
@@ -156,4 +76,51 @@ func monitorWebSocket(conn *websocket.Conn) {
 			return
 		}
 	}
+}
+
+func restartGatewayHandler(c *gin.Context) {
+	// restart the gateway
+	RestartGateway(c)
+	c.JSON(http.StatusOK, gin.H{"message": "Gateway restarted successfully"})
+}
+
+// RestartGateway accepts either *gin.Context or *sql.DB as argument
+func RestartGateway(c *gin.Context) {
+	var db *sql.DB
+	var server *MQTT.Server
+	// var context *gin.Context
+
+	db = c.MustGet("db").(*sql.DB)
+
+	dataforwarding.StopInfluxDBWriter()
+
+	// Restart MQTT Broker
+	server = mqtt_broker.RestartBroker(db)
+
+	// update server in context
+	c.Set("server", server)
+
+	// Restart All Drivers
+	logic.RestartAllDrivers(db, server)
+
+	dataforwarding.StartInfluxDBWriter(db, server)
+
+	logrus.Info("Gateway restarted successfully")
+
+	// Manual trigger to run Garbage Collector
+	logrus.Info("Running garbage collector after restart.")
+	runtime.GC()
+}
+
+func RestartDriver(c *gin.Context) {
+	// get driver id from context
+	driverID := c.Param("device_id")
+
+	// get db from context
+	db := c.MustGet("db").(*sql.DB)
+
+	// restart driver
+	logic.RestartDevice(db, driverID)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Driver restarted successfully"})
 }

@@ -26,9 +26,9 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 		data, err := initClient(device)
 		if err != nil {
 			logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
-			publishDeviceState(server, "s7", device.ID, "5 (no connection)", db)
-			// Warte 10 Sekunden vor dem nächsten Versuch
-			time.Sleep(10 * time.Second)
+			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
+			// Warte 5 Sekunden vor dem nächsten Versuch
+			time.Sleep(5 * time.Second)
 			continue
 		}
 
@@ -39,7 +39,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
 			return err
 		}
-		if err := pubData(mqttData, device.ID, server); err != nil {
+		if err := pubData(mqttData, device.ID, server, db); err != nil {
 			logrus.Errorf("S7: Error publishing data: %v", err)
 			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
 			return err
@@ -78,7 +78,7 @@ func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRe
 func TestConnection(device opcua.DeviceConfig) bool {
 	// Erstelle einen neuen TCP Client Handler
 	handler := s7.NewTCPClientHandler(device.Address, device.Rack, device.Slot)
-	handler.Timeout = 5 * time.Second
+	handler.Timeout = 3 * time.Second
 
 	// Versuche eine Verbindung herzustellen
 	if err := handler.Connect(); err != nil {

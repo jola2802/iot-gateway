@@ -1,18 +1,13 @@
 package webui
 
 import (
-	"database/sql"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 	"strconv"
 	"sync"
 	"time"
-
-	dataforwarding "iot-gateway/data-forwarding"
-	"iot-gateway/logic"
-	"iot-gateway/mqtt_broker"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/glebarez/go-sqlite"
@@ -117,47 +112,55 @@ func brokerStatusWebSocket(c *gin.Context) {
 		Timeout: 5 * time.Second,
 	}
 
-	// Variable für den Node-RED-Status
-	var noderedconnection bool
-
 	// Starte eine Goroutine für die Node-RED-Überprüfung
 	go func() {
-		nodeRedTicker := time.NewTicker(5 * time.Second) // Prüfe alle 5 Sekunden
+		nodeRedTicker := time.NewTicker(7 * time.Second) // Prüfe alle 7 Sekunden
 		defer nodeRedTicker.Stop()
 
-		// get own ip address
-		ip, err := getOwnIP()
+		// format node-red url
+		nodeRedUrl := os.Getenv("NODE_RED_URL")
+
+		// Einmal zu Beginn die Verbindung prüfen
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			DialContext:     (&net.Dialer{Timeout: 1 * time.Second}).DialContext,
+		}
+		resp, err := httpClient.Get(nodeRedUrl)
 		if err != nil {
-			logrus.Errorf("Error getting own IP address: %v", err)
+		} else {
+			stateConnection = true
+			defer resp.Body.Close()
 		}
 
-		nodeRedUrls := []string{
-			"http://" + ip + ":7777",  // local
-			"http://node-red:1880",    // docker
-			os.Getenv("NODE_RED_URL"), // env
-		}
-
-		var currentConnection bool
-		for _, url := range nodeRedUrls {
-			resp, err := httpClient.Get(url)
-			if err == nil {
-				if resp.StatusCode == 200 {
-					currentConnection = true
-					resp.Body.Close()
-					break
-				}
-				resp.Body.Close()
+		for range nodeRedTicker.C {
+			// Zertifikatsüberprüfung überspringen
+			httpClient.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				DialContext:     (&net.Dialer{Timeout: 1 * time.Second}).DialContext,
 			}
-		}
+			resp, err := httpClient.Get(nodeRedUrl)
+			if err != nil {
+				logrus.Errorf("HTTP-Anfrage an Node-RED fehlgeschlagen: %v", err)
+				stateConnection = false
+				resp.Body.Close()
+				continue
+			}
 
-		// Nur aktualisieren wenn sich der Status geändert hat
-		if currentConnection != noderedconnection {
-			noderedconnection = currentConnection
+			logrus.Debugf("Node-RED Antwort: Status=%d, Header=%v", resp.StatusCode, resp.Header)
+
+			// Überprüfe den Statuscode der Antwort
+			if resp.StatusCode == 200 || resp.StatusCode == 302 {
+				stateConnection = true
+				logrus.Infof("Node-RED URL: %s, Status: %d", nodeRedUrl, resp.StatusCode)
+			} else {
+				stateConnection = false
+				logrus.Infof("Node-RED URL: %s, Status: %d", nodeRedUrl, resp.StatusCode)
+			}
 		}
 	}()
 
 	// Ticker für den Broker-Status
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(1000 * time.Millisecond)
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -181,7 +184,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 			Uptime:            brokerUptime,
 			NumberMessages:    messageCount,
 			NumberDevices:     deviceCount,
-			NodeRedConnection: noderedconnection,
+			NodeRedConnection: stateConnection,
 		}
 
 		if err := conn.WriteJSON(status); err != nil {
@@ -189,63 +192,4 @@ func brokerStatusWebSocket(c *gin.Context) {
 			return
 		}
 	}
-}
-
-func getOwnIP() (string, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String(), nil
-}
-
-func restartGatewayHandler(c *gin.Context) {
-	// restart the gateway
-	RestartGateway(c)
-	c.JSON(http.StatusOK, gin.H{"message": "Gateway restarted successfully"})
-}
-
-// RestartGateway accepts either *gin.Context or *sql.DB as argument
-func RestartGateway(c *gin.Context) {
-	var db *sql.DB
-	var server *MQTT.Server
-	// var context *gin.Context
-
-	// server = c.MustGet("server").(*MQTT.Server)
-	db = c.MustGet("db").(*sql.DB)
-
-	dataforwarding.StopInfluxDBWriter()
-
-	// Restart MQTT Broker
-	server = mqtt_broker.RestartBroker(db)
-
-	// update server in context
-	c.Set("server", server)
-
-	// Restart All Drivers
-	logic.RestartAllDrivers(db, server)
-
-	dataforwarding.StartInfluxDBWriter(db, server)
-
-	logrus.Info("Gateway restarted successfully")
-
-	// Manual trigger to run Garbage Collector
-	logrus.Info("Running garbage collector after restart.")
-	runtime.GC()
-}
-
-func RestartDriver(c *gin.Context) {
-	// get driver id from context
-	driverID := c.Param("device_id")
-
-	// get db from context
-	db := c.MustGet("db").(*sql.DB)
-
-	// restart driver
-	logic.RestartDevice(db, driverID)
-
-	c.JSON(http.StatusOK, gin.H{"message": "Driver restarted successfully"})
 }

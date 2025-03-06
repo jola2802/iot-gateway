@@ -83,7 +83,6 @@ WORKDIR /app
 COPY --from=builder /app/iot-gateway .
 
 # Copy other required files
-COPY config.json ./
 # COPY server.crt server.key ./
 # COPY webui/templates /app/webui/templates
 # COPY webui/assets /app/webui/assets
@@ -96,7 +95,7 @@ RUN chmod +x /app/iot-gateway
 
 # Expose necessary ports
 # EXPOSE 8443 5000 5001 5101 5100 
-EXPOSE $PUBLIC_HTTP_LISTEN_PORT $PUBLIC_HTTPS_LISTEN_PORT $PUBLIC_TCP_LISTEN_PORT $PUBLIC_WS_LISTEN_PORT
+EXPOSE 8088 5000 5001 5100 5101
 # 7777 8086
 
 # Command to run Go application, Node-RED, and InfluxDB

@@ -53,12 +53,12 @@ function createStatusIcon(status) {
             break;
         case '2 (initializing)':
             statusIcon.style.backgroundColor = STATUS_COLORS.initializing;
-            statusIcon.style.border = '4px solid gray';
+            statusIcon.style.border = '2px solid gray';
             statusIcon.title = 'initializing';
             break;
         case '4 (no datapoints)':
             statusIcon.style.backgroundColor = STATUS_COLORS.noDatapoints;
-            statusIcon.style.border = '4px solid green';
+            statusIcon.style.border = '5px solid grey';
             statusIcon.title = 'no datapoints';
             break;
         case '5 (no connection)':

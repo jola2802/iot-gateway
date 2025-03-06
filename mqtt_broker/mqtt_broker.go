@@ -3,7 +3,6 @@ package mqtt_broker
 import (
 	"crypto/tls"
 	"database/sql"
-	"encoding/json"
 	"iot-gateway/logic"
 	"os"
 	"os/signal"
@@ -105,26 +104,45 @@ func startBrokerInstance(db *sql.DB) *MQTT.Server {
 	return s
 }
 
-func loadConfig(filename string) (*Config, error) {
-	configBytes, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
+func loadConfigFromEnv() Config {
+	return Config{
+		Listeners: []ListenerConfig{
+			{
+				ID:      "localTCP",
+				Address: ":" + os.Getenv("MQTT_LISTENER_LOCAL_TCP_ADDRESS"),
+				Type:    "tcp",
+				TLS:     false,
+			},
+			{
+				ID:      "localWS",
+				Address: ":" + os.Getenv("MQTT_LISTENER_LOCAL_WS_ADDRESS"),
+				Type:    "websocket",
+				TLS:     false,
+			},
+			{
+				ID:      "publicTCP",
+				Address: ":" + os.Getenv("MQTT_LISTENER_PUBLIC_TCP_ADDRESS"),
+				Type:    "tcp",
+				TLS:     true,
+			},
+			{
+				ID:      "publicWS",
+				Address: ":" + os.Getenv("MQTT_LISTENER_PUBLIC_WS_ADDRESS"),
+				Type:    "websocket",
+				TLS:     true,
+			},
+			{
+				ID:      "stats",
+				Address: ":" + os.Getenv("MQTT_LISTENER_STATS_ADDRESS"),
+				Type:    "http",
+				TLS:     false,
+			},
+		},
 	}
-
-	var config Config
-	err = json.Unmarshal(configBytes, &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
 }
 
 func createListeners(server *MQTT.Server, tlsConfig *tls.Config) error {
-	config, err := loadConfig("config.json")
-	if err != nil {
-		return err
-	}
+	config := loadConfigFromEnv()
 
 	for _, listener := range config.Listeners {
 		var l listeners.Listener

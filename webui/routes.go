@@ -64,32 +64,16 @@ func setupRoutes(r *gin.Engine) {
 		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
 		authorized.GET("/api/ws-token", generateToken)
 		authorized.POST("/api/restart-device/:device_id", restartDevice)
+		authorized.GET("/api/browseNodes/:deviceID", browseNodes)
 
 		// Historical Data
 		authorized.POST("/api/query-data", queryDataHandler)
 		authorized.POST("/api/get-measurements", getMeasurements)
 
-		// Routes & Img Processes
-		authorized.GET("/api/get-routes", getRoutes)
-		authorized.GET("/api/get-devices-for-routes", getlistDevices)
-		authorized.GET("/api/list-img-processes", listImgCapProcesses)
-		authorized.GET("/api/list-opc-ua-devices", listDevices)
-		authorized.POST("/api/add-route", saveRouteConfig)
-		authorized.DELETE("/api/route/:routeId", deleteRoute)
-		authorized.GET("/api/route/:routeId", getRoutesById)
-		authorized.PUT("/api/route/:routeId", saveRouteConfig)
-
+		// Data Forwarding
 		authorized.GET("/api/get-node-red-url", getNodeRedURL)
-
-		// Image Process
-		authorized.GET("/api/list-captured-images", listCapturedImages)
-		authorized.POST("/api/add-img-process", saveImageProcess)
-		authorized.DELETE("/api/image-process/:id", deleteImageProcess)
-		authorized.GET("/api/img-process/:id/status", getImageProcessStatus)
-		// authorized.POST("/api/start-image-process/:id", startImageProcessREST)
-		authorized.GET("/api/browseNodes/:deviceID", browseNodes) // Get device attributes
 		authorized.GET("/api/images", getImages)
-		authorized.GET("/api/images/download", downloadImagesAsZip) // Neue Route für ZIP-Download
+		authorized.GET("/api/images/download", downloadImagesAsZip)
 
 		// Profile
 		authorized.GET("/api/profile", getProfile)
@@ -97,8 +81,6 @@ func setupRoutes(r *gin.Engine) {
 		authorized.PUT("/api/changePassword", changePassword)
 
 		// Settings
-		authorized.GET("/api/settings", getSettings)
-		authorized.POST("/api/settings", updateSettings)
 
 		authorized.POST("/api/restart", restartGatewayHandler)
 

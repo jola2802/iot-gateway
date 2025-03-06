@@ -261,7 +261,7 @@ func restartOPCUADriver(db *sql.DB, deviceID string) {
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% S7-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-// Verbesserte StartS7Driver-Funktion
+// StartS7Driver-Funktion
 func StartS7Driver(db *sql.DB, deviceID string) {
 	state := getOrCreateDeviceState(deviceID, s7DeviceStates)
 	state.mu.Lock()

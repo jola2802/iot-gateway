@@ -7,17 +7,7 @@ import (
 	"log"
 
 	_ "github.com/glebarez/go-sqlite" // Import für SQLite
-	"github.com/sirupsen/logrus"
 )
-
-func userExists(db *sql.DB, username string) (bool, error) {
-	var userCount int
-	err := db.QueryRow("SELECT COUNT(*) FROM auth WHERE username = ?", username).Scan(&userCount)
-	if err != nil {
-		return false, err
-	}
-	return userCount > 0, nil
-}
 
 // AddUser fügt einen neuen Benutzer zur Datenbank hinzu
 func addUser(db *sql.DB, username, password string, allow bool, filters Filters) error {
@@ -65,75 +55,13 @@ func deleteUser(db *sql.DB, username string) error {
 	return nil
 }
 
-// changeUser ändert die Informationen eines Benutzers in der Datenbank
-func changeUser(db *sql.DB, username, newPassword string, newAllow bool, newFilters Filters) error {
-	// Aktualisiere die Authentifizierungsdaten des Benutzers
-	_, err := db.Exec("UPDATE auth SET password = ?, allow = ? WHERE username = ?", newPassword, newAllow, username)
+func userExists(db *sql.DB, username string) (bool, error) {
+	var userCount int
+	err := db.QueryRow("SELECT COUNT(*) FROM auth WHERE username = ?", username).Scan(&userCount)
 	if err != nil {
-		return err
+		return false, err
 	}
-
-	// Lösche die bestehenden ACLs und füge die neuen ein
-	_, err = db.Exec("DELETE FROM acl WHERE username = ?", username)
-	if err != nil {
-		return err
-	}
-
-	// Füge die neuen ACL-Einträge hinzu
-	for topic, permission := range newFilters {
-		_, err := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", username, topic, permission)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// DriverAccessManagement verwaltet die Treiberbenutzer und einzelnen Geräte in der Datenbank
-func DriverAccessManagement(db *sql.DB) error {
-	devices, err := LoadDevices(db)
-	if err != nil {
-		logrus.Errorf("User Manager: failed to load devices from config: %v", err)
-		return err
-	}
-
-	for _, device := range devices {
-		// Extrahiere die relevanten Felder aus der Map
-		username, ok := device["name"].(string)
-		if !ok {
-			logrus.Error("User Manager: device has no name or name is not a string")
-			continue // Bei fehlendem Namen fortfahren, aber keinen Benutzer anlegen
-		}
-
-		deviceType, ok := device["type"].(string)
-		if !ok {
-			logrus.Error("User Manager: device has no type or type is not a string")
-			continue // Bei fehlendem Typ fortfahren, aber keinen Benutzer anlegen
-		}
-
-		// Generiere zufälliges Passwort für das jeweilige Gerät
-		password := genRandomPW()
-
-		// Erstelle Filter für MQTT-Berechtigungen
-		filters := map[string]int{
-			fmt.Sprintf("data/%s/%s", deviceType, username): 3, // Lese- und Schreibzugriff auf Treiber-spezifische Topics
-			"iot-gateway/#": 0, // Kein Zugriff auf andere iot-gateway-Topics
-		}
-
-		err := addUser(db, username, password, true, filters)
-		if err != nil {
-			deleteUser(db, username) // Lösche den Benutzer, falls er existiert
-			err = addUser(db, username, password, true, filters)
-			if err != nil {
-				logrus.Errorf("User Manager: failed to create user for %s: %v", username, err)
-				continue // Bei Fehlschlag fortfahren
-			}
-		}
-
-		// log.Printf("User Manager: successfully created user for device %s with password %s", username, password)
-	}
-	return nil
+	return userCount > 0, nil
 }
 
 // WebUIAccessManagement verwaltet den Web-UI-Benutzer in der Datenbank

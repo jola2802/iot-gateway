@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,7 +34,12 @@ var (
 	lastMessageReceived time.Time
 )
 
-func SetInfluxDBConfig(influxdbURL string, influxdbToken string, influxdbOrg string, influxdbBucket string) {
+func setInfluxDBConfig() {
+	influxdbURL := os.Getenv("INFLUXDB_URL")
+	influxdbToken := os.Getenv("INFLUXDB_TOKEN")
+	influxdbOrg := os.Getenv("INFLUXDB_ORG")
+	influxdbBucket := os.Getenv("INFLUXDB_BUCKET")
+
 	influxConfig = &InfluxConfig{
 		URL:    influxdbURL,
 		Token:  influxdbToken,
@@ -211,7 +217,9 @@ func influxMessageCallback(db *sql.DB) func(client *MQTT.Client, sub packets.Sub
 }
 
 func StartInfluxDBWriter(db *sql.DB, server *MQTT.Server) {
-	// logrus.Infof("Starte InfluxDB-Writer")
+	// Setze die InfluxDB-Konfiguration
+	setInfluxDBConfig()
+
 	// Verwende den neuen Callback
 	server.Subscribe("data/#", rand.Intn(100), influxMessageCallback(db))
 	// Setze den initialen Zeitpunkt auf jetzt
@@ -272,35 +280,4 @@ func StopInfluxDBWriter() {
 		client = nil
 		writeAPI = nil
 	}
-}
-
-// StartDataForwarding startet die Datenweiterleitung
-func StartDataForwarding(db *sql.DB, server *MQTT.Server) {
-	// Hole alle data Routes aus der Tabelle data_routes
-	query := "SELECT * FROM data_routes"
-	rows, err := db.Query(query)
-	if err != nil {
-		logrus.Errorf("Fehler beim Laden der Datenrouten: %v", err)
-		return
-	}
-	defer rows.Close()
-
-	var routes []DataRoute
-	for rows.Next() {
-		var route DataRoute
-		var interval int
-		err := rows.Scan(&route.ID, &route.DestinationType, &route.DataFormat, &route.Devices, &route.DestinationURL, &route.Headers, &route.FilePath, &interval, &route.Status)
-		if err != nil {
-			logrus.Errorf("Fehler beim Scannen der Datenroute: %v", err)
-			continue
-		}
-		route.Interval = strconv.Itoa(interval)
-		logrus.Infof("Datenroute geladen: %v", route)
-	}
-
-	logrus.Infof("Alle Datenrouten geladen: %d", len(routes))
-}
-
-func StopDataForwarding() {
-	StopInfluxDBWriter()
 }

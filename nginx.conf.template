@@ -12,40 +12,28 @@ events {
 #  */
 
 stream {
-    # 1) Port 5000 -> an iot-gateway:5000
+    # 1) Local TCP
     server {
-        listen 5000;
-        proxy_pass iot-gateway:5000;
+        listen ${MQTT_LISTENER_LOCAL_TCP_ADDRESS};
+        proxy_pass iot-gateway:${MQTT_LISTENER_LOCAL_TCP_ADDRESS};
     }
 
-    # 2) Port 5001 -> an iot-gateway:5001
+    # 2) Local WebSocket
     server {
-        listen 5001;
-        proxy_pass iot-gateway:5001;
+        listen ${MQTT_LISTENER_LOCAL_WS_ADDRESS};
+        proxy_pass iot-gateway:${MQTT_LISTENER_LOCAL_WS_ADDRESS};
     }
 
-    # # 3) Port 5100 -> an iot-gateway:5100
-    # server {
-    #     listen $PUBLIC_TCP_LISTEN_PORT;
-    #     proxy_pass iot-gateway:$PUBLIC_TCP_LISTEN_PORT;
-    # }
-
-    # 4) Port 5101 -> an iot-gateway:5101
+    # 3) Public TCP
     server {
-        listen 5101;
-        proxy_pass iot-gateway:5101;
+        listen ${MQTT_LISTENER_PUBLIC_TCP_ADDRESS};
+        proxy_pass iot-gateway:${MQTT_LISTENER_PUBLIC_TCP_ADDRESS};
     }
 
-    # 5) Port 5102 -> an iot-gateway:5102
+    # 4) Public WebSocket
     server {
-        listen 5102;
-        proxy_pass iot-gateway:5102;
-    }
-
-    # 6) Port 5103 -> an nodered:7777
-    server {
-        listen 5103;
-        proxy_pass node-red:7777;
+        listen ${MQTT_LISTENER_PUBLIC_WS_ADDRESS};
+        proxy_pass iot-gateway:${MQTT_LISTENER_PUBLIC_WS_ADDRESS};
     }
 }
 
@@ -54,17 +42,9 @@ http {
     include       /etc/nginx/mime.types;
     sendfile      on;
 
-    # HTTP-Server => Redirect auf HTTPS
-    server {
-        listen 80;
-        server_name idpm.gateway;  # oder _
-        # Alle HTTP-Anfragen -> HTTPS
-        return 301 https://$host$request_uri;
-    }
-
     # HTTPS-Server
     server {
-        listen 443 ssl;
+        listen ${NGINX_HTTPS_PORT} ssl;
         server_name idpm.gateway;
 
         # Zertifikate
@@ -74,7 +54,7 @@ http {
         # 1) iot-gateway auf /gateway/
         location / {
             rewrite ^/gateway/(.*) /$1 break;
-            proxy_pass http://iot-gateway:8088;
+            proxy_pass http://iot-gateway:${WEBUI_HTTP_PORT};
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $remote_addr;
@@ -85,7 +65,7 @@ http {
         # 2) Node-RED auf /nodered/
         location /nodered/ {
             rewrite ^/nodered/(.*) /$1 break;
-            proxy_pass http://node-red:1880;
+            proxy_pass http://node-red:${NODE_RED_HTTP_PORT};
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $remote_addr;
@@ -96,7 +76,7 @@ http {
         # 3) InfluxDB auf /influxdb/
         location /influxdb/ {
             rewrite ^/influxdb/(.*) /$1 break;
-            proxy_pass http://influxdb:8086/;
+            proxy_pass http://influxdb:${INFLUXDB_HTTP_PORT}/;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $remote_addr;

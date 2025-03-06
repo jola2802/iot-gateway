@@ -36,8 +36,6 @@ Das Gateway besteht aus mehreren Komponenten, die in Docker-Containern laufen:
 3. **InfluxDB**: Zeitreihendatenbank für die Speicherung von Prozessdaten
 4. **NGINX**: Reverse-Proxy für die sichere Kommunikation und Zugriffsverwaltung
 
-![software-architecture](https://github.com/jola2802/iot-gateway/assets/99344189/6d9614d5-e93f-4640-ad7a-ee7fd8f940f0)
-
 ## Schnellstart mit Docker Compose
 
 ### Voraussetzungen
@@ -93,4 +91,6 @@ Die Hauptkonfiguration erfolgt über die Weboberfläche. Dort können Sie:
 
 Das Gateway ist in Go geschrieben und verwendet moderne Webtechnologien für die Benutzeroberfläche. Die modulare Architektur ermöglicht einfache Erweiterungen und Anpassungen.
 
+
+![software-architecture](https://github.com/jola2802/iot-gateway/assets/99344189/6d9614d5-e93f-4640-ad7a-ee7fd8f940f0)
 ![image](https://github.com/jola2802/iot-gateway/assets/99344189/dc17c774-fe7e-40bd-94d5-4ac419c14b5d)

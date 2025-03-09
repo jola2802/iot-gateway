@@ -47,7 +47,7 @@ Das Gateway besteht aus mehreren Komponenten, die in Docker-Containern laufen:
 
 1. Repository klonen oder herunterladen:
    ```bash
-   git clone https://github.com/jola2802/iot-gateway.git
+   git clone https://github.com/jola2802/iot-gateway-neu.git
    cd iot-gateway
    ```
 

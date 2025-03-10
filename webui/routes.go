@@ -39,6 +39,8 @@ func setupRoutes(r *gin.Engine) {
 	r.GET("/api/ws-broker-status", brokerStatusWebSocket)
 	r.GET("/api/ws-device-data", deviceDataWebSocket)
 
+	r.POST("/api/img-process", captureImage)
+
 	// Files
 	r.POST("/api/save-image", saveImage)
 	// authorized.POST("/api/get-files", getFiles)

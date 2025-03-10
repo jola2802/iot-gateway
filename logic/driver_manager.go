@@ -109,8 +109,9 @@ func StopAllDrivers() {
 	logrus.Info("DM: All drivers have been stopped.")
 }
 
-func RestartAllDrivers(db *sql.DB, server *MQTT.Server) {
+func RestartAllDrivers(db *sql.DB, serverNew *MQTT.Server) {
 	logrus.Info("DM: Restarting all drivers...")
+	server = serverNew // Update the server reference
 	StopAllDrivers()
 	time.Sleep(200 * time.Millisecond)
 	StartAllDrivers(db, server)

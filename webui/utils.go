@@ -7,7 +7,6 @@ import (
 	"errors"
 	dataforwarding "iot-gateway/data-forwarding"
 	"iot-gateway/logic"
-	"iot-gateway/mqtt_broker"
 	"net/http"
 	"os"
 	"runtime"
@@ -88,17 +87,18 @@ func restartGatewayHandler(c *gin.Context) {
 func RestartGateway(c *gin.Context) {
 	var db *sql.DB
 	var server *MQTT.Server
-	// var context *gin.Context
 
 	db = c.MustGet("db").(*sql.DB)
+	server = c.MustGet("server").(*MQTT.Server)
 
+	// Stop InfluxDB Writer
 	dataforwarding.StopInfluxDBWriter()
 
 	// Restart MQTT Broker
-	server = mqtt_broker.RestartBroker(db)
+	// server = mqtt_broker.RestartBroker(db)
 
 	// update server in context
-	c.Set("server", server)
+	// c.Set("server", server)
 
 	// Restart All Drivers
 	logic.RestartAllDrivers(db, server)

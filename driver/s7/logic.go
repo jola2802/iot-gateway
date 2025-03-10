@@ -20,32 +20,35 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			logrus.Info("S7: Stopping data processing.")
 			return nil
 		default:
-		}
+			publishDeviceState(server, "s7", device.ID, "1 (running)", db)
 
-		// Versuche, die Verbindung herzustellen
-		data, err := initClient(device)
-		if err != nil {
-			logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
-			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
-			// Warte 5 Sekunden vor dem nächsten Versuch
-			time.Sleep(5 * time.Second)
-			continue
-		}
+			// Versuche, die Verbindung herzustellen
+			data, err := initClient(device)
+			if err != nil {
+				logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
+				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
+				// Warte 5 Sekunden vor dem nächsten Versuch
+				time.Sleep(5 * time.Second)
+				continue
+			}
 
-		// Wenn die Verbindung erfolgreich war, verarbeite die Daten
-		mqttData, err := convData(data, device.Name)
-		if err != nil {
-			logrus.Errorf("S7: Error converting data: %v", err)
-			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
-			return err
-		}
-		if err := pubData(mqttData, device.ID, server, db); err != nil {
-			logrus.Errorf("S7: Error publishing data: %v", err)
-			publishDeviceState(server, "s7", device.ID, "3 (error)", db)
-			return err
-		}
+			// Wenn die Verbindung erfolgreich war, verarbeite die Daten
+			mqttData, err := convData(data, device.Name)
+			if err != nil {
+				logrus.Errorf("S7: Error converting data: %v", err)
+				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			if err := pubData(mqttData, device.ID, server, db); err != nil {
+				logrus.Errorf("S7: Error publishing data: %v", err)
+				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
+				time.Sleep(5 * time.Second)
+				continue
+			}
 
-		time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)
+			time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)
+		}
 	}
 }
 

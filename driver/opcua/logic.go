@@ -112,7 +112,7 @@ func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRe
 func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan chan struct{}, server *MQTT.Server, db *sql.DB) error {
 	dataNodes := device.DataNode
 
-	sleeptime := time.Duration(time.Duration(device.AcquisitionTime) * time.Millisecond)
+	sleeptime := time.Duration(device.AcquisitionTime) * time.Millisecond
 
 	for {
 		select {
@@ -137,8 +137,7 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 				continue
 			}
 
-			err = pubData(convData, device.Name, device.ID, server)
-			if err != nil {
+			if err = pubData(convData, device.Name, device.ID, server); err != nil {
 				logrus.Errorf("OPC-UA: Fehler beim Veröffentlichen der Daten von %v: %s", device.Name, err)
 				publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
 				time.Sleep(5 * time.Second)

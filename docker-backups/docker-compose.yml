@@ -1,0 +1,106 @@
+services:
+  iot-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "5000"
+      - "5001"
+      - "5002"
+      - "5003"
+      - "8088"
+    volumes:
+      - ./iot_gateway.db:/app/iot_gateway.db
+      - ./webui/templates:/app/webui/templates
+      - ./webui/assets:/app/webui/assets
+      - ./server.crt:/data/server.crt
+      - ./server.key:/data/server.key
+      - ./data:/data/shared
+    environment:
+      - INFLUXDB_URL=${INFLUXDB_URL}
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
+      - MQTT_LISTENER_LOCAL_TCP_ADDRESS=${MQTT_LISTENER_LOCAL_TCP_ADDRESS}
+      - MQTT_LISTENER_LOCAL_WS_ADDRESS=${MQTT_LISTENER_LOCAL_WS_ADDRESS}
+      - MQTT_LISTENER_PUBLIC_TCP_ADDRESS=${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}
+      - MQTT_LISTENER_PUBLIC_WS_ADDRESS=${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
+      - MQTT_LISTENER_STATS_ADDRESS=${MQTT_LISTENER_STATS_ADDRESS}
+      - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
+      - WEBUI_HTTPS_PORT=${WEBUI_HTTPS_PORT}
+      - WEBUI_USE_HTTPS=${WEBUI_USE_HTTPS}
+      - WEBUI_TLS_CERT=${WEBUI_TLS_CERT}
+      - WEBUI_TLS_KEY=${WEBUI_TLS_KEY}
+      - TZ=Europe/Berlin
+      - NODE_RED_URL=${NODE_RED_URL}
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  node-red:
+    image: nodered/node-red:4.0.8-22-minimal
+    expose:
+      - "1880"
+    environment:
+      - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
+      - NODE_RED_ADMIN_USER=${NODE_RED_ADMIN_USER}
+      - NODE_RED_ADMIN_PASSWORD=${NODE_RED_ADMIN_PASSWORD}
+    volumes:
+      - ./node-red-data:/data
+      - ./data:/data/shared
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2.7
+    expose:
+      - "8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_ADMIN_USER}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_ADMIN_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET}
+      - DOCKER_INFLUXDB_INIT_RETENTION=${INFLUXDB_RETENTION}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
+      - TZ=Europe/Berlin
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: reverse-proxy
+    depends_on:
+      - iot-gateway
+      - node-red
+      - influxdb
+    ports:
+      - "${MQTT_LISTENER_LOCAL_TCP_ADDRESS}:${MQTT_LISTENER_LOCAL_TCP_ADDRESS}"
+      - "${MQTT_LISTENER_LOCAL_WS_ADDRESS}:${MQTT_LISTENER_LOCAL_WS_ADDRESS}"
+      - "${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}:${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}"
+      - "${MQTT_LISTENER_PUBLIC_WS_ADDRESS}:${MQTT_LISTENER_PUBLIC_WS_ADDRESS}"
+      # - "${WEBUI_HTTP_PORT}:${WEBUI_HTTP_PORT}"
+      - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
+    volumes:
+      - ./server.crt:/etc/nginx/certs/server.crt
+      - ./server.key:/etc/nginx/certs/server.key
+      - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+    environment:
+      - MQTT_LISTENER_LOCAL_TCP_ADDRESS
+      - MQTT_LISTENER_LOCAL_WS_ADDRESS
+      - MQTT_LISTENER_PUBLIC_TCP_ADDRESS
+      - MQTT_LISTENER_PUBLIC_WS_ADDRESS
+      - WEBUI_HTTP_PORT
+      - NGINX_HTTPS_PORT
+      - NODE_RED_HTTP_PORT
+      - INFLUXDB_HTTP_PORT
+    command: /bin/sh -c "envsubst '$$MQTT_LISTENER_LOCAL_TCP_ADDRESS $$MQTT_LISTENER_LOCAL_WS_ADDRESS $$MQTT_LISTENER_PUBLIC_TCP_ADDRESS $$MQTT_LISTENER_PUBLIC_WS_ADDRESS $$WEBUI_HTTP_PORT $$NGINX_HTTPS_PORT $$NODE_RED_HTTP_PORT $$INFLUXDB_HTTP_PORT' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge

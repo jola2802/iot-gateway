@@ -70,7 +70,7 @@ func initClient(device opcua.DeviceConfig) ([]map[string]interface{}, error) {
 //   - error: An error if the connection to the PLC fails, otherwise nil.
 func newS7Handler(address string, rack int, slot int) (*s7.TCPClientHandler, error) {
 	handler := s7.NewTCPClientHandler(address, rack, slot)
-	handler.Timeout = 20 * time.Second
+	handler.Timeout = 15 * time.Second
 
 	if err := handler.Connect(); err != nil {
 		// logrus.Errorf("S7: Failed to connect to PLC %s: %v", deviceName, err)

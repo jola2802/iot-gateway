@@ -1,0 +1,35 @@
+{
+    "name": "node-red-contrib-s7",
+    "version": "3.1.0",
+    "description": "A Node-RED node to interact with Siemens S7 PLCs",
+    "main": "index.js",
+    "dependencies": {
+        "@st-one-io/nodes7": "1.1.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/st-one-io/node-red-contrib-s7.git"
+    },
+    "bugs": {
+        "url": "https://github.com/st-one-io/node-red-contrib-s7/issues"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "hardware",
+        "s7",
+        "logo",
+        "siemens",
+        "plc",
+        "profinet",
+        "node-red"
+    ],
+    "node-red": {
+        "nodes": {
+            "s7": "red/s7.js"
+        }
+    },
+    "author": "ST-One Ltda.",
+    "license": "GPL-3.0-or-later"
+}

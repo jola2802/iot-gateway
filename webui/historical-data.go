@@ -1,6 +1,7 @@
 package webui
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -49,18 +50,12 @@ func queryDataHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
-
-	logrus.Infof("Request data: %+v", requestData)
-
-	// Verbindung zur InfluxDB herstellen
-	logrus.Infof("Verbindung zu InfluxDB unter %s wird hergestellt", influxConfig.URL)
 	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
 	defer client.Close()
 
 	queryAPI := client.QueryAPI(influxConfig.Org)
 
 	location, err := time.LoadLocation("Europe/Berlin")
-	logrus.Info(location)
 
 	if err != nil {
 		logrus.Errorf("Failed to load location: %s", err.Error())
@@ -192,4 +187,98 @@ func getMeasurements(c *gin.Context) {
 
 	// Measurements zurückgeben
 	c.JSON(http.StatusOK, gin.H{"measurements": measurements})
+}
+
+func getInfluxDevices(c *gin.Context) {
+	// Verbindung zur SQLite-Datenbank herstellen
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to SQLite database"})
+		return
+	}
+
+	if influxConfig == nil {
+		influxConfig, err = dataforwarding.GetInfluxConfig(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
+			return
+		}
+	}
+
+	// Verbindung zur InfluxDB
+	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
+	defer client.Close()
+
+	// Flux-Query: Hole alle deviceIds aus der InfluxDB
+	query := fmt.Sprintf(`
+	from(bucket: "%s")
+		|> range(start: -30d)
+		|> distinct(column: ["deviceId"])
+		|> keep(columns: ["deviceId"])
+	`, influxConfig.Bucket)
+
+	// Query ausführen
+	result, err := client.QueryAPI(influxConfig.Org).Query(c, query)
+	if err != nil {
+		logrus.Errorf("Error while querying devices: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query devices from InfluxDB"})
+		return
+	}
+
+	// Devices sammeln
+	var deviceIDs []string
+	for result.Next() {
+		device := result.Record().ValueByKey("deviceId").(string)
+		deviceIDs = append(deviceIDs, device)
+	}
+
+	// Fehler beim Querying prüfen
+	if result.Err() != nil {
+		logrus.Errorf("Error processing query results: %s", result.Err().Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Err().Error()})
+		return
+	}
+
+	// Erstelle eine Liste von Geräten mit ID und Name
+	type Device struct {
+		ID   string `json:"id"`
+		Name string `json:"deviceName"`
+	}
+
+	var devices []Device
+	for _, deviceID := range deviceIDs {
+		deviceName := getDeviceName(deviceID, db)
+		devices = append(devices, Device{
+			ID:   deviceID,
+			Name: deviceName,
+		})
+	}
+
+	logrus.Infof("Devices: %v", devices)
+
+	// Devices zurückgeben
+	c.JSON(http.StatusOK, gin.H{"devices": devices})
+}
+
+func getDeviceName(deviceId string, db *sql.DB) string {
+	// Verwende Prepared Statement, um SQL-Injection zu vermeiden
+	stmt, err := db.Prepare("SELECT name FROM devices WHERE id = ?")
+	if err != nil {
+		logrus.Errorf("Error preparing statement: %s", err.Error())
+		return deviceId // Fallback: Gib die ID zurück, wenn der Name nicht gefunden wird
+	}
+	defer stmt.Close()
+
+	var name string
+	err = stmt.QueryRow(deviceId).Scan(&name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			logrus.Warnf("No device found with ID %s", deviceId)
+			return deviceId // Fallback: Gib die ID zurück, wenn der Name nicht gefunden wird
+		}
+		logrus.Errorf("Error while getting device name: %s", err.Error())
+		return deviceId
+	}
+
+	return name
 }

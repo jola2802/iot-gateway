@@ -37,7 +37,7 @@ func showDashboard(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", nil)
 }
 
-// WebSocket-Endpunkt für den Broker-Status
+// WebSocket-Endpunkt für den Broker-Status auf dem Dashboard
 func brokerStatusWebSocket(c *gin.Context) {
 	token := c.Query("token")
 	if token == "" {

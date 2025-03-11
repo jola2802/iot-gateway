@@ -14,23 +14,7 @@ import (
 // Run runs the OPC-UA client and MQTT publisher.
 func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
 
-	// // Zertifikate und Schlüssel für den OPC-UA-Client setzen
-	// if device.SecurityPolicy != "None" && device.SecurityPolicy != "none" {
-	// 	// if device.CertFile == "" && device.KeyFile == "" {
-	// 	// 	device.CertFile = "./server.crt" // Setze den Pfad zu deinem Zertifikat
-	// 	// 	device.KeyFile = "./server.key"  // Setze den Pfad zu deinem Schlüssel
-	// 	// }
-	// }
-
 	var clientOpts []opcua.Option
-	var err error
-
-	// // Optionen für den OPC-UA Client festlegen
-	// clientOpts, err := clientOptsFromFlags(device, db)
-	// if err != nil {
-	// 	logrus.Errorf("OPC-UA: Error creating client options for device %v: %v", device.Name, err)
-	// 	return fmt.Errorf("failed to create client options for device %v: %v", device.Name, err)
-	// }
 
 	// Erstelle Context außerhalb der Schleife
 	ctx := context.Background()
@@ -39,11 +23,14 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 	// Retry-Logik: Versuche alle 5 Sekunden, die Verbindung aufzubauen
 	retryInterval := 5 * time.Second
 	for {
+		publishDeviceState(server, "opc-ua", device.ID, "2 (initializing)", db)
+
 		// Erstelle bei jedem Versuch einen neuen Client
 		clientOpts, _ = clientOptsFromFlags(device, db)
-		client, err = opcua.NewClient(device.Address, clientOpts...)
+		client, err := opcua.NewClient(device.Address, clientOpts...)
 		if err != nil {
-			logrus.Errorf("OPC-UA: Error creating client for device %v: %v", device.Name, err)
+			// logrus.Errorf("OPC-UA: Error creating client for device %v: %v", device.Name, err)
+			publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
 			time.Sleep(retryInterval)
 			continue
 		}
@@ -61,7 +48,7 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 			// Prüfe, ob ein Stop-Request empfangen wurde
 			select {
 			case <-stopChan:
-				logrus.Infof("OPC-UA: Stop-Request received. Connection attempt for device %v aborted.", device.Name)
+				// logrus.Infof("OPC-UA: Stop-Request received. Connection attempt for device %v aborted.", device.Name)
 				return fmt.Errorf("connection aborted for device %v", device.Name)
 			case <-time.After(retryInterval):
 				continue
@@ -75,8 +62,8 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 	addOpcuaClient(device.ID, client)
 
 	// Daten vom OPC-UA-Client sammeln und veröffentlichen
-	err = collectAndPublishData(device, client, stopChan, server, db)
-	if err != nil {
+	if err := collectAndPublishData(device, client, stopChan, server, db); err != nil {
+		publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
 		return err
 	}
 	defer client.Close(ctx)

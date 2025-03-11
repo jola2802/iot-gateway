@@ -34,17 +34,15 @@ func setupRoutes(r *gin.Engine) {
 	// Public routes
 	r.GET("/login", showLoginPage)
 	r.POST("/login", performLogin)
-	// r.POST("/reset-password", handlePasswordReset)
 	r.GET("/logout", logout)
 	r.GET("/api/ws-broker-status", brokerStatusWebSocket)
 	r.GET("/api/ws-device-data", deviceDataWebSocket)
-
 	r.POST("/api/img-process", captureImage)
 
 	// Files
 	r.POST("/api/save-image", saveImage)
-	// authorized.POST("/api/get-files", getFiles)
 
+	r.GET("/api/get-influx-devices", getInfluxDevices)
 	// Protected routes
 	authorized := r.Group("/")
 	authorized.Use(AuthRequired)
@@ -69,8 +67,8 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/browseNodes/:deviceID", browseNodes)
 
 		// Historical Data
-		authorized.POST("/api/query-data", queryDataHandler)
 		authorized.POST("/api/get-measurements", getMeasurements)
+		authorized.POST("/api/query-data", queryDataHandler)
 
 		// Data Forwarding
 		authorized.GET("/api/get-node-red-url", getNodeRedURL)

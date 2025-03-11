@@ -114,7 +114,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 
 	// Starte eine Goroutine für die Node-RED-Überprüfung
 	go func() {
-		nodeRedTicker := time.NewTicker(7 * time.Second) // Prüfe alle 7 Sekunden
+		nodeRedTicker := time.NewTicker(10 * time.Second) // Prüfe alle 10 Sekunden
 		defer nodeRedTicker.Stop()
 
 		// format node-red url
@@ -123,7 +123,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 		// Einmal zu Beginn die Verbindung prüfen
 		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			DialContext:     (&net.Dialer{Timeout: 1 * time.Second}).DialContext,
+			DialContext:     (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
 		}
 		resp, err := httpClient.Get(nodeRedUrl)
 		if err != nil {
@@ -136,7 +136,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 			// Zertifikatsüberprüfung überspringen
 			httpClient.Transport = &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-				DialContext:     (&net.Dialer{Timeout: 1 * time.Second}).DialContext,
+				DialContext:     (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
 			}
 			resp, err := httpClient.Get(nodeRedUrl)
 			if err != nil {

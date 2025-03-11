@@ -14,7 +14,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gopcua/opcua"
@@ -42,8 +41,8 @@ func clientOptsFromFlags(device DeviceConfig, db *sql.DB) ([]opcua.Option, error
 	}
 
 	// Definiere Pfade für Zertifikat und privaten Schlüssel
-	certPath := "certificate-opcua/cert-new.pem" // Zertifikat im PEM-Format
-	keyPath := "certificate-opcua/key-new.pem"   // Privater Schlüssel im PEM-Format
+	certPath := "certificate-opcua/idpm_cert.pem" // Zertifikat im PEM-Format
+	keyPath := "certificate-opcua/idpm_key.pem"   // Privater Schlüssel im PEM-Format
 
 	var cert []byte
 	var pk *rsa.PrivateKey
@@ -59,47 +58,20 @@ func clientOptsFromFlags(device DeviceConfig, db *sql.DB) ([]opcua.Option, error
 		pk = c.PrivateKey.(*rsa.PrivateKey)
 
 		cert = c.Certificate[0]
-	}
 
-	// Lade den privaten Schlüssel (PEM)
-	keyPEMBytes, err := os.ReadFile(keyPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read key file: %v", err)
-	}
-	keyBlock, _ := pem.Decode(keyPEMBytes)
-	if keyBlock == nil {
-		return nil, fmt.Errorf("failed to decode key PEM")
-	}
-	_, err = x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %v", err)
-	}
-
-	// Lade das Zertifikat (DER)
-	certData, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read certificate file: %v", err)
-	}
-
-	var certDER []byte
-	if strings.HasPrefix(string(certData), "-----BEGIN CERTIFICATE-----") {
-		block, _ := pem.Decode(certData)
-		if block == nil {
-			return nil, fmt.Errorf("failed to decode certificate PEM")
+		// Speichere das Zertifikat und den privaten Schlüssel
+		if err := os.WriteFile(certPath, cert, 0644); err != nil {
+			return nil, fmt.Errorf("failed to save certificate: %v", err)
 		}
-		certDER = block.Bytes
-	} else {
-		certDER = certData
-	}
-	// Optional: Teste das Zertifikat, um sicherzustellen, dass es korrekt formatiert ist
-	if _, err := x509.ParseCertificate(certDER); err != nil {
-		return nil, fmt.Errorf("failed to parse certificate PEM: %v", err)
+		if err := os.WriteFile(keyPath, x509.MarshalPKCS1PrivateKey(pk), 0644); err != nil {
+			return nil, fmt.Errorf("failed to save private key: %v", err)
+		}
 	}
 
 	// Füge den privaten Schlüssel und das Zertifikat zu den OPC UA Optionen hinzu
 	opts = append(opts,
-		opcua.PrivateKey(pk),
-		opcua.Certificate(cert),
+		opcua.PrivateKeyFile(keyPath),
+		opcua.CertificateFile(certPath),
 	)
 
 	return opts, nil

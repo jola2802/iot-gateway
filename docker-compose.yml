@@ -1,8 +1,9 @@
 services:
   iot-gateway:
+    container_name: gateway-main
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     expose:
       - "5000"
       - "5001"
@@ -38,6 +39,7 @@ services:
     restart: unless-stopped
 
   node-red:
+    container_name: gateway-node-red
     image: nodered/node-red:4.0.8-22-minimal
     expose:
       - "1880"
@@ -53,6 +55,7 @@ services:
     restart: unless-stopped
 
   influxdb:
+    container_name: gateway-influxdb
     image: influxdb:2.7
     expose:
       - "8086"
@@ -71,7 +74,7 @@ services:
 
   nginx:
     image: nginx:1.25-alpine
-    container_name: reverse-proxy
+    container_name: gateway-nginx
     depends_on:
       - iot-gateway
       - node-red

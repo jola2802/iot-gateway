@@ -15,6 +15,7 @@ import (
 func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
 
 	var clientOpts []opcua.Option
+	var err error
 
 	// Erstelle Context außerhalb der Schleife
 	ctx := context.Background()
@@ -27,7 +28,7 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 
 		// Erstelle bei jedem Versuch einen neuen Client
 		clientOpts, _ = clientOptsFromFlags(device, db)
-		client, err := opcua.NewClient(device.Address, clientOpts...)
+		client, err = opcua.NewClient(device.Address, clientOpts...)
 		if err != nil {
 			// logrus.Errorf("OPC-UA: Error creating client for device %v: %v", device.Name, err)
 			publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)

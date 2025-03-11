@@ -142,7 +142,6 @@ func brokerStatusWebSocket(c *gin.Context) {
 			if err != nil {
 				logrus.Errorf("HTTP-Anfrage an Node-RED fehlgeschlagen: %v", err)
 				stateConnection = false
-				resp.Body.Close()
 				continue
 			}
 

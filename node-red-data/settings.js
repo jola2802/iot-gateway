@@ -88,7 +88,7 @@ module.exports = {
      * This property can be either an object, containing both a (private) key
      * and a (public) certificate, or a function that returns such an object.
      * See http://nodejs.org/api/https.html#https_https_createserver_options_requestlistener
-     * for details of its contents.
+     * for details of its contents. 
      */
 
     /** Option 1: static object */
@@ -145,7 +145,7 @@ module.exports = {
  ******************************************************************************/
 
     /** the tcp port that the Node-RED web server is listening on */
-    uiPort: process.env.NODE_RED_HTTP_PORT,
+    uiPort: process.env.NODE_RED_HTTP_PORT || 1880,
 
     /** By default, the Node-RED UI accepts connections on all IPv4 interfaces.
      * To listen on all IPv6 addresses, set uiHost to "::",

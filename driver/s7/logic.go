@@ -29,19 +29,24 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 	}
 	defer handler.Close()
 
+	var lastState string
+	var count int
+
+	retryInterval := 5 * time.Second
+
 	for {
 		select {
 		case <-stopChan:
 			logrus.Info("S7: Stopping data processing.")
 			return nil
 		default:
-			publishDeviceState(server, "s7", device.ID, "2 (initializing)", db)
+			currentState := "2 (initializing)"
 
 			// Versuche, die Verbindung herzustellen
 			data, err := fetchS7Data(client, device)
 			if err != nil {
 				logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
-				publishDeviceState(server, "s7", device.ID, "5 (no connection)", db)
+				currentState = "5 (no connection)"
 
 				// Schließe den alten Handler
 				handler.Close()
@@ -53,7 +58,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 				}
 
 				// Warte 5 Sekunden vor dem nächsten Versuch
-				time.Sleep(5 * time.Second)
+				time.Sleep(retryInterval)
 				continue
 			}
 
@@ -61,19 +66,32 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			mqttData, err := convData(data, device.Name)
 			if err != nil {
 				logrus.Errorf("S7: Error converting data: %v", err)
-				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
-				time.Sleep(2 * time.Second)
+				currentState = "3 (error)"
+				time.Sleep(retryInterval)
 				continue
 			}
 			if err := pubData(mqttData, device.ID, server, db); err != nil {
 				logrus.Errorf("S7: Error publishing data: %v", err)
-				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
-				time.Sleep(2 * time.Second)
+				currentState = "3 (error)"
+				time.Sleep(retryInterval)
 				continue
 			}
 
 			if len(mqttData) > 1 {
-				publishDeviceState(server, "s7", device.ID, "1 (running)", db)
+				currentState = "1 (running)"
+			}
+
+			// Statuswechsel nur, wenn derselbe neue Status zwei Schleifendurchläufe lang vorkommt
+			if lastState != currentState {
+				count = 0 // Zähler zurücksetzen, wenn sich der Status geändert hat
+			}
+
+			count++
+
+			if count > 2 {
+				publishDeviceState(server, "s7", device.ID, currentState, db)
+				lastState = currentState
+				count = 0
 			}
 
 			time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)

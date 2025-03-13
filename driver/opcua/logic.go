@@ -23,17 +23,20 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 	ctx := context.Background()
 	var client *opcua.Client
 
+	var lastState, currentState string
+	var count int
+
 	// Retry-Logik: Versuche alle 5 Sekunden, die Verbindung aufzubauen
 	retryInterval := 5 * time.Second
 	for {
-		publishDeviceState(server, "opc-ua", device.ID, "2 (initializing)", db)
+		currentState = "2 (initializing)"
 
 		// Erstelle bei jedem Versuch einen neuen Client
 		clientOpts, _ = clientOptsFromFlags(device, db)
 		client, err = opcua.NewClient(device.Address, clientOpts...)
 		if err != nil {
 			// logrus.Errorf("OPC-UA: Error creating client for device %v: %v", device.Name, err)
-			publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
+			currentState = "6 (connection lost)"
 			time.Sleep(retryInterval)
 			continue
 		}
@@ -46,7 +49,8 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 			client = nil
 
 			logrus.Errorf("OPC-UA: Error connecting to device %v: %v. Trying again in %v...", device.Name, err, retryInterval)
-			publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
+			// publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
+			currentState = "6 (connection lost)"
 
 			// Prüfe, ob ein Stop-Request empfangen wurde
 			select {
@@ -66,9 +70,28 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 
 	// Daten vom OPC-UA-Client sammeln und veröffentlichen
 	if err := collectAndPublishData(device, client, stopChan, server, db); err != nil {
-		publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
+		// publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
+		currentState = "6 (connection lost)"
 		return err
+	} else {
+		// publishDeviceState(server, "opc-ua", device.ID, "1 (running)", db)
+		currentState = "1 (running)"
 	}
+
+	if currentState != lastState {
+		publishDeviceState(server, "opc-ua", device.ID, currentState, db)
+		lastState = currentState
+		count = 0
+	}
+
+	count++
+
+	if count > 2 {
+		publishDeviceState(server, "opc-ua", device.ID, currentState, db)
+		lastState = currentState
+		count = 0
+	}
+
 	defer client.Close(ctx)
 	return nil
 }

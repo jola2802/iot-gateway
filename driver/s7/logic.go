@@ -4,29 +4,54 @@ package s7
 import (
 	"database/sql"
 	"iot-gateway/driver/opcua"
+	"strings"
 	"time"
 
 	_ "github.com/glebarez/go-sqlite"
 	"github.com/go-ping/ping"
 	MQTT "github.com/mochi-mqtt/server/v2"
+	s7 "github.com/robinson/gos7"
 	"github.com/sirupsen/logrus"
 )
 
 // Run startet die Datenerfassung und -verarbeitung für ein einzelnes S7-Gerät
 func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
+	var client s7.Client
+	var handler *s7.TCPClientHandler
+	var err error
+
+	// Erste Client-Erstellung
+	client, handler, err = createS7Client(device)
+	if err != nil {
+		logrus.Errorf("S7: Error creating client for device %s: %v", device.Name, err)
+		publishDeviceState(server, "s7", device.ID, "5 (no connection)", db)
+		return err
+	}
+	defer handler.Close()
+
 	for {
 		select {
 		case <-stopChan:
 			logrus.Info("S7: Stopping data processing.")
 			return nil
 		default:
-			publishDeviceState(server, "s7", device.ID, "1 (running)", db)
+			publishDeviceState(server, "s7", device.ID, "2 (initializing)", db)
 
 			// Versuche, die Verbindung herzustellen
-			data, err := initClient(device)
+			data, err := fetchS7Data(client, device)
 			if err != nil {
 				logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
-				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
+				publishDeviceState(server, "s7", device.ID, "5 (no connection)", db)
+
+				// Schließe den alten Handler
+				handler.Close()
+
+				// Erstelle einen neuen Client
+				client, handler, err = createS7Client(device)
+				if err != nil {
+					logrus.Errorf("S7: Error recreating client for device %s: %v", device.Name, err)
+				}
+
 				// Warte 5 Sekunden vor dem nächsten Versuch
 				time.Sleep(5 * time.Second)
 				continue
@@ -37,14 +62,18 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			if err != nil {
 				logrus.Errorf("S7: Error converting data: %v", err)
 				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
-				time.Sleep(5 * time.Second)
+				time.Sleep(2 * time.Second)
 				continue
 			}
 			if err := pubData(mqttData, device.ID, server, db); err != nil {
 				logrus.Errorf("S7: Error publishing data: %v", err)
 				publishDeviceState(server, "s7", device.ID, "3 (error)", db)
-				time.Sleep(5 * time.Second)
+				time.Sleep(2 * time.Second)
 				continue
+			}
+
+			if len(mqttData) > 1 {
+				publishDeviceState(server, "s7", device.ID, "1 (running)", db)
 			}
 
 			time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)
@@ -78,7 +107,7 @@ func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRe
 }
 
 // TestConnection versucht eine Verbindung zur S7-SPS herzustellen
-func TestConnection(device opcua.DeviceConfig) bool {
+func TestConnection(deviceAddress string) bool {
 	// Erstelle einen neuen TCP Client Handler
 	// handler := s7.NewTCPClientHandler(device.Address, device.Rack, device.Slot)
 	// handler.Timeout = 3 * time.Second
@@ -93,13 +122,16 @@ func TestConnection(device opcua.DeviceConfig) bool {
 	// handler.Close()
 
 	// Teste die Verbindung durch Anpingen der IP-Adresse
-	pinger, _ := ping.NewPinger(device.Address)
-	pinger.Count = 4
-	pinger.Timeout = 500 * time.Millisecond
+	// Extract the IP address from the device address (e.g. 192.168.1.1:102)
+	ip := strings.Split(deviceAddress, ":")[0]
+	pinger, _ := ping.NewPinger(ip)
+	pinger.Count = 1
+	pinger.Timeout = 1000 * time.Millisecond
 	err := pinger.Run()
 	if err != nil {
-		logrus.Errorf("S7: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
+		logrus.Errorf("S7: Verbindungstest fehlgeschlagen für Gerät %v: %v", deviceAddress, err)
 		return false
 	}
+	// logrus.Infof("S7: Verbindungstest erfolgreich für Gerät %v", deviceAddress)
 	return true
 }

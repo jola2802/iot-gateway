@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -142,7 +143,7 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 }
 
 // TestConnection versucht eine Verbindung zum OPC-UA Server herzustellen
-func TestConnection(device DeviceConfig, db *sql.DB) bool {
+func TestConnection(deviceAddress string) bool {
 	// Erstelle Client-Optionen mit den konfigurierten Einstellungen
 	// clientOpts, err := clientOptsFromFlags(device, db)
 	// if err != nil {
@@ -170,14 +171,19 @@ func TestConnection(device DeviceConfig, db *sql.DB) bool {
 	// client.Close(ctx)
 
 	// Teste die Verbindung durch Anpingen der IP-Adresse
-	pinger, _ := ping.NewPinger(device.Address)
-	pinger.Count = 4
-	pinger.Timeout = 500 * time.Millisecond
+	// Extract the IP address from the device address (e.g. opc.tcp://192.168.1.1:4840)
+	ip := strings.Split(deviceAddress, "://")[1]
+	ip = strings.Split(ip, ":")[0]
+	// logrus.Infof("OPC-UA: IP-Adresse: %v", ip)
+
+	pinger, _ := ping.NewPinger(ip)
+	pinger.Count = 1
+	pinger.Timeout = 1000 * time.Millisecond
 	err := pinger.Run()
 	if err != nil {
-		logrus.Errorf("OPC-UA: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
+		logrus.Errorf("OPC-UA: Verbindungstest fehlgeschlagen für Gerät %v: %v", deviceAddress, err)
 		return false
 	}
-
+	// logrus.Infof("OPC-UA: Verbindungstest erfolgreich für Gerät %v", deviceAddress)
 	return true
 }

@@ -1,5 +1,6 @@
 // Ignore all files in the node-red-data directory
 data
+node-red-data copy
 
 // Ignore all files in the .vscode directory
 .vscode

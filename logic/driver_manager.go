@@ -185,14 +185,13 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 	opcuaConfig.DataNode = nodes
 
 	// Verbindungstest vor dem Start des Treibers (nur wenn der Treiber nicht bereits läuft), solange bis die Verbindung hergestellt ist
-	for !state.running {
-		if connected := opcua.TestConnection(opcuaConfig, db); connected {
-			state.status = No_Connection
-			logrus.Errorf("DM: Keine Verbindung möglich zu OPC-UA Gerät %s", opcuaConfig.Name)
-			publishDeviceState(server, "opc-ua", deviceID, state.status)
-		} else {
-			logrus.Infof("DM: Connection to OPC-UA device %s successful.", opcuaConfig.Name)
-		}
+	if connected := opcua.TestConnection(opcuaConfig.Address); connected {
+		state.status = No_Connection
+		logrus.Errorf("DM: Keine Verbindung möglich zu OPC-UA Gerät %s", opcuaConfig.Name)
+		publishDeviceState(server, "opc-ua", deviceID, state.status)
+		time.Sleep(5 * time.Second)
+	} else {
+		logrus.Infof("DM: Connection to OPC-UA device %s successful.", opcuaConfig.Name)
 	}
 
 	// Treiber starten
@@ -285,14 +284,13 @@ func StartS7Driver(db *sql.DB, deviceID string) {
 	}
 
 	// Verbindungstest vor dem Start des Treibers (nur wenn der Treiber nicht bereits läuft), solange bis die Verbindung hergestellt ist
-	for !state.running {
-		if connected := s7.TestConnection(s7Config); connected {
-			state.status = No_Connection
-			logrus.Errorf("DM: Keine Verbindung möglich zu S7 Gerät %s", s7Config.Name)
-			publishDeviceState(server, "s7", deviceID, state.status)
-		} else {
-			logrus.Infof("DM: Connection to S7 device %s successful.", s7Config.Name)
-		}
+	if connected := s7.TestConnection(s7Config.Address); connected {
+		state.status = No_Connection
+		logrus.Errorf("DM: Keine Verbindung möglich zu S7 Gerät %s", s7Config.Name)
+		publishDeviceState(server, "s7", deviceID, state.status)
+		time.Sleep(5 * time.Second)
+	} else {
+		logrus.Infof("DM: Connection to S7 device %s successful.", s7Config.Name)
 	}
 
 	// 2. S7-Datenpunkte laden

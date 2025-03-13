@@ -16,7 +16,7 @@ var (
 
 func main() {
 	// Log-Datei erstellen
-	logic.GatewayLogs()
+	// go logic.GatewayLogs()
 
 	// Initialisiere die SQLite-Datenbank mit dem übergebenen Pfad
 	db, _ := logic.InitDB(dbPath)

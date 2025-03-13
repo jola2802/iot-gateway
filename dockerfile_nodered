@@ -1,0 +1,29 @@
+FROM nodered/node-red:4.0.8-22-minimal
+
+# # Setze die Umgebungsvariable für die Node-RED-Credential-Key
+ENV NODE_RED_CREDENTIAL_SECRET=${NODE_RED_CREDENTIAL_SECRET}
+
+# # Setze die Umgebungsvariable für die Node-RED-HTTP-Port
+ENV NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
+
+# # Setze die Umgebungsvariable für die Node-RED-Admin-User
+# ENV NODE_RED_ADMIN_USER=${NODE_RED_ADMIN_USER}
+
+# # Setze die Umgebungsvariable für die Node-RED-Admin-Password
+# ENV NODE_RED_ADMIN_PASSWORD=${NODE_RED_ADMIN_PASSWORD}
+
+# Hashe das Passwort
+# RUN echo "${NODE_RED_ADMIN_PASSWORD}" | node -e "const crypto = require('crypto'); console.log(crypto.createHash('sha256').update(process.argv[1]).digest('hex'));" > /tmp/hashed_password
+
+# Kopiere package.json und installiere die Abhängigkeiten
+WORKDIR /data
+COPY node-red-data/package.json .
+RUN npm install --unsafe-perm --no-update-notifier --no-fund --only=production
+
+# Kopiere die Node-RED Konfigurationsdateien
+COPY node-red-data/settings.js .
+COPY node-red-data/flows.json .
+COPY node-red-data/flows_cred.json .
+
+# Setze Arbeitsverzeichnis zurück
+WORKDIR /usr/src/node-red

@@ -13,37 +13,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// InitClient initializes a connection to an S7 PLC using the provided device configuration,
-// creates a new S7 client, reads data from the PLC, and returns the results.
-//
-// Parameters:
-//   - device: An opcua.DeviceConfig struct containing the configuration for the PLC connection.
-//
-// Returns:
-//   - A slice of maps containing the read data, or an error if the connection or data reading fails.
-//
-// Errors:
-//   - Returns an error if the S7 handler cannot be created or connected to the PLC.
-//   - Returns an error if the client cannot be created.
-//   - Returns an error if reading data from the PLC fails.
-func initClient(device opcua.DeviceConfig) ([]map[string]interface{}, error) {
+// Erstellt einen S7-Client und stellt die Verbindung zur S7-Steuerung her
+func createS7Client(device opcua.DeviceConfig) (s7.Client, *s7.TCPClientHandler, error) {
 	handler, err := newS7Handler(device.Address, device.Rack, device.Slot)
 	if err != nil {
 		logrus.Errorf("S7: could not connect to PLC %s: %v", device.Name, err)
-		return nil, err
+		return nil, nil, err
 	}
-	defer handler.Close()
 
-	// Initialisierung des Clients
 	client := s7.NewClient(handler)
-
 	if client == nil {
 		handler.Close()
 		logrus.Errorf("S7: could not create client for PLC %s", device.Name)
-		return nil, nil
+		return nil, nil, fmt.Errorf("could not create S7 client")
 	}
 
-	// Lesen aller Variablenendpunkte entsprechend der Umwandlung
+	return client, handler, nil
+}
+
+// Liest die Daten von einer bestehenden S7-Verbindung
+func fetchS7Data(client s7.Client, device opcua.DeviceConfig) ([]map[string]interface{}, error) {
 	results, err := readData(client, device)
 	if err != nil {
 		logrus.Errorf("S7: failed to read data for PLC %s: %v", device.Name, err)
@@ -70,7 +59,7 @@ func initClient(device opcua.DeviceConfig) ([]map[string]interface{}, error) {
 //   - error: An error if the connection to the PLC fails, otherwise nil.
 func newS7Handler(address string, rack int, slot int) (*s7.TCPClientHandler, error) {
 	handler := s7.NewTCPClientHandler(address, rack, slot)
-	handler.Timeout = 15 * time.Second
+	handler.Timeout = 10 * time.Second
 
 	if err := handler.Connect(); err != nil {
 		// logrus.Errorf("S7: Failed to connect to PLC %s: %v", deviceName, err)

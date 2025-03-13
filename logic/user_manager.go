@@ -4,9 +4,9 @@ package logic
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "github.com/glebarez/go-sqlite" // Import für SQLite
+	"github.com/sirupsen/logrus"
 )
 
 // AddUser fügt einen neuen Benutzer zur Datenbank hinzu
@@ -31,7 +31,7 @@ func addUser(db *sql.DB, username, password string, allow bool, filters Filters)
 	for topic, permission := range filters {
 		_, err := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", username, topic, permission)
 		if err != nil {
-			log.Printf("Created user %s with password %s", username, password)
+			logrus.Printf("Created user %s with password %s", username, password)
 			return err
 		}
 	}

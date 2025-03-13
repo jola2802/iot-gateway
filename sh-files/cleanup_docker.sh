@@ -13,5 +13,3 @@ echo "Lösche alle ungenutzten Docker-Volumes..."
 docker volume prune -f
 
 echo "Docker-Bereinigung abgeschlossen!"
-
-read -p "Drücken Sie Enter, um die Bereinigung abzuschließen..."

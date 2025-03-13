@@ -16,7 +16,7 @@ services:
       - ./webui/assets:/app/webui/assets
       - ./server.crt:/data/server.crt
       - ./server.key:/data/server.key
-      - ./data:/data/shared
+      - ${DATA_PATH}:/data/shared
     environment:
       - INFLUXDB_URL=${INFLUXDB_URL}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
@@ -49,7 +49,7 @@ services:
       - NODE_RED_ADMIN_PASSWORD=${NODE_RED_ADMIN_PASSWORD}
     volumes:
       - ./node-red-data:/data
-      - ./data:/data/shared
+      - ${DATA_PATH}:/data/shared
     networks:
       - app-network
     restart: unless-stopped

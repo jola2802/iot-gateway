@@ -10,3 +10,5 @@ df -h
 echo ""
 echo "==== RAM Nutzung ===="
 free -h
+
+read -p "Drücke Enter"

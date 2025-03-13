@@ -18,6 +18,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// User defines a user with their associated ACL entries.
+type User struct {
+	Username   string     `json:"username"`
+	Password   string     `json:"password"`
+	AclEntries []ACLEntry `json:"aclEntries"`
+}
+
+// ACLEntry defines the ACL topic and its associated permission for a user.
+type ACLEntry struct {
+	Topic      string `json:"topic"`
+	Permission int    `json:"permission"` // Als int definiert
+}
+
 // getDBConnection retrieves the database connection from the gin.Context.
 func getDBConnection(c *gin.Context) (*sql.DB, error) {
 	db, exists := c.Get("db")

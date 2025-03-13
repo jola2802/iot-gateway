@@ -7,8 +7,8 @@ import (
 	"time"
 
 	_ "github.com/glebarez/go-sqlite"
+	"github.com/go-ping/ping"
 	MQTT "github.com/mochi-mqtt/server/v2"
-	s7 "github.com/robinson/gos7"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,16 +80,26 @@ func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRe
 // TestConnection versucht eine Verbindung zur S7-SPS herzustellen
 func TestConnection(device opcua.DeviceConfig) bool {
 	// Erstelle einen neuen TCP Client Handler
-	handler := s7.NewTCPClientHandler(device.Address, device.Rack, device.Slot)
-	handler.Timeout = 3 * time.Second
+	// handler := s7.NewTCPClientHandler(device.Address, device.Rack, device.Slot)
+	// handler.Timeout = 3 * time.Second
 
-	// Versuche eine Verbindung herzustellen
-	if err := handler.Connect(); err != nil {
+	// // Versuche eine Verbindung herzustellen
+	// if err := handler.Connect(); err != nil {
+	// 	logrus.Errorf("S7: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
+	// 	return false
+	// }
+
+	// // Verbindung erfolgreich - wieder trennen
+	// handler.Close()
+
+	// Teste die Verbindung durch Anpingen der IP-Adresse
+	pinger, _ := ping.NewPinger(device.Address)
+	pinger.Count = 4
+	pinger.Timeout = 500 * time.Millisecond
+	err := pinger.Run()
+	if err != nil {
 		logrus.Errorf("S7: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
 		return false
 	}
-
-	// Verbindung erfolgreich - wieder trennen
-	handler.Close()
 	return true
 }

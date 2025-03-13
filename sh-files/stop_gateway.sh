@@ -10,3 +10,5 @@ if [ -d "$PROJECT_DIR" ]; then
 else
     echo "Projektverzeichnis nicht gefunden!"
 fi
+
+read -p "Drücke Enter"

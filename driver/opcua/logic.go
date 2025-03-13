@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-ping/ping"
 	"github.com/gopcua/opcua"
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
@@ -107,8 +108,6 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 		case <-stopChan:
 			return nil
 		default:
-			publishDeviceState(server, "opc-ua", device.ID, "1 (running)", db)
-
 			data, err := readData(client, dataNodes)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Fehler beim Lesen der Daten von %v: %s", device.Name, err)
@@ -132,6 +131,11 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 				continue
 			}
 
+			// If convData is not empty, update the device state
+			if len(convData) > 0 {
+				publishDeviceState(server, "opc-ua", device.ID, "1 (running)", db)
+			}
+
 			time.Sleep(sleeptime)
 		}
 	}
@@ -140,29 +144,40 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 // TestConnection versucht eine Verbindung zum OPC-UA Server herzustellen
 func TestConnection(device DeviceConfig, db *sql.DB) bool {
 	// Erstelle Client-Optionen mit den konfigurierten Einstellungen
-	clientOpts, err := clientOptsFromFlags(device, db)
+	// clientOpts, err := clientOptsFromFlags(device, db)
+	// if err != nil {
+	// 	logrus.Errorf("OPC-UA: Fehler beim Erstellen der Client-Optionen für Gerät %v: %v", device.Name, err)
+	// 	return false
+	// }
+
+	// // Erstelle neuen Client
+	// client, err := opcua.NewClient(device.Address, clientOpts...)
+	// if err != nil {
+	// 	logrus.Errorf("OPC-UA: Fehler beim Erstellen des Clients für Gerät %v: %v", device.Name, err)
+	// 	return false
+	// }
+
+	// // Versuche Verbindung herzustellen mit Timeout
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
+
+	// if err := client.Connect(ctx); err != nil {
+	// 	logrus.Errorf("OPC-UA: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
+	// 	return false
+	// }
+
+	// // Verbindung erfolgreich - wieder trennen
+	// client.Close(ctx)
+
+	// Teste die Verbindung durch Anpingen der IP-Adresse
+	pinger, _ := ping.NewPinger(device.Address)
+	pinger.Count = 4
+	pinger.Timeout = 500 * time.Millisecond
+	err := pinger.Run()
 	if err != nil {
-		logrus.Errorf("OPC-UA: Fehler beim Erstellen der Client-Optionen für Gerät %v: %v", device.Name, err)
-		return false
-	}
-
-	// Erstelle neuen Client
-	client, err := opcua.NewClient(device.Address, clientOpts...)
-	if err != nil {
-		logrus.Errorf("OPC-UA: Fehler beim Erstellen des Clients für Gerät %v: %v", device.Name, err)
-		return false
-	}
-
-	// Versuche Verbindung herzustellen mit Timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := client.Connect(ctx); err != nil {
 		logrus.Errorf("OPC-UA: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
 		return false
 	}
 
-	// Verbindung erfolgreich - wieder trennen
-	client.Close(ctx)
 	return true
 }

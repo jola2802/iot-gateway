@@ -22,8 +22,10 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 	var err error
 
 	retryInterval := 5 * time.Second
-	var lastState, currentState string
-	var count int
+	lastStatus := ""
+
+	// Starten mit Initializing
+	updateDeviceStatus(server, "s7", device.ID, "2 (initializing)", db, &lastStatus)
 
 	for {
 		select {
@@ -32,18 +34,15 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 				handler.Close()
 			}
 			logrus.Info("S7: Stopping data processing.")
+			updateDeviceStatus(server, "s7", device.ID, "0 (stopped)", db, &lastStatus)
 			return nil
 		default:
-
-			publishDeviceState(server, "s7", device.ID, currentState, db)
-
 			// Wenn kein Client existiert, erstelle einen neuen
 			if client == nil || handler == nil {
-				currentState = "2 (initializing)"
 				client, handler, err = createS7Client(device)
 				if err != nil {
 					logrus.Errorf("S7: Error creating client for device %s: %v", device.Name, err)
-					currentState = "5 (no connection)"
+					updateDeviceStatus(server, "s7", device.ID, "5 (no connection)", db, &lastStatus)
 
 					// Prüfe, ob ein Stop-Request empfangen wurde
 					select {
@@ -59,7 +58,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			data, err := fetchS7Data(client, device)
 			if err != nil {
 				logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
-				currentState = "5 (no connection)"
+				updateDeviceStatus(server, "s7", device.ID, "5 (no connection)", db, &lastStatus)
 
 				// Schließe den alten Handler sicher
 				if handler != nil {
@@ -81,7 +80,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			mqttData, err := convData(data, device.Name)
 			if err != nil {
 				logrus.Errorf("S7: Error converting data: %v", err)
-				currentState = "3 (error)"
+				updateDeviceStatus(server, "s7", device.ID, "3 (error)", db, &lastStatus)
 
 				select {
 				case <-stopChan:
@@ -93,7 +92,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 
 			if err := pubData(mqttData, device.ID, server, db); err != nil {
 				logrus.Errorf("S7: Error publishing data: %v", err)
-				currentState = "3 (error)"
+				updateDeviceStatus(server, "s7", device.ID, "3 (error)", db, &lastStatus)
 
 				select {
 				case <-stopChan:
@@ -105,22 +104,9 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 
 			// Wenn alles erfolgreich war
 			if len(mqttData) > 0 {
-				currentState = "1 (running)"
-			}
-
-			// Status-Update Logik
-			if currentState != lastState {
-				publishDeviceState(server, "s7", device.ID, currentState, db)
-				lastState = currentState
-				count = 0
-			}
-
-			count++
-
-			if count > 2 {
-				publishDeviceState(server, "s7", device.ID, currentState, db)
-				lastState = currentState
-				count = 0
+				updateDeviceStatus(server, "s7", device.ID, "1 (running)", db, &lastStatus)
+			} else {
+				updateDeviceStatus(server, "s7", device.ID, "4 (no datapoints)", db, &lastStatus)
 			}
 
 			time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)
@@ -137,6 +123,15 @@ func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)
 	if err != nil {
 		logrus.Errorf("Error updating device state in the database: %v", err)
+	}
+}
+
+// Hilfs-Funktion für Status-Updates, die nur bei Änderungen veröffentlicht
+func updateDeviceStatus(server *MQTT.Server, deviceType, deviceID, newStatus string, db *sql.DB, lastStatus *string) {
+	if *lastStatus != newStatus {
+		publishDeviceState(server, deviceType, deviceID, newStatus, db)
+		*lastStatus = newStatus
+		logrus.Debugf("%s: Device %s status changed to %s", deviceType, deviceID, newStatus)
 	}
 }
 

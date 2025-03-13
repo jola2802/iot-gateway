@@ -15,7 +15,6 @@ import (
 
 // Run runs the OPC-UA client and MQTT publisher.
 func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
-
 	var clientOpts []opcua.Option
 	var err error
 
@@ -23,77 +22,96 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 	ctx := context.Background()
 	var client *opcua.Client
 
-	var lastState, currentState string
-	var count int
+	lastStatus := ""
+
+	// Starten mit Initializing
+	updateDeviceStatus(server, "opc-ua", device.ID, "2 (initializing)", db, &lastStatus)
 
 	// Retry-Logik: Versuche alle 5 Sekunden, die Verbindung aufzubauen
 	retryInterval := 5 * time.Second
 	for {
-		currentState = "2 (initializing)"
+		select {
+		case <-stopChan:
+			if client != nil {
+				client.Close(ctx)
+			}
+			updateDeviceStatus(server, "opc-ua", device.ID, "0 (stopped)", db, &lastStatus)
+			return nil
+		default:
+			// Erstelle bei jedem Versuch einen neuen Client
+			clientOpts, err = clientOptsFromFlags(device, db)
+			if err != nil {
+				logrus.Errorf("OPC-UA: Error creating client options for device %v: %v", device.Name, err)
+				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, &lastStatus)
+				select {
+				case <-stopChan:
+					return fmt.Errorf("configuration aborted for device %v", device.Name)
+				case <-time.After(retryInterval):
+					continue
+				}
+			}
 
-		// Erstelle bei jedem Versuch einen neuen Client
-		clientOpts, _ = clientOptsFromFlags(device, db)
-		client, err = opcua.NewClient(device.Address, clientOpts...)
-		if err != nil {
-			// logrus.Errorf("OPC-UA: Error creating client for device %v: %v", device.Name, err)
-			currentState = "6 (connection lost)"
-			time.Sleep(retryInterval)
-			continue
-		}
+			client, err = opcua.NewClient(device.Address, clientOpts...)
+			if err != nil {
+				logrus.Errorf("OPC-UA: Error creating client for device %v: %v", device.Name, err)
+				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
+				select {
+				case <-stopChan:
+					return fmt.Errorf("client creation aborted for device %v", device.Name)
+				case <-time.After(retryInterval):
+					continue
+				}
+			}
 
-		err = client.Connect(ctx)
-		if err != nil {
-			// Schließe den fehlgeschlagenen Client
-			client.Close(ctx)
-			// Setze Client auf nil um sicherzustellen, dass er vom Garbage Collector aufgeräumt wird
-			client = nil
+			err = client.Connect(ctx)
+			if err != nil {
+				// Schließe den fehlgeschlagenen Client
+				if client != nil {
+					client.Close(ctx)
+					client = nil
+				}
 
-			logrus.Errorf("OPC-UA: Error connecting to device %v: %v. Trying again in %v...", device.Name, err, retryInterval)
-			// publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
-			currentState = "6 (connection lost)"
+				logrus.Errorf("OPC-UA: Error connecting to device %v: %v. Trying again in %v...", device.Name, err, retryInterval)
+				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
 
-			// Prüfe, ob ein Stop-Request empfangen wurde
-			select {
-			case <-stopChan:
-				// logrus.Infof("OPC-UA: Stop-Request received. Connection attempt for device %v aborted.", device.Name)
-				return fmt.Errorf("connection aborted for device %v", device.Name)
-			case <-time.After(retryInterval):
-				continue
+				// Prüfe, ob ein Stop-Request empfangen wurde
+				select {
+				case <-stopChan:
+					return fmt.Errorf("connection aborted for device %v", device.Name)
+				case <-time.After(retryInterval):
+					continue
+				}
+			}
+
+			// Device zu OPC-UA Device Map hinzufügen
+			addOpcuaClient(device.ID, client)
+
+			// Wenn wir hierher kommen, war die Verbindung erfolgreich
+			updateDeviceStatus(server, "opc-ua", device.ID, "2 (initializing)", db, &lastStatus)
+
+			// Daten vom OPC-UA-Client sammeln und veröffentlichen
+			err = collectAndPublishData(device, client, stopChan, server, db, &lastStatus)
+
+			// Bei Fehler wird der Client geschlossen und ein neuer Verbindungsversuch gestartet
+			if err != nil {
+				logrus.Errorf("OPC-UA: Error collecting data from device %v: %v", device.Name, err)
+				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
+
+				if client != nil {
+					client.Close(ctx)
+					client = nil
+				}
+
+				// Prüfe erneut für Stop-Request
+				select {
+				case <-stopChan:
+					return fmt.Errorf("data collection aborted for device %v", device.Name)
+				case <-time.After(retryInterval):
+					continue
+				}
 			}
 		}
-
-		break
 	}
-
-	// Device zu OPC-UA Device Map hinzufügen
-	addOpcuaClient(device.ID, client)
-
-	// Daten vom OPC-UA-Client sammeln und veröffentlichen
-	if err := collectAndPublishData(device, client, stopChan, server, db); err != nil {
-		// publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
-		currentState = "6 (connection lost)"
-		return err
-	} else {
-		// publishDeviceState(server, "opc-ua", device.ID, "1 (running)", db)
-		currentState = "1 (running)"
-	}
-
-	if currentState != lastState {
-		publishDeviceState(server, "opc-ua", device.ID, currentState, db)
-		lastState = currentState
-		count = 0
-	}
-
-	count++
-
-	if count > 2 {
-		publishDeviceState(server, "opc-ua", device.ID, currentState, db)
-		lastState = currentState
-		count = 0
-	}
-
-	defer client.Close(ctx)
-	return nil
 }
 
 // MQTT-Publikation mit exponentiellem Backoff
@@ -108,6 +126,16 @@ func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status
 	}
 }
 
+// Hilfs-Funktion für Status-Updates, die nur bei Änderungen veröffentlicht
+func updateDeviceStatus(server *MQTT.Server, deviceType, deviceID, newStatus string, db *sql.DB, lastStatus *string) {
+	if *lastStatus != newStatus {
+		publishDeviceState(server, deviceType, deviceID, newStatus, db)
+		*lastStatus = newStatus
+		logrus.Debugf("%s: Device %s status changed to %s", deviceType, deviceID, newStatus)
+	}
+}
+
+// publishWithBackoff versucht, eine Nachricht mit exponentiellem Backoff zu veröffentlichen
 func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRetries int) {
 	backoff := 200 * time.Millisecond
 	for i := 0; i < maxRetries; i++ {
@@ -122,7 +150,7 @@ func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRe
 }
 
 // collectAndPublishData collects and publishes data from an OPC-UA client to an MQTT broker.
-func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan chan struct{}, server *MQTT.Server, db *sql.DB) error {
+func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan chan struct{}, server *MQTT.Server, db *sql.DB, lastStatus *string) error {
 	dataNodes := device.DataNode
 
 	sleeptime := time.Duration(device.AcquisitionTime) * time.Millisecond
@@ -135,31 +163,29 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 			data, err := readData(client, dataNodes)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Fehler beim Lesen der Daten von %v: %s", device.Name, err)
-				publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
-				time.Sleep(5 * time.Second)
-				continue
+				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, lastStatus)
+				return err
 			}
 
 			convData, err := convData(client, data, dataNodes)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Fehler beim Konvertieren der Daten von %v: %s", device.Name, err)
-				publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
-				time.Sleep(5 * time.Second)
-				continue
+				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, lastStatus)
+				return err
 			}
 
 			if err = pubData(convData, device.Name, device.ID, server); err != nil {
 				logrus.Errorf("OPC-UA: Fehler beim Veröffentlichen der Daten von %v: %s", device.Name, err)
-				publishDeviceState(server, "opc-ua", device.ID, "6 (connection lost)", db)
-				time.Sleep(5 * time.Second)
-				continue
+				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, lastStatus)
+				return err
 			}
 
 			// If convData is not empty, update the device state
 			if len(convData) > 0 {
-				publishDeviceState(server, "opc-ua", device.ID, "1 (running)", db)
+				updateDeviceStatus(server, "opc-ua", device.ID, "1 (running)", db, lastStatus)
+			} else {
+				updateDeviceStatus(server, "opc-ua", device.ID, "4 (no datapoints)", db, lastStatus)
 			}
-
 			time.Sleep(sleeptime)
 		}
 	}

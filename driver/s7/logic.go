@@ -3,6 +3,7 @@ package s7
 
 import (
 	"database/sql"
+	"fmt"
 	"iot-gateway/driver/opcua"
 	"strings"
 	"time"
@@ -20,27 +21,39 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 	var handler *s7.TCPClientHandler
 	var err error
 
-	// Erste Client-Erstellung
-	client, handler, err = createS7Client(device)
-	if err != nil {
-		logrus.Errorf("S7: Error creating client for device %s: %v", device.Name, err)
-		publishDeviceState(server, "s7", device.ID, "5 (no connection)", db)
-		return err
-	}
-	defer handler.Close()
-
-	var lastState string
-	var count int
-
 	retryInterval := 5 * time.Second
+	var lastState, currentState string
+	var count int
 
 	for {
 		select {
 		case <-stopChan:
+			if handler != nil {
+				handler.Close()
+			}
 			logrus.Info("S7: Stopping data processing.")
 			return nil
 		default:
-			currentState := "2 (initializing)"
+
+			publishDeviceState(server, "s7", device.ID, currentState, db)
+
+			// Wenn kein Client existiert, erstelle einen neuen
+			if client == nil || handler == nil {
+				currentState = "2 (initializing)"
+				client, handler, err = createS7Client(device)
+				if err != nil {
+					logrus.Errorf("S7: Error creating client for device %s: %v", device.Name, err)
+					currentState = "5 (no connection)"
+
+					// Prüfe, ob ein Stop-Request empfangen wurde
+					select {
+					case <-stopChan:
+						return fmt.Errorf("connection aborted for device %v", device.Name)
+					case <-time.After(retryInterval):
+						continue
+					}
+				}
+			}
 
 			// Versuche, die Verbindung herzustellen
 			data, err := fetchS7Data(client, device)
@@ -48,18 +61,20 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 				logrus.Errorf("S7: Error initializing client for device %s: %v", device.Name, err)
 				currentState = "5 (no connection)"
 
-				// Schließe den alten Handler
-				handler.Close()
-
-				// Erstelle einen neuen Client
-				client, handler, err = createS7Client(device)
-				if err != nil {
-					logrus.Errorf("S7: Error recreating client for device %s: %v", device.Name, err)
+				// Schließe den alten Handler sicher
+				if handler != nil {
+					handler.Close()
+					handler = nil
 				}
+				client = nil
 
-				// Warte 5 Sekunden vor dem nächsten Versuch
-				time.Sleep(retryInterval)
-				continue
+				// Prüfe, ob ein Stop-Request empfangen wurde
+				select {
+				case <-stopChan:
+					return fmt.Errorf("connection aborted for device %v", device.Name)
+				case <-time.After(retryInterval):
+					continue
+				}
 			}
 
 			// Wenn die Verbindung erfolgreich war, verarbeite die Daten
@@ -67,23 +82,37 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			if err != nil {
 				logrus.Errorf("S7: Error converting data: %v", err)
 				currentState = "3 (error)"
-				time.Sleep(retryInterval)
-				continue
+
+				select {
+				case <-stopChan:
+					return fmt.Errorf("processing aborted for device %v", device.Name)
+				case <-time.After(retryInterval):
+					continue
+				}
 			}
+
 			if err := pubData(mqttData, device.ID, server, db); err != nil {
 				logrus.Errorf("S7: Error publishing data: %v", err)
 				currentState = "3 (error)"
-				time.Sleep(retryInterval)
-				continue
+
+				select {
+				case <-stopChan:
+					return fmt.Errorf("publishing aborted for device %v", device.Name)
+				case <-time.After(retryInterval):
+					continue
+				}
 			}
 
-			if len(mqttData) > 1 {
+			// Wenn alles erfolgreich war
+			if len(mqttData) > 0 {
 				currentState = "1 (running)"
 			}
 
-			// Statuswechsel nur, wenn derselbe neue Status zwei Schleifendurchläufe lang vorkommt
-			if lastState != currentState {
-				count = 0 // Zähler zurücksetzen, wenn sich der Status geändert hat
+			// Status-Update Logik
+			if currentState != lastState {
+				publishDeviceState(server, "s7", device.ID, currentState, db)
+				lastState = currentState
+				count = 0
 			}
 
 			count++

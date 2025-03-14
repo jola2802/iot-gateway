@@ -211,8 +211,8 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 	}()
 
 	state.running = true
-	state.status = Running
-	publishDeviceState(server, "opc-ua", deviceID, state.status)
+	// state.status = Running
+	// publishDeviceState(server, "opc-ua", deviceID, state.status)
 	logrus.Infof("DM: OPC-UA driver started for device %s.", opcuaConfig.Name)
 }
 
@@ -326,8 +326,8 @@ func StartS7Driver(db *sql.DB, deviceID string) {
 	}(s7Config)
 
 	state.running = true
-	state.status = Running
-	publishDeviceState(server, "s7", deviceID, state.status)
+	// state.status = Running
+	// publishDeviceState(server, "s7", deviceID, state.status)
 	logrus.Infof("DM: S7 driver started for device %s.", s7Config.Name)
 }
 

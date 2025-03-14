@@ -117,7 +117,9 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 // MQTT-Publikation mit exponentiellem Backoff
 func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status string, db *sql.DB) {
 	topic := "iot-gateway/driver/states/" + deviceType + "/" + deviceID
-	publishWithBackoff(server, topic, status, 5)
+	server.Publish(topic, []byte(status), false, 0)
+
+	// publishWithBackoff(server, topic, status, 5)
 
 	// Publish the state to the db
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)

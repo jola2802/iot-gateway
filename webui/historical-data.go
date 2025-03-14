@@ -24,6 +24,21 @@ func showHistoricalDataPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "historical-data.html", nil)
 }
 
+// Lade die InfluxDB-Konfiguration, falls noch nicht geschehen
+func ensureInfluxConfig(db *sql.DB) error {
+	var err error
+	if influxConfig == nil {
+		influxConfig, err = dataforwarding.GetInfluxConfig(db)
+		if err != nil {
+			logrus.Errorf("Fehler beim Laden der InfluxDB-Konfiguration: %v", err)
+			return err
+		}
+		logrus.Infof("InfluxDB-Konfiguration geladen: URL=%s, Org=%s, Bucket=%s",
+			influxConfig.URL, influxConfig.Org, influxConfig.Bucket)
+	}
+	return nil
+}
+
 func queryDataHandler(c *gin.Context) {
 	// Verbindung zur SQLite-Datenbank herstellen
 	db, err := getDBConnection(c)
@@ -32,24 +47,12 @@ func queryDataHandler(c *gin.Context) {
 		return
 	}
 
-	if influxConfig == nil {
-		influxConfig, err = dataforwarding.GetInfluxConfig(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
-			return
-		}
-	}
-
-	// Anfrage-Parameter auslesen
-	var requestData struct {
-		Start       string `json:"start" binding:"required"`
-		Duration    string `json:"duration" binding:"required"`
-		Measurement string `json:"measurement" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&requestData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
+	// Stelle sicher, dass die InfluxDB-Konfiguration geladen ist
+	if err := ensureInfluxConfig(db); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
 		return
 	}
+
 	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
 	defer client.Close()
 
@@ -60,6 +63,17 @@ func queryDataHandler(c *gin.Context) {
 	if err != nil {
 		logrus.Errorf("Failed to load location: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load location"})
+		return
+	}
+
+	// Anfrage-Parameter auslesen
+	var requestData struct {
+		Start       string `json:"start" binding:"required"`
+		Duration    string `json:"duration" binding:"required"`
+		Measurement string `json:"measurement" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
@@ -137,12 +151,10 @@ func getMeasurements(c *gin.Context) {
 		return
 	}
 
-	if influxConfig == nil {
-		influxConfig, err = dataforwarding.GetInfluxConfig(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
-			return
-		}
+	// Stelle sicher, dass die InfluxDB-Konfiguration geladen ist
+	if err := ensureInfluxConfig(db); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
+		return
 	}
 
 	// Verbindung zur InfluxDB
@@ -197,12 +209,10 @@ func getInfluxDevices(c *gin.Context) {
 		return
 	}
 
-	if influxConfig == nil {
-		influxConfig, err = dataforwarding.GetInfluxConfig(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
-			return
-		}
+	// Stelle sicher, dass die InfluxDB-Konfiguration geladen ist
+	if err := ensureInfluxConfig(db); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch InfluxDB configuration"})
+		return
 	}
 
 	// Verbindung zur InfluxDB

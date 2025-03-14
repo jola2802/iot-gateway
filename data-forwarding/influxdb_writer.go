@@ -40,6 +40,11 @@ func setInfluxDBConfig() {
 	influxdbOrg := os.Getenv("INFLUXDB_ORG")
 	influxdbBucket := os.Getenv("INFLUXDB_BUCKET")
 
+	// Prüfe, ob alle erforderlichen Umgebungsvariablen gesetzt sind
+	if influxdbURL == "" || influxdbToken == "" || influxdbOrg == "" || influxdbBucket == "" {
+		logrus.Warn("Mindestens eine InfluxDB-Umgebungsvariable ist nicht gesetzt. Verwende Standardwerte oder leere Werte.")
+	}
+
 	influxConfig = &InfluxConfig{
 		URL:    influxdbURL,
 		Token:  influxdbToken,
@@ -47,56 +52,56 @@ func setInfluxDBConfig() {
 		Bucket: influxdbBucket,
 	}
 
+	logrus.Infof("InfluxDB-Konfiguration geladen: URL=%s, Org=%s, Bucket=%s",
+		influxdbURL, influxdbOrg, influxdbBucket)
 }
 
-// GetInfluxConfig lädt die korrekte InfluxDB-Konfiguration aus der SQLite-Datenbank.
+// GetInfluxConfig gibt die aktuelle InfluxDB-Konfiguration zurück.
+// Die Konfiguration wird nun direkt aus der globalen Variable geladen und nicht mehr aus der Datenbank.
 func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
-	query := "SELECT url, token, org, bucket FROM influxdb"
-	rows, err := db.Query(query)
-	if err != nil {
-		logrus.Errorf("Fehler beim Laden der InfluxDB-Konfigurationen: %v", err)
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var config InfluxConfig
-		if err := rows.Scan(&config.URL, &config.Token, &config.Org, &config.Bucket); err != nil {
-			logrus.Errorf("Fehler beim Scannen der InfluxDB-Konfiguration: %v", err)
-			continue
-		}
-
-		// Prüfe die Konfiguration, indem eine Health-Abfrage an den InfluxDB-Client gesendet wird
-		client := influxdb2.NewClient(config.URL, config.Token)
-		health, err := client.Health(context.Background())
-		client.Close()
-		if err != nil || health.Status != "pass" {
-			logrus.Warnf("InfluxDB Konfiguration %s scheint nicht funktionsfähig zu sein: %v", config.URL, err)
-			continue
-		}
-
-		// logrus.Infof("Verwende InfluxDB Konfiguration: %s", config.URL)
-		return &config, nil
+	// Wenn noch keine Konfiguration gesetzt wurde, versuche sie zu setzen
+	if influxConfig == nil {
+		setInfluxDBConfig()
 	}
 
-	return nil, fmt.Errorf("Keine funktionsfähige InfluxDB-Konfiguration gefunden")
+	// Wenn die Konfiguration immer noch nil ist, gib einen Fehler zurück
+	if influxConfig == nil || influxConfig.URL == "" {
+		return nil, fmt.Errorf("Keine InfluxDB-Konfiguration gefunden. Bitte setze die Umgebungsvariablen.")
+	}
+
+	// Prüfe, ob die Verbindung funktioniert
+	client := influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
+	defer client.Close()
+
+	health, err := client.Health(context.Background())
+	if err != nil || health.Status != "pass" {
+		return nil, fmt.Errorf("InfluxDB nicht erreichbar: %v", err)
+	}
+
+	return influxConfig, nil
 }
 
 // initializeClient erstellt einen neuen InfluxDB-Client, falls noch keiner existiert.
 // Falls noch keine gültige Konfiguration vorhanden ist, wird alle 10 Sekunden versucht, diese zu laden.
 func initializeClient(db *sql.DB) error {
 	// Warte auf eine gültige InfluxDB-Konfiguration, falls nicht vorhanden
-	for influxConfig == nil {
-		config, err := GetInfluxConfig(db)
-		if err == nil {
-			influxConfig = config
-			break
+	for influxConfig == nil || influxConfig.URL == "" {
+		// Wenn keine Konfiguration vorhanden ist, versuche sie zu laden
+		if influxConfig == nil {
+			setInfluxDBConfig()
 		}
-		logrus.Warn("Keine InfluxDB-Konfiguration gefunden, versuche in 10 Sekunden erneut...")
-		time.Sleep(10 * time.Second)
+
+		// Wenn immer noch keine Konfiguration vorhanden ist, warte und versuche es erneut
+		if influxConfig == nil || influxConfig.URL == "" {
+			logrus.Warn("Keine gültige InfluxDB-Konfiguration gefunden, versuche in 10 Sekunden erneut...")
+			time.Sleep(10 * time.Second)
+			continue
+		}
 	}
+
 	client = influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
 	writeAPI = client.WriteAPI(influxConfig.Org, influxConfig.Bucket)
+	logrus.Infof("InfluxDB-Client initialisiert mit URL: %s", influxConfig.URL)
 	return nil
 }
 
@@ -217,8 +222,13 @@ func influxMessageCallback(db *sql.DB) func(client *MQTT.Client, sub packets.Sub
 }
 
 func StartInfluxDBWriter(db *sql.DB, server *MQTT.Server) {
-	// Setze die InfluxDB-Konfiguration
+	// Setze die InfluxDB-Konfiguration aus den Umgebungsvariablen
 	setInfluxDBConfig()
+
+	// Initialisiere den InfluxDB-Client
+	if err := initializeClient(db); err != nil {
+		logrus.Errorf("Fehler beim Initialisieren des InfluxDB-Clients: %v", err)
+	}
 
 	// Verwende den neuen Callback
 	server.Subscribe("data/#", rand.Intn(100), influxMessageCallback(db))

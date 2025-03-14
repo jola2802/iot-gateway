@@ -7,11 +7,23 @@ import (
 	"fmt"
 	opcua "iot-gateway/driver/opcua"
 	"strconv"
+	"sync"
 	"time"
 
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
+
+// Globaler Mutex für den sicheren Zugriff auf die deviceStates Maps
+var deviceStateMutex sync.Mutex
+
+// DeviceState repräsentiert den Zustand eines Geräts mit Thread-Safety
+type DeviceState struct {
+	mu       sync.RWMutex // Mutex für den Zugriff auf diesen speziellen DeviceState
+	running  bool
+	status   string
+	stopChan chan struct{}
+}
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%% Utils for user_manager.go %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -64,9 +76,18 @@ func LoadDevices(db *sql.DB) ([]map[string]interface{}, error) {
 
 // Generische Funktion für das Starten eines Gerätezustands
 func getOrCreateDeviceState(deviceName string, deviceStates map[string]*DeviceState) *DeviceState {
+	// Verwende den Mutex aus DeviceStateMutex, um auf die deviceStates Map zuzugreifen
+	deviceStateMutex.Lock()
+	defer deviceStateMutex.Unlock()
+
 	state, exists := deviceStates[deviceName]
 	if !exists {
-		state = &DeviceState{}
+		state = &DeviceState{
+			mu:       sync.RWMutex{}, // Initialisiere den Mutex (RWMutex aus models.go)
+			running:  false,
+			status:   "",
+			stopChan: nil,
+		}
 		deviceStates[deviceName] = state
 	}
 	return state

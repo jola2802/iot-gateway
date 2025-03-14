@@ -36,8 +36,12 @@ var (
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Handling-All-Driver %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 func StartAllDrivers(dbF *sql.DB, serverF *MQTT.Server) {
+	// Initialisiere globale Variablen
+	deviceStateMutex.Lock()
 	server = serverF
 	db = dbF
+	deviceStateMutex.Unlock()
+
 	logrus.Info("DM: Starting all drivers...")
 
 	// Setze für alle Geräte initialen Status in der DB

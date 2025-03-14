@@ -2,11 +2,11 @@ package webui
 
 import (
 	"crypto/tls"
+	"database/sql"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -30,7 +30,7 @@ var messageCount int
 var brokerUptime string
 
 // Am Anfang der Datei einen Mutex für die driverIDs Map definieren
-var driverIDsMutex sync.RWMutex
+// var driverIDsMutex sync.RWMutex
 
 var nodeRedUrl string
 
@@ -72,7 +72,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 	// get server from context
 	server := c.MustGet("server").(*MQTT.Server)
 
-	driverIDs := make(map[string]bool)
+	// driverIDs := make(map[string]bool)
 
 	// Starte eine Goroutine, um den Broker-Status regelmäßig zu lesen
 	go func() {
@@ -95,10 +95,10 @@ func brokerStatusWebSocket(c *gin.Context) {
 				const prefix = "iot-gateway/driver/states/"
 				if len(topic) >= len(prefix) && topic[:len(prefix)] == prefix {
 					// Hier den Mutex verwenden beim Schreiben in die Map
-					driverIDsMutex.Lock()
-					driverID := topic[len(prefix):]
-					driverIDs[driverID] = true
-					driverIDsMutex.Unlock()
+					// driverIDsMutex.Lock()
+					// driverID := topic[len(prefix):]
+					// driverIDs[driverID] = true
+					// driverIDsMutex.Unlock()
 				} else {
 					logrus.Infof("Unbehandelte Topic: %s mit Payload: %s", topic, payload)
 				}
@@ -106,7 +106,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 		}
 
 		_ = server.Subscribe("$SYS/broker/messages/received", rand.Intn(100), callbackFn)
-		_ = server.Subscribe("iot-gateway/driver/states/#", rand.Intn(100), callbackFn)
+		// _ = server.Subscribe("iot-gateway/driver/states/#", rand.Intn(100), callbackFn)
 		_ = server.Subscribe("$SYS/broker/uptime", rand.Intn(100), callbackFn)
 	}()
 
@@ -175,11 +175,9 @@ func brokerStatusWebSocket(c *gin.Context) {
 			_ = conn.WriteMessage(websocket.CloseMessage, closeMessage)
 			return
 		}
-
-		// Beim Lesen der Map auch den Mutex verwenden
-		driverIDsMutex.RLock()
-		deviceCount := len(driverIDs)
-		driverIDsMutex.RUnlock()
+		// get device count from db table devices
+		db, _ := getDBConnection(c)
+		deviceCount := getDeviceCount(db)
 
 		status := BrokerStatus{
 			Uptime:            brokerUptime,
@@ -193,4 +191,23 @@ func brokerStatusWebSocket(c *gin.Context) {
 			return
 		}
 	}
+}
+
+func getDeviceCount(db *sql.DB) int {
+	rows, err := db.Query("SELECT COUNT(*) FROM devices")
+	if err != nil {
+		logrus.Errorf("Error getting device count: %v", err)
+		return 0
+	}
+	defer rows.Close()
+
+	var count int
+	rows.Next()
+	err = rows.Scan(&count)
+	if err != nil {
+		logrus.Errorf("Error getting device count: %v", err)
+		return 0
+	}
+
+	return count
 }

@@ -79,7 +79,35 @@
                     <h2 class="mb-4">Settings</h2>
                     <div class="card shadow mb-4">
                         <div class="card-body">
+                            <!-- Show IP Address -->
+                            <p>Host IP Address: {{ .IPAddress }}</p>
+                            <p>Node-RED URL: {{ .NR_URL }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Log-Anzeige Card -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">System Logs</h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Filter-Bereich -->
+                            <div id="logLevelFilters" class="mb-3 d-flex flex-wrap">
+                                <!-- Filter werden per JavaScript hinzugefügt -->
+                            </div>
                             
+                            <!-- CSS für die Log-Tabelle -->
+                            <style>
+                                .log-table { font-size: 0.85rem; }
+                                .log-message { word-break: break-word; }
+                                .log-details { white-space: normal; }
+                                .log-details .badge { margin: 1px; }
+                            </style>
+                            
+                            <!-- Log-Container -->
+                            <div id="logsContent" style="max-height: 750px; overflow-y: auto; background-color: #f8f9fc; padding: 10px; border-radius: 5px;">
+                                Lade Logs...
+                            </div>
                         </div>
                     </div>
                 </div>

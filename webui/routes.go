@@ -56,6 +56,10 @@ func setupRoutes(r *gin.Engine) {
 		authorized.PUT("/api/update-broker-user/:username", addBrokerUser)
 		authorized.DELETE("/api/delete-broker-user/:username", deleteBrokerUser)
 
+		// Logs - Neue Route für das Abrufen der Logs
+		authorized.GET("/api/logs", grabLogs)
+		authorized.POST("/api/logs/clear", clearLogs)
+
 		// Devices
 		authorized.GET("/api/getDevices", getDevices)
 		authorized.GET("/api/getDevice/:device_id", getDevice)

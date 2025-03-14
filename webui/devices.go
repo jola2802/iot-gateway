@@ -51,8 +51,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var defaultTimeout = 20 * time.Minute
-
 // showDevicesPage shows the devices page
 func showDevicesPage(c *gin.Context) {
 	// c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -727,7 +725,7 @@ func updateDevice(c *gin.Context) {
 		}
 
 		// Device_id to INT
-		dev_id, err := strconv.Atoi(device_id)
+		dev_id, _ := strconv.Atoi(device_id)
 
 		// Füge die neuen OPC-UA DataNodes ein
 		for _, node := range updatedDevice.DataPoints {

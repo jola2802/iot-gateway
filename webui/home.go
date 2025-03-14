@@ -32,6 +32,8 @@ var brokerUptime string
 // Am Anfang der Datei einen Mutex für die driverIDs Map definieren
 var driverIDsMutex sync.RWMutex
 
+var nodeRedUrl string
+
 // showDashboard shows the dashboard page
 func showDashboard(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", nil)
@@ -118,12 +120,12 @@ func brokerStatusWebSocket(c *gin.Context) {
 		defer nodeRedTicker.Stop()
 
 		// format node-red url
-		nodeRedUrl := os.Getenv("NODE_RED_URL")
+		nodeRedUrl = os.Getenv("NODE_RED_URL")
 
 		// Einmal zu Beginn die Verbindung prüfen
 		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			DialContext:     (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+			DialContext:     (&net.Dialer{Timeout: 5 * time.Second}).DialContext,
 		}
 		resp, err := httpClient.Get(nodeRedUrl)
 		if err != nil {

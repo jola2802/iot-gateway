@@ -76,9 +76,9 @@ func StartAllDrivers(dbF *sql.DB, serverF *MQTT.Server) {
 
 			switch deviceType {
 			case "opc-ua":
-				StartOPCUADriver(db, deviceID)
+				go StartOPCUADriver(db, deviceID)
 			case "s7":
-				StartS7Driver(db, deviceID)
+				go StartS7Driver(db, deviceID)
 			case "mqtt":
 				// MQTT-Treiber starten, falls erforderlich
 			default:

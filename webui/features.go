@@ -31,14 +31,6 @@ type NodeDef struct {
 	Path        string
 }
 
-// join fügt den aktuellen Pfad mit dem neuen Knoten zusammen
-func join(a, b string) string {
-	if a == "" {
-		return b
-	}
-	return a + "." + b
-}
-
 // browse durchläuft die Knoten eines OPC UA Servers rekursiv
 func browse(ctx context.Context, n *opcua.Node, path string, level int) ([]NodeDef, error) {
 	if level > 10 {
@@ -447,11 +439,6 @@ func callOPCUAMethod(ctx context.Context, client *opcua.Client, params ImageCapt
 		for _, key := range keys {
 			value := argsMap[key]
 
-			// Konvertiere den Wert in den passenden Datentyp
-			// Hier müssen wir entscheiden, welchen Datentyp wir verwenden
-			// Standardmäßig behandeln wir alles als String, aber wir könnten
-			// auch versuchen, Zahlen zu erkennen
-
 			// Versuche, numerische Werte zu erkennen
 			switch v := value.(type) {
 			case string:
@@ -661,7 +648,7 @@ func handleUploads(c *gin.Context, params ImageCaptureParams, base64String strin
 	return uploadErfolgt, nil
 }
 
-// limitDatabaseImages begrenzt die Anzahl der Bilder in der Datenbank auf maximal 100
+// limitDatabaseImages begrenzt die Anzahl der Bilder in der Datenbank auf maximal num_images_db
 func limitDatabaseImages(db *sql.DB) error {
 	rows, err := db.Query("SELECT COUNT(*) FROM images")
 	if err != nil {
@@ -676,10 +663,10 @@ func limitDatabaseImages(db *sql.DB) error {
 		}
 	}
 
-	// Wenn mehr als 100 Bilder, lösche die ältesten
-	if count > 100 {
+	// Wenn mehr als num_images_db Bilder, lösche die ältesten
+	if count > num_images_db {
 		deleteQuery := "DELETE FROM images WHERE id IN (SELECT id FROM images ORDER BY timestamp ASC LIMIT ?)"
-		if _, err := db.Exec(deleteQuery, count-100); err != nil {
+		if _, err := db.Exec(deleteQuery, count-num_images_db); err != nil {
 			return err
 		}
 	}

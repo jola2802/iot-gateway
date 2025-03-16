@@ -1,12 +1,6 @@
 package logic
 
 // <---------------------------------------->
-// Models for driver_manager.go und S7 und OPC-UA
-// <---------------------------------------->
-
-// DeviceState wurde nach utils.go verschoben
-
-// <---------------------------------------->
 // Models for user_manager.go
 // <---------------------------------------->
 
@@ -34,7 +28,3 @@ type Command struct {
 	Allow    bool           `json:"allow"`
 	Filters  map[string]int `json:"filters,omitempty"`
 }
-
-// <---------------------------------------->
-// Models for xxx
-// <---------------------------------------->

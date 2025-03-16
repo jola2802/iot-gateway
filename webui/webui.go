@@ -3,7 +3,6 @@ package webui
 import (
 	"crypto/rand"
 	"database/sql"
-	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -27,6 +26,7 @@ type Config struct {
 
 var server *MQTT.Server
 var stateConnection bool
+var num_images_db int = 100
 
 // Main function to start the web server
 func Main(db *sql.DB, serverF *MQTT.Server) {
@@ -88,11 +88,6 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 			logrus.Fatal("Failed to start HTTP server: ", err)
 		}
 	}
-}
-
-// showRoutingPage shows the routing page
-func showRoutingPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "data-forwarding.html", nil)
 }
 
 func StopWebUI() {

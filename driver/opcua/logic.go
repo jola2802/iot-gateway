@@ -119,8 +119,6 @@ func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status
 	topic := "iot-gateway/driver/states/" + deviceType + "/" + deviceID
 	server.Publish(topic, []byte(status), false, 0)
 
-	// publishWithBackoff(server, topic, status, 5)
-
 	// Publish the state to the db
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)
 	if err != nil {
@@ -137,20 +135,6 @@ func updateDeviceStatus(server *MQTT.Server, deviceType, deviceID, newStatus str
 	}
 }
 
-// publishWithBackoff versucht, eine Nachricht mit exponentiellem Backoff zu veröffentlichen
-func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRetries int) {
-	backoff := 200 * time.Millisecond
-	for i := 0; i < maxRetries; i++ {
-		err := server.Publish(topic, []byte(payload), false, 0)
-		if err == nil {
-			return
-		}
-		time.Sleep(backoff)
-		backoff *= 2 // Exponentielles Wachstum der Wartezeit
-	}
-	logrus.Errorf("Failed to publish message after %d retries", maxRetries)
-}
-
 // collectAndPublishData collects and publishes data from an OPC-UA client to an MQTT broker.
 func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan chan struct{}, server *MQTT.Server, db *sql.DB, lastStatus *string) error {
 	dataNodes := device.DataNode
@@ -164,20 +148,20 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 		default:
 			data, err := readData(client, dataNodes)
 			if err != nil {
-				logrus.Errorf("OPC-UA: Fehler beim Lesen der Daten von %v: %s", device.Name, err)
+				logrus.Errorf("OPC-UA: Error reading data from %v: %s", device.Name, err)
 				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, lastStatus)
 				return err
 			}
 
-			convData, err := convData(client, data, dataNodes)
+			convData, err := convData(data, dataNodes)
 			if err != nil {
-				logrus.Errorf("OPC-UA: Fehler beim Konvertieren der Daten von %v: %s", device.Name, err)
+				logrus.Errorf("OPC-UA: Error converting data from %v: %s", device.Name, err)
 				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, lastStatus)
 				return err
 			}
 
 			if err = pubData(convData, device.Name, device.ID, server); err != nil {
-				logrus.Errorf("OPC-UA: Fehler beim Veröffentlichen der Daten von %v: %s", device.Name, err)
+				logrus.Errorf("OPC-UA: Error publishing data from %v: %s", device.Name, err)
 				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, lastStatus)
 				return err
 			}
@@ -195,46 +179,16 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 
 // TestConnection versucht eine Verbindung zum OPC-UA Server herzustellen
 func TestConnection(deviceAddress string) bool {
-	// Erstelle Client-Optionen mit den konfigurierten Einstellungen
-	// clientOpts, err := clientOptsFromFlags(device, db)
-	// if err != nil {
-	// 	logrus.Errorf("OPC-UA: Fehler beim Erstellen der Client-Optionen für Gerät %v: %v", device.Name, err)
-	// 	return false
-	// }
-
-	// // Erstelle neuen Client
-	// client, err := opcua.NewClient(device.Address, clientOpts...)
-	// if err != nil {
-	// 	logrus.Errorf("OPC-UA: Fehler beim Erstellen des Clients für Gerät %v: %v", device.Name, err)
-	// 	return false
-	// }
-
-	// // Versuche Verbindung herzustellen mit Timeout
-	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// defer cancel()
-
-	// if err := client.Connect(ctx); err != nil {
-	// 	logrus.Errorf("OPC-UA: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
-	// 	return false
-	// }
-
-	// // Verbindung erfolgreich - wieder trennen
-	// client.Close(ctx)
-
-	// Teste die Verbindung durch Anpingen der IP-Adresse
-	// Extract the IP address from the device address (e.g. opc.tcp://192.168.1.1:4840)
 	ip := strings.Split(deviceAddress, "://")[1]
 	ip = strings.Split(ip, ":")[0]
-	// logrus.Infof("OPC-UA: IP-Adresse: %v", ip)
 
 	pinger, _ := ping.NewPinger(ip)
 	pinger.Count = 1
 	pinger.Timeout = 1000 * time.Millisecond
 	err := pinger.Run()
 	if err != nil {
-		logrus.Errorf("OPC-UA: Verbindungstest fehlgeschlagen für Gerät %v: %v", deviceAddress, err)
+		logrus.Errorf("OPC-UA: Connection test failed for device %v: %v", deviceAddress, err)
 		return false
 	}
-	// logrus.Infof("OPC-UA: Verbindungstest erfolgreich für Gerät %v", deviceAddress)
 	return true
 }

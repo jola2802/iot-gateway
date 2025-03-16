@@ -11,7 +11,6 @@ import (
 
 // PubData veröffentlicht die Daten auf dem MQTT-Broker
 func pubData(data []map[string]interface{}, deviceID string, server *MQTT.Server, db *sql.DB) error {
-
 	for _, dp := range data {
 		// name muss aus [DatapointId]_[DatapointName] bestehen
 		name, ok := dp["name"].(string)

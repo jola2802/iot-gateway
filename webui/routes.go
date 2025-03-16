@@ -1,7 +1,6 @@
 package webui
 
 import (
-	"net/http"
 	"sync"
 	"time"
 
@@ -96,45 +95,13 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/historical-data", showHistoricalDataPage)
 		authorized.GET("/data-forwarding", showRoutingPage)
 		authorized.GET("/broker", showBrokerPage)
-		authorized.GET("/node-red", showNodeRedPage)
 		authorized.GET("/profile", showProfilePage)
 		authorized.GET("/settings", showSettingsPage)
-
-		// authorized.GET("/files", showFilesPage)
-		// ############
 
 		// Data Routes
 		authorized.GET("/listdevices", getlistDevices)
 
-		//node-red
-
-		// Device routes
-		// authorized.GET("/devices/:deviceName", getDeviceStatus)          // Get a single device status
-		// authorized.PUT("/devices/:deviceName", updateDevice)             // Update a single device
-		// authorized.PUT("/devices/state/:deviceName", updateDeviceStatus) // Update device status
-		// authorized.POST("/devices", addDevice)                           // Add a new device
-		// authorized.DELETE("/devices/:deviceName", deleteDevice) // Delete a device
-
-		//websocket for device status and data
-		// authorized.GET("/ws/deviceStatus", deviceStatusWebSocket)
-		// authorized.GET("/ws/deviceData", deviceDataWebSocket)
-
-		// Broker routes
-		// authorized.POST("/settings", updateBrokerSettings)
-		// authorized.POST("/updateUser", updateBrokerUser)
-		// authorized.DELETE("/users/:username", deleteUserHandler)
-		// authorized.PUT("/users/:username", updateUserHandler)
-		// authorized.POST("/users", createUserHandler)
-
-		// Features
-		// authorized.GET("/latest-image/:deviceName", latestImage)
-		// authorized.GET("/add-image-process", addImageProcess)
-
 		authorized.GET("/browse-nodes/:deviceID", browseNodes)
 
 	}
-}
-
-func showNodeRedPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "node-red.html", nil)
 }

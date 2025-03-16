@@ -228,9 +228,10 @@ func readData(client s7.Client, device opcua.DeviceConfig) ([]map[string]interfa
 		}
 
 		results[i] = map[string]interface{}{
-			"id":    dp.ID,
-			"name":  dp.Name,
-			"value": value,
+			"id":        dp.ID,
+			"name":      dp.Name,
+			"value":     value,
+			"timestamp": time.Now().Format(time.RFC3339),
 		}
 	}
 

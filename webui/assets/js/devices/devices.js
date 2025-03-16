@@ -173,7 +173,7 @@ function createRestartButton(device) {
     return restartButton;
 }
 
-// Funktion zum Erstellen des Edit-Buttons
+// Funktion zum Erstellen des Edit-Buttons (nur wenn nicht type = mqtt)
 function createEditButton(device) {
     const editButton = document.createElement('a');
     editButton.className = 'btn btnMaterial btn-flat success semicircle';
@@ -292,7 +292,7 @@ function updateDeviceTables(devices) {
 
                 if (existingDatapointIds.has(datapoint.id)) {
                     // Datapoint existiert bereits, nur Wert aktualisieren
-                    const valueCell = existingRow.querySelector('td:nth-child(2)'); // Ändern wenn Datapoint Name hinzugefügt wird
+                    const valueCell = existingRow.querySelector('td:nth-child(2)');
                     valueCell.textContent = datapoint.value;
 
                     // Chart Button hinzufügen (auch für bestehende Datapoints)
@@ -318,7 +318,7 @@ function updateDeviceTables(devices) {
                     idCell.textContent = datapoint.id;
                     row.appendChild(idCell);
 
-                    // Datapoint Name - auskommentiert
+                    // Datapoint Name
                     // const nameCell = document.createElement('td');
                     // nameCell.textContent = datapoint.name;
                     // row.appendChild(nameCell);
@@ -397,6 +397,9 @@ async function handleEditButtonClick(event) {
             } catch (error) {
                 console.error('Fehler beim Laden der Gerätedaten:', error);
                 alert('Fehler beim Laden der Gerätedaten. Bitte versuchen Sie es erneut.');
+                // Modal schließen
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modal-edit-device'));
+                modal.hide();
             }
         }
     }

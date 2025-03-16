@@ -137,3 +137,11 @@ func RestartDriver(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Driver restarted successfully"})
 }
+
+// join fügt den aktuellen Pfad mit dem neuen Knoten zusammen
+func join(a, b string) string {
+	if a == "" {
+		return b
+	}
+	return a + "." + b
+}

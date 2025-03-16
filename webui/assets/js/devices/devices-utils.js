@@ -127,12 +127,12 @@ async function initializeNodeBrowser() {
     modalBody.innerHTML = `
         <div class="mb-3">
             <input type="text" class="form-control" id="node-search" 
-                   placeholder="Suche nach Nodes..." style="margin-bottom: 15px;">
+                   placeholder="Search for Nodes..." style="margin-bottom: 15px;">
         </div>
         <div class="list-group mb-3"></div>
         <nav aria-label="Node navigation" class="d-flex justify-content-between align-items-center">
             <span class="text-muted">
-                Zeige <span id="showing-nodes">0-0</span> von <span id="total-nodes">0</span> Nodes
+                Show <span id="showing-nodes">0-0</span> of <span id="total-nodes">0</span> Nodes
             </span>
             <ul class="pagination mb-0">
                 <li class="page-item">
@@ -159,9 +159,9 @@ async function initializeNodeBrowser() {
         listGroup.innerHTML = `
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Lade Nodes...</span>
+                    <span class="visually-hidden">Loading Nodes...</span>
                 </div>
-                <div class="mt-2 text-muted">Lade verfügbare Nodes...</div>
+                <div class="mt-2 text-muted">Loading available Nodes...</div>
             </div>
         `;
         document.getElementById('node-search').disabled = true;

@@ -119,8 +119,6 @@ func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status
 	topic := "iot-gateway/driver/states/" + deviceType + "/" + deviceID
 	server.Publish(topic, []byte(status), false, 0)
 
-	// publishWithBackoff(server, topic, status, 5)
-
 	// Publish the state to the db
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)
 	if err != nil {
@@ -137,36 +135,8 @@ func updateDeviceStatus(server *MQTT.Server, deviceType, deviceID, newStatus str
 	}
 }
 
-func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRetries int) {
-	backoff := 200 * time.Millisecond
-	for i := 0; i < maxRetries; i++ {
-		err := server.Publish(topic, []byte(payload), true, 2)
-		if err == nil {
-			return
-		}
-		time.Sleep(backoff)
-		backoff *= 2 // Exponentielles Wachstum der Wartezeit
-	}
-	logrus.Errorf("Failed to publish message after %d retries", maxRetries)
-}
-
 // TestConnection versucht eine Verbindung zur S7-SPS herzustellen
 func TestConnection(deviceAddress string) bool {
-	// Erstelle einen neuen TCP Client Handler
-	// handler := s7.NewTCPClientHandler(device.Address, device.Rack, device.Slot)
-	// handler.Timeout = 3 * time.Second
-
-	// // Versuche eine Verbindung herzustellen
-	// if err := handler.Connect(); err != nil {
-	// 	logrus.Errorf("S7: Verbindungstest fehlgeschlagen für Gerät %v: %v", device.Name, err)
-	// 	return false
-	// }
-
-	// // Verbindung erfolgreich - wieder trennen
-	// handler.Close()
-
-	// Teste die Verbindung durch Anpingen der IP-Adresse
-	// Extract the IP address from the device address (e.g. 192.168.1.1:102)
 	ip := strings.Split(deviceAddress, ":")[0]
 	pinger, _ := ping.NewPinger(ip)
 	pinger.Count = 1
@@ -176,6 +146,5 @@ func TestConnection(deviceAddress string) bool {
 		logrus.Errorf("S7: Verbindungstest fehlgeschlagen für Gerät %v: %v", deviceAddress, err)
 		return false
 	}
-	// logrus.Infof("S7: Verbindungstest erfolgreich für Gerät %v", deviceAddress)
 	return true
 }

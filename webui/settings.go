@@ -55,7 +55,7 @@ func grabLogs(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"logs": "",
 			"info": map[string]interface{}{
-				"message":   "Keine Logs verfügbar",
+				"message":   "No Logs available",
 				"timestamp": time.Now().Format(time.RFC3339),
 			},
 		})
@@ -83,7 +83,7 @@ func clearLogs(c *gin.Context) {
 	// Erfolg melden
 	c.JSON(http.StatusOK, gin.H{
 		"success":   true,
-		"message":   "Logs wurden gelöscht",
+		"message":   "Logs were deleted",
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }

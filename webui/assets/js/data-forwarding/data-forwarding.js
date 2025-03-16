@@ -1,4 +1,4 @@
-// data-forwarding.js
+let num_images = 25;
 
 // Lade Node-RED URL
 async function loadNodeRedURLFlow() {
@@ -33,8 +33,8 @@ function initializeImagesFiles() {
             const rowDiv = document.createElement('div');
             rowDiv.classList.add('row', 'row-cols-1', 'row-cols-md-3', 'row-cols-lg-5', 'g-3');
 
-            // Zeige maximal 25 Bilder an
-            const imagesToShow = data.slice(0, 25);
+            // Zeige maximal num_images Bilder an
+            const imagesToShow = data.slice(0, num_images);
             
             imagesToShow.forEach((image) => {
                 const colDiv = document.createElement('div');

@@ -85,7 +85,6 @@ func fileNotExists(path string) bool {
 
 // GenerateCert erzeugt ein neues selbstsigniertes Zertifikat sowie den privaten Schlüssel.
 func generateCert() (*tls.Certificate, error) {
-
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate private key: %s", err)
@@ -169,23 +168,6 @@ func getSecurityPolicy(policy string) string {
 	default:
 		return ua.SecurityPolicyURINone
 	}
-}
-
-// getLocalIP ermittelt die erste nicht-Loopback IPv4-Adresse des Hosts.
-func getLocalIP() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", err
-	}
-	for _, addr := range addrs {
-		// Prüfen, ob es sich um eine IP-Adresse handelt und ob sie nicht Loopback ist
-		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-			if ip4 := ipNet.IP.To4(); ip4 != nil {
-				return ip4.String(), nil
-			}
-		}
-	}
-	return "", fmt.Errorf("keine nicht-Loopback IP-Adresse gefunden")
 }
 
 // AddOpcuaClient adds an OPC-UA client to the map of clients.

@@ -14,7 +14,6 @@ import (
 )
 
 func GenerateSelfSignedCert() (tls.Certificate, error) {
-
 	// Prüfen, ob Zertifikatsdateien bereits vorhanden sind
 	if _, err := os.Stat("server.crt"); err == nil {
 		if _, err := os.Stat("server.key"); err == nil {

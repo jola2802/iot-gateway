@@ -1,7 +1,3 @@
-/**
- * Settings.js - Funktionen für die Einstellungsseite
- */
-
 document.addEventListener('DOMContentLoaded', function() {
     
     // Initialisiere die Filter für die Log-Levels
@@ -164,14 +160,14 @@ function fetchLogs() {
             // Automatisch nach unten scrollen
             logsContent.scrollTop = logsContent.scrollHeight;
         } else {
-            logsContent.innerHTML = '<div class="alert alert-warning">Keine Logs verfügbar</div>';
+            logsContent.innerHTML = '<div class="alert alert-warning">No Logs available</div>';
         }
     })
     .catch(error => {
         console.error('Fehler beim Abrufen der Logs:', error);
         const logsContent = document.getElementById('logsContent');
         if (logsContent) {
-            logsContent.innerHTML = `<div class="alert alert-danger">Fehler beim Laden der Logs: ${error.message}</div>`;
+            logsContent.innerHTML = `<div class="alert alert-danger">Error loading Logs: ${error.message}</div>`;
         }
     });
 }
@@ -243,7 +239,7 @@ function parseAndFormatLogs(logsString) {
  */
 function displayLogsAsTable(logEntries, container) {
     if (logEntries.length === 0) {
-        container.innerHTML = '<div class="alert alert-warning">Keine gültigen Log-Einträge gefunden</div>';
+        container.innerHTML = '<div class="alert alert-warning">No valid Log entries found</div>';
         return;
     }
     
@@ -253,10 +249,10 @@ function displayLogsAsTable(logEntries, container) {
             <table class="table table-sm table-hover log-table">
                 <thead>
                     <tr>
-                        <th style="width: 10%">Datum</th>
-                        <th style="width: 10%">Zeit</th>
+                        <th style="width: 10%">Date</th>
+                        <th style="width: 10%">Time</th>
                         <th style="width: 10%">Level</th>
-                        <th style="width: 50%">Nachricht</th>
+                        <th style="width: 50%">Message</th>
                         <th style="width: 20%">Details</th>
                     </tr>
                 </thead>
@@ -337,10 +333,5 @@ function escapeHtml(html) {
         return escapeChars[char];
     });
 }
-
-function changeIPAddress() {
-    
-}
-
 
 

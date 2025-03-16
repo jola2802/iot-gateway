@@ -1,13 +1,12 @@
 package opcua
 
 import (
-	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
 	"github.com/sirupsen/logrus"
 )
 
 // ConvData konvertiert die OPC-UA-Daten in ein MQTT-kompatibles Format (konvertiert die nodes aus der config-datei in eine Map von Strings)
-func convData(client *opcua.Client, data []*ua.DataValue, nodes []DataNode) (map[string]interface{}, error) {
+func convData(data []*ua.DataValue, nodes []DataNode) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	for i, value := range data {
 		if value == nil {

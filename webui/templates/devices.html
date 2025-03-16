@@ -153,7 +153,7 @@
                                                 <!-- <optgroup label="This is a group"> -->
                                                     <option value="opc-ua" selected="">OPC-UA</option>
                                                     <option value="s7">S7</option>
-                                                    <option value="mqtt">MQTT</option>
+                                                    <!-- <option value="mqtt">MQTT</option> -->
                                                 </optgroup>
                                             </select></div>
                                     </div>
@@ -421,7 +421,7 @@
                 
                 <!-- Submit Button -->
                 <div class="mb-3">
-                <button type="submit" class="btn btn-primary btn-sm" id="btn-edit-device">Save Device</button>
+                <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 15px;" id="btn-edit-device">Save Device</button>
                 </div>
                 
             </form>
@@ -471,15 +471,14 @@
                     </nav>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="button" class="btn btn-primary" id="save-selected-nodes">Übernehmen</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abort</button>
+                    <button type="button" class="btn btn-primary" id="save-selected-nodes">Save</button>
                 </div>
             </div>
         </div>
     </div>
     <script src="assets/js/utils/jquery.min.js"></script>
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
-    <script src="assets/js/api.js"></script>
     <script src="assets/js/devices/devices-charts.js"></script>
     <script src="assets/js/devices/devices-data.js"></script>
     <script src="assets/js/devices/devices-utils.js"></script>

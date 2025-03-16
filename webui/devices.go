@@ -43,6 +43,17 @@ type Device struct {
 	Password sql.NullString `json:"password,omitempty"`
 }
 
+type Datapoint struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type AggregatedData struct {
+	DeviceID   string      `json:"device_id"`
+	Datapoints []Datapoint `json:"datapoints"`
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
@@ -53,10 +64,6 @@ var upgrader = websocket.Upgrader{
 
 // showDevicesPage shows the devices page
 func showDevicesPage(c *gin.Context) {
-	// c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// if err := tmpl.ExecuteTemplate(c.Writer, "devices.html", nil); err != nil {
-	// 	c.String(http.StatusInternalServerError, "Error rendering template: %v", err)
-	// }
 	c.HTML(http.StatusOK, "devices.html", nil)
 }
 
@@ -91,6 +98,7 @@ func getDevices(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"devices": devices})
 }
 
+// getDevice returns a device by id
 func getDevice(c *gin.Context) {
 	device_id := c.Param("device_id")
 
@@ -119,6 +127,8 @@ func getDevice(c *gin.Context) {
 		query = `SELECT datapointId, name, node_identifier FROM opcua_datanodes WHERE device_id = ?`
 	} else if device.DeviceType == "s7" {
 		query = `SELECT datapointId, name, datatype, address FROM s7_datapoints WHERE device_id = ?`
+	} else if device.DeviceType == "mqtt" {
+		// do nothing
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported device type"})
 		return
@@ -133,12 +143,14 @@ func getDevice(c *gin.Context) {
 	defer rows.Close()
 
 	for rows.Next() {
+		var node struct {
+			DatapointId string `json:"datapointId"`
+			Name        string `json:"name"`
+			Datatype    string `json:"datatype,omitempty"`
+			Address     string `json:"address"`
+		}
 		if device.DeviceType == "opc-ua" {
-			var node struct {
-				DatapointId string `json:"datapointId"`
-				Name        string `json:"name"`
-				Datatype    string `json:"datatype,omitempty"`
-				Address     string `json:"address"`
+			if err := rows.Scan(&node.DatapointId, &node.Name, &node.Address); err != nil {
 			}
 			if err := rows.Scan(&node.DatapointId, &node.Name, &node.Address); err != nil {
 				logrus.Error("Error scanning OPC-UA node:", err)
@@ -146,32 +158,17 @@ func getDevice(c *gin.Context) {
 			}
 			device.DataPoint = append(device.DataPoint, node)
 		} else if device.DeviceType == "s7" {
-			var point struct {
-				DatapointId string `json:"datapointId"`
-				Name        string `json:"name"`
-				Datatype    string `json:"datatype,omitempty"`
-				Address     string `json:"address"`
-			}
-			if err := rows.Scan(&point.DatapointId, &point.Name, &point.Datatype, &point.Address); err != nil {
+			if err := rows.Scan(&node.DatapointId, &node.Name, &node.Datatype, &node.Address); err != nil {
 				logrus.Error("Error scanning S7 point:", err)
 				continue
 			}
-			device.DataPoint = append(device.DataPoint, point)
+			device.DataPoint = append(device.DataPoint, node)
+		} else if device.DeviceType == "mqtt" {
+			// do nothing
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"device": device})
-}
-
-type Datapoint struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-type AggregatedData struct {
-	DeviceID   string      `json:"device_id"`
-	Datapoints []Datapoint `json:"datapoints"`
 }
 
 // Funktion zum Abrufen der aktuellen Gerätestatus aus der Datenbank
@@ -358,6 +355,7 @@ func deviceDataWebSocket(c *gin.Context) {
 	}
 }
 
+// updateAggregation aktualisiert die Aggregation für einen bestimmten Gerät und Messung
 func updateAggregation(aggregated map[string]*AggregatedData, aggMutex *sync.Mutex, deviceID, measurement, value string) {
 	aggMutex.Lock()
 	defer aggMutex.Unlock()
@@ -463,6 +461,7 @@ func buildOutput(aggregated *map[string]*AggregatedData, deviceStatus map[string
 	return outputArray
 }
 
+// gracefulShutdown schließt die WebSocket-Verbindung ordnungsgemäß
 func gracefulShutdown(conn *websocket.Conn) {
 	if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
 		logrus.Errorf("Error closing WebSocket: %v", err)
@@ -470,6 +469,7 @@ func gracefulShutdown(conn *websocket.Conn) {
 	conn.Close()
 }
 
+// restartDevice startet den Treiber für ein Gerät neu
 func restartDevice(c *gin.Context) {
 	deviceID := c.Param("device_id")
 	db, err := getDBConnection(c)
@@ -482,19 +482,17 @@ func restartDevice(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Device restarted successfully"})
 }
 
+// addDevice fügt ein neues Gerät hinzu
 func addDevice(c *gin.Context) {
 	type Device struct {
-		DeviceType string `json:"deviceType"`
-		DeviceName string `json:"deviceName"`
-		Status     string `json:"status"`
-		// Value           string `json:"value"`
-		// Connected       bool   `json:"connected"`
+		DeviceType      string `json:"deviceType"`
+		DeviceName      string `json:"deviceName"`
+		Status          string `json:"status"`
 		Address         string `json:"address,omitempty"`
 		AcquisitionTime int    `json:"acquisitionTime,omitempty"`
-		// Authentication  string `json:"authentication,omitempty"`
-		SecurityMode   string `json:"securityMode,omitempty"`
-		SecurityPolicy string `json:"securityPolicy,omitempty"`
-		DataPoints     []struct {
+		SecurityMode    string `json:"securityMode,omitempty"`
+		SecurityPolicy  string `json:"securityPolicy,omitempty"`
+		DataPoints      []struct {
 			Name     string `json:"name"`
 			Datatype string `json:"datatype"`
 			Address  string `json:"address"`

@@ -39,37 +39,6 @@ func genRandomPW() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-// LoadDevices liest die Gerätedaten aus der Datenbank
-func LoadDevices(db *sql.DB) ([]map[string]interface{}, error) {
-	query := `SELECT type, name FROM devices`
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("error querying devices from database: %v", err)
-	}
-	defer rows.Close()
-
-	var deviceList []map[string]interface{}
-
-	for rows.Next() {
-		var deviceType, name string
-
-		// Lese Daten aus der Datenbankzeile
-		err := rows.Scan(&deviceType, &name)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning device row: %v", err)
-		}
-
-		// Konvertiere die Daten in eine Map
-		deviceMap := map[string]interface{}{
-			"type": deviceType,
-			"name": name,
-		}
-		deviceList = append(deviceList, deviceMap)
-	}
-
-	return deviceList, nil
-}
-
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%% Utils for driver_manager.go %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -2,25 +2,25 @@
     if (window.location.pathname === "/home" || window.location.pathname === "/") {
         var hostname = window.location.hostname;
 
-        // Zuerst den Token vom Server abrufen
+        // First get the token from the server
         await fetch(`/api/ws-token`)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Token-Abruf fehlgeschlagen", response);
+                    throw new Error("Token-Call failed", response);
                 }
                 return response.json();
             })
             .then(data => {
-                // Erwartet: { token: "abcdef...", expires: "..." }
+                // Expected: { token: "abcdef...", expires: "..." }
                 const token = data.token;
                 if (!token) {
-                    throw new Error("Kein Token erhalten");
+                    throw new Error("No token received");
                 }
-                // WebSocket-URL mit dem Token als Query-Parameter aufbauen
+                // Build the WebSocket URL with the token as a query parameter
                 const wsUrl = `/api/ws-broker-status?token=${encodeURIComponent(token)}`;
                 const wsIndex = new WebSocket(wsUrl);
 
-                // Funktion zum Aktualisieren der Dashboard-Daten
+                // Function to update the dashboard data
                 function updateDashboardData(data) {
                     if (data.uptime !== undefined) {
                         document.getElementById('uptime').textContent = data.uptime;
@@ -36,7 +36,7 @@
                         nodeRedElement.textContent = data.nodeRedConnection ? 'Connected' : 'Disconnected';
                         nodeRedElement.style.color = data.nodeRedConnection ? 'green' : 'red';
 
-                        // Node-RED-URL aktualisieren nur wenn der Wert nicht leer ist
+                        // Update the Node-RED URL only if the value is not empty
                         if (data.nodeRedURL !== undefined) {
                             fetch('/api/get-node-red-url')
                                 .then(response => response.json())
@@ -45,12 +45,12 @@
                             });
                         }
                     }
-                    // Node-RED-Adresse aktualisieren wenn noch kein wert vorhanden ist
+                    // Update the Node-RED address if there is no value yet
                     const nodeRedAddressElement = document.getElementById('node-red-address');
                     
-                    // Check ob bereits ein wert in nodeRedAddressElement gespeichert ist
+                    // Check if there is already a value in nodeRedAddressElement
                     if (nodeRedAddressElement.href === undefined || nodeRedAddressElement.href === "" || nodeRedAddressElement.href === null) {
-                        // Node-RED-URL aktualisieren nur wenn der Wert nicht leer ist
+                        // Update the Node-RED URL only if the value is not empty
                         fetch('/api/get-node-red-url')
                         .then(response => response.json())
                         .then(data => {
@@ -60,9 +60,9 @@
                     }
                 }
 
-                // WebSocket-Ereignisse
+                // WebSocket events
                 wsIndex.onopen = () => {
-                    console.log('WebSocket-Verbindung hergestellt');
+                    console.log('WebSocket connection established');
                 };
 
                 wsIndex.onmessage = (event) => {
@@ -70,20 +70,20 @@
                         const data = JSON.parse(event.data);
                         updateDashboardData(data);
                     } catch (error) {
-                        console.error('Fehler beim Verarbeiten der WebSocket-Daten:', error);
+                        console.error('Error processing WebSocket data:', error);
                     }
                 };
 
                 wsIndex.onerror = (error) => {
-                    console.error('WebSocket-Fehler:', error);
+                    console.error('WebSocket error:', error);
                 };
 
                 wsIndex.onclose = (event) => {
-                    console.warn('WebSocket-Verbindung geschlossen:', event.reason);
+                    console.warn('WebSocket connection closed:', event.reason);
                 };
             })
             .catch(error => {
-                console.error('Fehler beim Abrufen des Tokens:', error);
+                console.error('Error fetching token:', error);
             });
     }
 })();

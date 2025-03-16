@@ -151,7 +151,7 @@ form.addEventListener('submit', async (event) => {
                     y: {
                         title: {
                             display: true,
-                            text: 'Value', // Optionaler Titel für die Y-Achse
+                            text: 'Value',
                         },
                     },
                 },

@@ -29,9 +29,6 @@ type BrokerStatus struct {
 var messageCount int
 var brokerUptime string
 
-// Am Anfang der Datei einen Mutex für die driverIDs Map definieren
-// var driverIDsMutex sync.RWMutex
-
 var nodeRedUrl string
 
 // showDashboard shows the dashboard page

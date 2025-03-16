@@ -1,7 +1,5 @@
 async function fetchAndPopulateBrokerUsers() {
     try {
-        // API-Aufruf
-        // const response = await fetch(`${BASE_PATH}/getBrokerUser`); 
         const response = await fetch('/api/getBrokerUsers');
 
         if (!response.ok) {
@@ -145,7 +143,7 @@ document.querySelector('.btn-primary[type="button"]').addEventListener('click', 
     const topic = mqttTopicInput.value.trim();
 
     if (!topic) {
-        alert('Bitte geben Sie ein MQTT-Topic ein.');
+        alert('Please enter a MQTT topic.');
         return;
     }
 
@@ -187,7 +185,7 @@ document.getElementById("btn-save-new-user").addEventListener('click', () => {
 
     // Validierung der Eingabefelder
     if (username === '' || password === '') {
-        alert('Bitte geben Sie sowohl Benutzername als auch Passwort ein.');
+        alert('Please enter both username and password.');
         return;
     }
 
@@ -204,7 +202,7 @@ document.getElementById("btn-save-new-user").addEventListener('click', () => {
 
     // Validierung der ACL-Einträge
     if (acls.length === 0) {
-        alert('Bitte fügen Sie mindestens eine ACL-Berechtigung hinzu.');
+        alert('Please add at least one ACL permission.');
         return;
     }
 
@@ -243,14 +241,14 @@ document.getElementById("btn-save-new-user").addEventListener('click', () => {
         }
 
         // Benutzer über den Erfolg informieren
-        alert('Benutzer erfolgreich hinzugefügt!');
+        alert('User added successfully!');
         
         // Tabelle neu laden
         fetchAndPopulateBrokerUsers();
     })
     .catch(error => {
-        console.error('Fehler beim Hinzufügen des Benutzers:', error);
-        alert(`Benutzer konnte nicht hinzugefügt werden. Fehler: ${error.message || 'Unbekannter Fehler'}`);
+        console.error('Error adding user:', error);
+        alert(`User could not be added. Error: ${error.message || 'Unknown error'}`);
     });
 });
 
@@ -308,55 +306,14 @@ async function editBrokerUser(username) {
 
         // Save-Button-Handler aktualisieren
         const saveButton = document.getElementById('btn-save-new-user');
-        // saveButton.onclick = async () => {
-        //     const updatedPassword = document.getElementById('password').value.trim();
-        //     const aclListItems = document.querySelectorAll('#list-permission-topics li');
-        //     const updatedAcls = Array.from(aclListItems).map(item => ({
-        //         topic: item.getAttribute('data-topic'),
-        //         permission: item.getAttribute('data-permission')
-        //     }));
-
-        //     if (updatedPassword === '' || updatedAcls.length === 0) {
-        //         alert('Password und mindestens ein ACL-Topic müssen angegeben werden.');
-        //         return;
-        //     }
-
-        //     // PUT-Request mit aktualisierten Daten senden
-        //     try {
-        //         const putResponse = await fetch(`/api/update-broker-user/${username}`, {
-        //             method: 'PUT',
-        //             headers: {
-        //                 'Content-Type': 'application/json'
-        //             },
-        //             body: JSON.stringify({
-        //                 password: updatedPassword,
-        //                 acls: updatedAcls
-        //             })
-        //         });
-
-        //         if (!putResponse.ok) {
-        //             throw new Error(`HTTP error! Status: ${putResponse.status}`);
-        //         }
-
-        //         alert('User erfolgreich aktualisiert!');
-        //         const modalElement = document.getElementById('modal-new-user');
-        //         const modal = bootstrap.Modal.getInstance(modalElement);
-        //         modal.hide();
-        //         // Optional: Seite aktualisieren oder Tabelle neu laden
-        //         fetchAndPopulateBrokerUsers();
-        //     } catch (error) {
-        //         console.error('Fehler beim Aktualisieren des Benutzers:', error);
-        //         alert('Fehler beim Aktualisieren des Benutzers. Bitte versuchen Sie es erneut.');
-        //     }
-        // };
 
         // Modal öffnen
         const modalElement = document.getElementById('modal-new-user');
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
     } catch (error) {
-        console.error('Fehler beim Laden der Benutzerdaten:', error);
-        alert('Fehler beim Laden der Benutzerdaten. Bitte versuchen Sie es erneut.');
+        console.error('Error loading user data:', error);
+        alert('Error loading user data. Please try again.');
     }
 }
 
@@ -372,7 +329,7 @@ async function connectToBrokerAndDisplayTopics() {
         const { username, password, brokerUrl } = loginData;
 
         if (!username || !password || !brokerUrl) {
-            throw new Error('Fehlende Login-Daten.');
+            throw new Error('Missing login data.');
         }
 
         const options = {
@@ -416,7 +373,7 @@ async function connectToBrokerAndDisplayTopics() {
             const topics = ['$SYS/broker/#', 'data/#', 'iot-gateway/#'];
             client.subscribe(topics, (err) => {
             if (err) {
-                console.error('Fehler beim Abonnieren der Topics:', err);
+                console.error('Error subscribing to topics:', err);
             } else {
                 // console.log('Erfolgreich alle Topics abonniert.');
             }
@@ -424,14 +381,14 @@ async function connectToBrokerAndDisplayTopics() {
         });
 
         client.on('error', (error) => {
-            console.error('Fehler bei der Verbindung:', error);
+            console.error('Error connecting:', error);
         });
 
         client.on('close', () => {
             // console.log('Verbindung geschlossen.');
         });
     } catch (error) {
-        console.error('Fehler:', error);
+        console.error('Error:', error);
     }
 }
 

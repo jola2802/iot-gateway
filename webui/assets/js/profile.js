@@ -9,7 +9,7 @@ async function loadProfileData() {
         });
 
         if (!response.ok) {
-            throw new Error(`Fehler beim Abrufen der Profildaten: ${response.status}`);
+            throw new Error(`Error fetching profile data: ${response.status}`);
         }
 
         const profileData = await response.json();
@@ -21,8 +21,8 @@ async function loadProfileData() {
         document.getElementById('username').value = profileData.username || '';
         document.getElementById('address').value = profileData.address || '';
     } catch (error) {
-        console.error('Fehler beim Laden der Profildaten:', error);
-        alert('Es gab ein Problem beim Laden Ihrer Profildaten. Bitte versuchen Sie es später erneut.');
+        console.error('Error loading profile data:', error);
+        alert('There was an error loading your profile data. Please try again later.');
     }
 }
 
@@ -48,13 +48,13 @@ async function saveUserSettings(event) {
         });
 
         if (!response.ok) {
-            throw new Error(`Fehler beim Speichern der Einstellungen: ${response.status}`);
+            throw new Error(`Error saving settings: ${response.status}`);
         }
 
-        alert('Einstellungen erfolgreich gespeichert.');
+        alert('Settings saved successfully.');
     } catch (error) {
-        console.error('Fehler beim Speichern der Einstellungen:', error);
-        alert('Fehler beim Speichern der Einstellungen. Bitte versuchen Sie es später erneut.');
+        console.error('Error saving settings:', error);
+        alert('Error saving settings. Please try again later.');
     }
 }
 
@@ -80,13 +80,13 @@ async function saveContactSettings(event) {
         });
 
         if (!response.ok) {
-            throw new Error(`Fehler beim Speichern der Contact Settings: ${contactData} mit Response ${response.status}`);
+            throw new Error(`Error saving contact settings: ${contactData} with response ${response.status}`);
         }
 
-        alert('Contact Settings erfolgreich gespeichert.');
+        alert('Contact settings saved successfully.');
     } catch (error) {
-        console.error(`Fehler beim Speichern der Contact Settings: ${contactData} mit Response`, error);
-        alert(`Fehler beim Speichern der Contact Settings ${contactData}. Bitte versuchen Sie es später erneut.`);
+        console.error(`Error saving contact settings: ${contactData} with response`, error);
+        alert(`Error saving contact settings ${contactData}. Please try again later.`);
     }
 }
 

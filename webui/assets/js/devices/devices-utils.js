@@ -21,10 +21,15 @@ function initializeNewDeviceModal() {
     function showConfig(selectedType) {
         hideAllConfigs();
         const config = document.getElementById(`${selectedType}-config`);
-        if (config) {
-            config.style.display = 'block';
-            if (selectedType === DEVICE_TYPES.OPC_UA) {
-                initializeOpcUaSecuritySettings('');
+        // if mqtt-config is selected, hide the config
+        if (selectedType === DEVICE_TYPES.MQTT) {
+            config.style.display = 'none';
+        } else {
+            if (config) {
+                config.style.display = 'block';
+                if (selectedType === DEVICE_TYPES.OPC_UA) {
+                    initializeOpcUaSecuritySettings('');
+                }
             }
         }
     }
@@ -356,12 +361,22 @@ async function initializeEditDeviceModal(device_id) {
             document.getElementById('device-name-1').disabled = true;
 
             const configIds = ['opc-ua-config-1', 's7-config-1', 'mqtt-config-1'];
-            configIds.forEach(id => {
-                const config = document.getElementById(id);
-                if (config) {
-                    config.style.display = id.includes(deviceData.deviceType) ? 'block' : 'none';
-                }
-            });
+            // if mqtt-config is selected, hide the config
+            if (deviceData.deviceType === DEVICE_TYPES.MQTT) {
+                configIds.forEach(id => {
+                    const config = document.getElementById(id);
+                    if (config) {
+                        config.style.display = 'none';
+                    }
+                });
+            } else {
+                configIds.forEach(id => {
+                    const config = document.getElementById(id);
+                    if (config) {
+                        config.style.display = id.includes(deviceData.deviceType) ? 'block' : 'none';
+                    }
+                });
+            }
 
             if (deviceData.deviceType === 'opc-ua') {
                 document.getElementById('address-1').value = '';
@@ -401,8 +416,6 @@ async function initializeEditDeviceModal(device_id) {
             datapointsTableBody.innerHTML = '';
 
             if (deviceData.datapoint) {
-                const datapointsTableBody = document.querySelector('#ipi-table tbody');
-                datapointsTableBody.innerHTML = '';
 
                 deviceData.datapoint.forEach(datapoint => {
                     const row = document.createElement('tr');

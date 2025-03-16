@@ -1,14 +1,8 @@
 # IoT-Gateway
 
-Ein leistungsstarkes und flexibles IoT-Gateway zur Datenerfassung, -verarbeitung und -weiterleitung von industriellen Anlagen und IoT-Geräten.
-
-## Überblick
-
-Dieses IoT-Gateway dient als zentrale Schnittstelle zwischen verschiedenen industriellen Systemen und IoT-Geräten. Es ermöglicht die Erfassung, Verarbeitung und Weiterleitung von Daten aus unterschiedlichen Quellen und unterstützt mehrere Industrieprotokolle.
-
 ### Hauptfunktionen
 
-- **Multi-Protokoll-Unterstützung**: 
+- **Multi-Protokoll-Support**: 
   - Siemens S7 (S7-300, S7-400, S7-1200, S7-1500)
   - OPC UA
   - MQTT
@@ -64,7 +58,6 @@ Das Gateway besteht aus mehreren Komponenten, die in Docker-Containern laufen:
 4. Auf die Weboberfläche zugreifen:
    - Gateway-UI: https://localhost/
    - Node-RED: https://localhost/nodered/
-   - InfluxDB: https://localhost/influxdb/
 
 ### Ports (default)
 - **443**: HTTPS-Zugriff auf alle Dienste (über NGINX)
@@ -89,7 +82,7 @@ Die Hauptkonfiguration erfolgt über die Weboberfläche. Dort können Sie:
 
 ## Entwicklung
 
-Das Gateway ist in Go geschrieben und verwendet moderne Webtechnologien für die Benutzeroberfläche. Die modulare Architektur ermöglicht einfache Erweiterungen und Anpassungen.
+Das Gateway ist in Go geschrieben und verwendet Webtechnologien für die Benutzeroberfläche.
 
 
 ![software-architecture](https://github.com/jola2802/iot-gateway/assets/99344189/6d9614d5-e93f-4640-ad7a-ee7fd8f940f0)

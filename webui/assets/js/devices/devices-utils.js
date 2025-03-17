@@ -424,23 +424,31 @@ async function initializeEditDeviceModal(device_id) {
                     const idCell = document.createElement('td');
                     idCell.textContent = datapoint.datapointId;
                     idCell.style.color = 'rgb(121, 121, 121)';
+                    idCell.style.width = '15%';
+                    idCell.style.overflow = 'break-all';
                     row.appendChild(idCell);
 
                     const nameCell = document.createElement('td');
                     nameCell.textContent = datapoint.name;
                     nameCell.style.color = 'rgb(121, 121, 121)';
+                    nameCell.style.width = '35%';
+                    nameCell.style.overflow = 'break-all';
                     row.appendChild(nameCell);
 
                     const datatypeCell = document.createElement('td');
-                    datatypeCell.textContent = datapoint.datatype || 'INT';
+                    datatypeCell.textContent = datapoint.datatype || 'N/A';
                     row.appendChild(datatypeCell);
 
                     const addressCell = document.createElement('td');
                     addressCell.textContent = datapoint.address || '';
                     addressCell.style.color = 'rgb(121, 121, 121)';
+                    addressCell.style.width = '35%';
+                    addressCell.style.overflow = 'break-all';
                     row.appendChild(addressCell);
 
                     const actionCell = document.createElement('td');
+                    actionCell.style.width = '15%';
+                    actionCell.style.overflow = 'break-all';
                     actionCell.innerHTML = `
                     <a href="#" class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" 
                         style="margin-left: 5px;" 

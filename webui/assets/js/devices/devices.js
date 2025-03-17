@@ -71,7 +71,7 @@ function createStatusIcon(status) {
             statusIcon.title = 'connection lost';
             break;
         default:
-            console.warn('Unbekannter Status:', status);
+            console.warn('Unknown status:', status);
             statusIcon.style.backgroundColor = STATUS_COLORS.error;
             statusIcon.title = 'error';
     }
@@ -87,32 +87,47 @@ function createDeviceRow(device) {
     // Device ID
     const idCell = document.createElement('td');
     idCell.textContent = device.id;
+    idCell.style.textAlign = 'center';
+    idCell.style.verticalAlign = 'middle';
     row.appendChild(idCell);
 
     // Device Name
     const deviceCell = document.createElement('td');
     deviceCell.textContent = device.deviceName;
+    deviceCell.style.fontWeight = 'bold';
+    deviceCell.style.width = 'break-all';
+    deviceCell.style.verticalAlign = 'middle';
     row.appendChild(deviceCell);
 
     // Type
     const typeCell = document.createElement('td');
     typeCell.textContent = device.deviceType;
+    typeCell.style.textAlign = 'center';
+    typeCell.style.verticalAlign = 'middle';
     row.appendChild(typeCell);
 
     // Address
     const addressCell = document.createElement('td');
     addressCell.textContent = device.address;
+    addressCell.style.fontWeight = 'bold';
+    addressCell.style.width = 'break-all';
+    addressCell.style.textAlign = 'center';
+    addressCell.style.verticalAlign = 'middle';
     row.appendChild(addressCell);
 
     // Acquisition Time
     const acquisitionTimeCell = document.createElement('td');
     acquisitionTimeCell.textContent = device.acquisitionTime;
+    acquisitionTimeCell.style.textAlign = 'center';
+    acquisitionTimeCell.style.verticalAlign = 'middle';
     row.appendChild(acquisitionTimeCell);
 
     // Status
     const statusCell = document.createElement('td');
     const statusIcon = createStatusIcon(device.status);
     statusCell.appendChild(statusIcon);
+    statusCell.style.textAlign = 'center';
+    statusCell.style.verticalAlign = 'middle';
     row.appendChild(statusCell);
 
     // Actions
@@ -126,7 +141,7 @@ function createDeviceRow(device) {
 function createActionsCell(device) {
     const actionsCell = document.createElement('td');
     actionsCell.className = 'text-center align-middle';
-    actionsCell.style.height = '60px';
+    actionsCell.style.height = '50px';
 
     // Restart Button
     const restartButton = createRestartButton(device);
@@ -180,6 +195,7 @@ function createEditButton(device) {
     editButton.innerHTML = '<i class="fas fa-pen"></i>';
     editButton.setAttribute('data-bs-toggle', 'modal');
     editButton.setAttribute('data-bs-target', '#modal-edit-device');
+    editButton.setAttribute('title', 'Edit Device Configuration');
 
     editButton.addEventListener('click', () => {
         document.getElementById('modal-edit-device').setAttribute('data-device-id', device.id);
@@ -195,6 +211,7 @@ function createDeleteButton(device) {
     deleteButton.className = 'btn btnMaterial btn-flat accent btnNoBorders checkboxHover';
     deleteButton.style.marginLeft = '5px';
     deleteButton.innerHTML = '<i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>';
+    deleteButton.setAttribute('title', 'Delete Device');
 
     deleteButton.addEventListener('click', (event) => {
         event.preventDefault();
@@ -250,7 +267,7 @@ function createAccordionItem(device) {
         <div id="device-${device.id}-body" class="accordion-collapse collapse" role="tabpanel" data-bs-parent="#accordion-data">
             <div class="accordion-body">
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table" style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>Datapoint ID</th>
@@ -317,11 +334,6 @@ function updateDeviceTables(devices) {
                     const idCell = document.createElement('td');
                     idCell.textContent = datapoint.id;
                     row.appendChild(idCell);
-
-                    // Datapoint Name
-                    // const nameCell = document.createElement('td');
-                    // nameCell.textContent = datapoint.name;
-                    // row.appendChild(nameCell);
 
                     // Last Value
                     const valueCell = document.createElement('td');

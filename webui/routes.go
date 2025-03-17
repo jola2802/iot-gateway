@@ -46,8 +46,7 @@ func setupRoutes(r *gin.Engine) {
 	authorized := r.Group("/")
 	authorized.Use(AuthRequired)
 	{
-		/// #############
-		// NEUE ROUTEN HIER
+		/// Broker Routes
 		authorized.GET("/api/getBrokerUsers", getAllBrokerUsers)
 		authorized.GET("/api/getBrokerUser/:username", getBrokerUser)
 		authorized.GET("/api/getBrokerLogin", getBrokerLogin)
@@ -55,11 +54,11 @@ func setupRoutes(r *gin.Engine) {
 		authorized.PUT("/api/update-broker-user/:username", addBrokerUser)
 		authorized.DELETE("/api/delete-broker-user/:username", deleteBrokerUser)
 
-		// Logs - Neue Route für das Abrufen der Logs
+		// Logs Routes
 		authorized.GET("/api/logs", grabLogs)
 		authorized.POST("/api/logs/clear", clearLogs)
 
-		// Devices
+		// Devices Routes
 		authorized.GET("/api/getDevices", getDevices)
 		authorized.GET("/api/getDevice/:device_id", getDevice)
 		authorized.POST("/api/add-device", addDevice)
@@ -69,39 +68,34 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/api/restart-device/:device_id", restartDevice)
 		authorized.GET("/api/browseNodes/:deviceID", browseNodes)
 
-		// Historical Data
+		// Historical Data Routes
 		authorized.POST("/api/get-measurements", getMeasurements)
 		authorized.POST("/api/query-data", queryDataHandler)
 
-		// Data Forwarding
+		// Data Forwarding Routes
 		authorized.GET("/api/get-node-red-url", getNodeRedURL)
 		authorized.GET("/api/images", getImages)
 		authorized.GET("/api/images/download", downloadImagesAsZip)
 
-		// Profile
+		// Profile Routes
 		authorized.GET("/api/profile", getProfile)
 		authorized.PUT("/api/profile", updateProfile)
 		authorized.PUT("/api/changePassword", changePassword)
 
-		// Settings
+		// Browse Nodes
+		authorized.GET("/browse-nodes/:deviceID", browseNodes)
 
+		// Settings Routes
 		authorized.POST("/api/restart", restartGatewayHandler)
 
-		/// #############
-		// Show pages
+		// Show pages Routes
 		authorized.GET("/", showDashboard)
 		authorized.GET("/home", showDashboard)
-		authorized.GET("/devices", showDevicesPage) // show devices page
+		authorized.GET("/devices", showDevicesPage)
 		authorized.GET("/historical-data", showHistoricalDataPage)
 		authorized.GET("/data-forwarding", showRoutingPage)
 		authorized.GET("/broker", showBrokerPage)
 		authorized.GET("/profile", showProfilePage)
 		authorized.GET("/settings", showSettingsPage)
-
-		// Data Routes
-		authorized.GET("/listdevices", getlistDevices)
-
-		authorized.GET("/browse-nodes/:deviceID", browseNodes)
-
 	}
 }

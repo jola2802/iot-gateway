@@ -331,8 +331,8 @@ func parseAndValidateParams(c *gin.Context) (ImageCaptureParams, error) {
 	var id int
 	err = db.QueryRow("SELECT id FROM devices WHERE address = ?", params.Endpoint).Scan(&id)
 	if err != nil {
-		logrus.Errorf("Fehler beim Abfragen der Datenbank: %v", err)
-		return params, err
+		logrus.Errorf("Device not found in database: %v", err)
+		// return params, err
 	}
 
 	if id == 0 {

@@ -13,9 +13,9 @@ services:
       - ${WEBUI_HTTP_PORT}
     volumes:
       ## only for quick testing
-      - ./iot_gateway.db:/app/iot_gateway.db
-      - ./webui/templates:/app/webui/templates
-      - ./webui/assets:/app/webui/assets
+      # - ./iot_gateway.db:/app/iot_gateway.db
+      # - ./webui/templates:/app/webui/templates
+      # - ./webui/assets:/app/webui/assets
       # - ./server.crt:/data/server.crt
       # - ./server.key:/data/server.key
       - ${DATA_PATH}:/data/shared/
@@ -88,7 +88,7 @@ services:
       - "${MQTT_LISTENER_LOCAL_WS_ADDRESS}:${MQTT_LISTENER_LOCAL_WS_ADDRESS}"
       - "${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}:${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}"
       - "${MQTT_LISTENER_PUBLIC_WS_ADDRESS}:${MQTT_LISTENER_PUBLIC_WS_ADDRESS}"
-      # - "${WEBUI_HTTP_PORT}:${WEBUI_HTTP_PORT}"
+      - "${WEBUI_HTTP_PORT}:${WEBUI_HTTP_PORT}" # war auskommentiert
       - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
     volumes:
       - ./server.crt:/etc/nginx/certs/server.crt

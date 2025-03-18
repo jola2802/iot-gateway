@@ -11,7 +11,6 @@ import (
 
 var (
 	dbPath = "./iot_gateway.db"
-	// noderedURL = os.Getenv("NODE_RED_URL")
 )
 
 func main() {

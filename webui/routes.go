@@ -73,7 +73,6 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/api/query-data", queryDataHandler)
 
 		// Data Forwarding Routes
-		authorized.GET("/api/get-node-red-url", getNodeRedURL)
 		authorized.GET("/api/images", getImages)
 		authorized.GET("/api/images/download", downloadImagesAsZip)
 

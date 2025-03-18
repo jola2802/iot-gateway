@@ -137,12 +137,12 @@ function fetchLogs() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Netzwerk-Antwort war nicht OK');
+            throw new Error('Network response was not ok');
         }
         return response.json();
     })
     .then(data => {
-        console.log("Log-Daten empfangen:", data.info); // Debug-Info
+        // console.log("Log data received:", data.info); // Debug-Info
 
         const logsContent = document.getElementById('logsContent');
         if (!logsContent) return;

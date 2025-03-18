@@ -2,7 +2,6 @@ package webui
 
 import (
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -12,32 +11,9 @@ import (
 	_ "github.com/glebarez/go-sqlite"
 )
 
-// Die aktuelle IP-Adresse des Gateways
-var IPAddress = "" // Standard-Wert
-
-// Wird beim Start ausgeführt
-func init() {
-	loadIPAddress()
-}
-
-// Lädt die IP-Adresse aus der Umgebungsvariable
-func loadIPAddress() {
-	NR_URL := os.Getenv("NODE_RED_URL")
-	if NR_URL != "" {
-		// Extract IP address from URL e.g. https://192.168.0.84/nodered
-		IPAddress = strings.Split(NR_URL, "/")[2]
-		NodeRED_URL = NR_URL
-
-		return
-	}
-}
-
 // showSettingsPage shows the settings page, returning broker settings and user data.
 func showSettingsPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "settings.html", gin.H{
-		"IPAddress": IPAddress,
-		"NR_URL":    NodeRED_URL,
-	})
+	c.HTML(http.StatusOK, "settings.html", gin.H{})
 }
 
 // showLogs shows the logs page.

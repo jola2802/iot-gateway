@@ -20,7 +20,6 @@
         "type": "tab",
         "label": "Image-Upload",
         "disabled": false,
-        "locked": true,
         "info": "",
         "env": []
     },
@@ -36,7 +35,7 @@
         "id": "b784f457619f1095",
         "type": "subflow",
         "name": "MQTT to REST",
-        "info": "This subflow collects incoming data points in an internal buffer. After a configurable time interval, the accumulated data is sent as JSON via HTTP POST to a specified REST API endpoint. Additionally, status messages are provided through the second output for process monitoring.",
+        "info": "### **MQTT to REST Node**  \r\n#### **Kategorie:** IDPM-Data Forwarding  \r\n#### **Beschreibung:**  \r\nDer **MQTT to REST**-Subflow sammelt kontinuierlich eintreffende Datenpunkte aus einem MQTT-Stream in einem internen Buffer. Nach Ablauf eines konfigurierbaren Zeitintervalls werden die gesammelten Daten als JSON per HTTP POST an einen definierten REST API Endpoint versendet. Dabei gibt die Node Statusmeldungen (z. B. Buffergröße, Versandstatus) über den zweiten Ausgang zur Prozessüberwachung aus.\r\n\r\n#### **Funktionsweise:**  \r\n1. **Datenaggregation:**  \r\n   - Eingehende MQTT-Nachrichten werden anhand ihres Topics in Datenpunkte umgewandelt, die jeweils eine **DatapointId**, einen **Value** und einen **Zeitstempel** enthalten.  \r\n   - Diese Datenpunkte werden in einem internen Buffer gespeichert.\r\n\r\n2. **Zeitbasierter Versand:**  \r\n   - Ein Timer, konfiguriert über die Umgebungsvariable `INTERVAL (sec)`, steuert den Zeitpunkt des Datenversands.  \r\n   - Nach Ablauf des definierten Intervalls wird der gesamte Buffer als JSON serialisiert und per HTTP POST an den konfigurierten REST API Endpoint gesendet.\r\n\r\n3. **HTTP-Versand:**  \r\n   - Die Node erstellt aus dem Buffer den POST-Datenstring und sendet diesen unter Verwendung der konfigurierten HTTP-Header.  \r\n   - Der REST API Endpoint wird in der Umgebungsvariablen `URL` definiert.\r\n\r\n4. **Statusüberwachung:**  \r\n   - Über den zweiten Ausgang werden Statusmeldungen zur aktuellen Buffergröße und zum Versandstatus ausgegeben.\r\n\r\n#### **Beispiel für den Datenversand:**  \r\nAngenommen, der Buffer enthält zwei Datenpunkte, könnte das an den REST API Endpoint gesendete JSON-Dokument wie folgt aussehen:\r\n\r\n```json\r\n[\r\n  {\r\n    \"DatapointId\": \"temperature\",\r\n    \"Value\": 22.5,\r\n    \"Timestamp\": \"2023-03-01T10:00:00.000Z\"\r\n  },\r\n  {\r\n    \"DatapointId\": \"humidity\",\r\n    \"Value\": 45,\r\n    \"Timestamp\": \"2023-03-01T10:00:00.000Z\"\r\n  }\r\n]\r\n```\r\n\r\nDieses JSON wird mittels HTTP POST an den in `URL` definierten Endpoint versendet. Die HTTP-Header, beispielsweise `{\"Content-Type\": \"application/json\"}`, werden ebenfalls mitgeschickt.\r\n\r\n#### **Konfigurierbare Umgebungsvariablen:**  \r\n| Variable             | Typ        | Standardwert                                              | Beschreibung |\r\n|----------------------|------------|-----------------------------------------------------------|--------------|\r\n| `URL`                | String     | `\"https://url.com\"`                                       | REST API Endpoint für den HTTP POST Versand |\r\n| `HEADER`             | JSON       | `{\"Content-Type\":\"application/json\"}`                     | HTTP-Header, die beim Versand genutzt werden |\r\n| `INTERVAL (sec)`     | Num        | `60`                                                      | Zeitintervall (in Sekunden) nach dem der Buffer versendet wird |\r\n| `BROKER`             | MQTT-Broker| -                                                         | Verknüpfung zum MQTT-Broker |\r\n| `TOPIC`              | String     | `\"data/opc-ua/1/#\"`                                        | MQTT-Topic, über das die Daten empfangen werden |\r\n| `DEVICEID`           | String     | `\"1\"`                                                     | Gerätebezeichnung, die bei der Datenaggregation berücksichtigt wird |\r\n\r\n#### **Einsatzmöglichkeiten:**  \r\n✔ Aggregation und Weiterleitung von MQTT-Daten an REST-basierte Anwendungen  \r\n✔ Integration in IoT-Datenpipelines zur zentralen Verarbeitung und Speicherung von Sensordaten  \r\n✔ Überwachung und Statusprotokollierung der Datenübertragung zur Fehlerdiagnose  \r\n",
         "category": "IDPM-Data Forwarding",
         "in": [],
         "out": [],
@@ -106,7 +105,7 @@
                 }
             },
             {
-                "name": "DEVICEID",
+                "name": "DEVICE_ID",
                 "type": "str",
                 "value": "1",
                 "ui": {
@@ -139,7 +138,7 @@
         "id": "2a3d9e44553dfac0",
         "type": "subflow",
         "name": "Collect & Save in File",
-        "info": "This subflow aggregates data points in a buffer. After a defined time span, the collected data is saved in a configurable directory in a selected file format (JSON, XML, or CSV). The subflow sends status updates through the second output to track the progress and success of the data storage process.",
+        "info": "### **Collect & Save in File Node**  \r\n#### **Kategorie:** IDPM-Data Forwarding  \r\n#### **Beschreibung:**  \r\nDer **Collect & Save in File**-Subflow aggregiert kontinuierlich eintreffende Datenpunkte aus einem MQTT-Stream in einem internen Buffer. Nach Ablauf eines konfigurierbaren Zeitintervalls werden die gesammelten Daten in einem definierten Verzeichnis abgelegt. Dabei unterstützt die Node verschiedene Dateiformate (**JSON**, **CSV** oder **XML**) sowie zwei Modi: Das **Anhängen** an eine bestehende Datei oder das **Erstellen** einer neuen Datei mit Zeitstempel. Statusmeldungen zur aktuellen Buffergröße und dem Speichervorgang werden über den zweiten Ausgang ausgegeben.\r\n\r\n#### **Funktionsweise:**  \r\n1. **Datenaggregation:**  \r\n   - Eingehende MQTT-Nachrichten werden anhand des Topics in Datenpunkte umgewandelt, die jeweils eine **DatapointId**, den **Value** und einen **Zeitstempel** enthalten.  \r\n   - Diese Datenpunkte werden in einem internen Buffer gesammelt.\r\n\r\n2. **Zeitbasierte Speicherung:**  \r\n   - Ein Timer, konfiguriert über die Umgebungsvariable `INTERVAL (MS)`, steuert den Zeitpunkt der Speicherung.  \r\n   - Nach Ablauf des definierten Intervalls wird der gesamte Bufferinhalt ausgelesen und in eine Datei geschrieben.\r\n\r\n3. **Dateiformat und Schreibmodus:**  \r\n   - Das Dateiformat (JSON, CSV oder XML) wird über die Umgebungsvariable `FORMAT` festgelegt.  \r\n   - Über den Modus (`MODE`) kann festgelegt werden, ob Daten an eine bestehende Datei angehängt („append“) oder in einer neuen Datei mit Zeitstempel abgelegt werden („new“).  \r\n   - Der Basis-Dateiname wird über die Umgebungsvariable `FILENAME` definiert.\r\n\r\n4. **Verzeichnisverwaltung und Status-Updates:**  \r\n   - Das Zielverzeichnis wird (falls notwendig) automatisch erstellt.  \r\n   - Während des gesamten Prozesses werden Statusmeldungen ausgegeben, die den aktuellen Bufferinhalt sowie den Erfolg des Schreibvorgangs dokumentieren.\r\n\r\n#### **Beispiel für einen gespeicherten Dateiinhalt (im JSON-Format):**  \r\nAngenommen, der Buffer enthält drei Datenpunkte, könnte der Inhalt der gespeicherten Datei wie folgt aussehen:\r\n\r\n```json\r\n[\r\n  {\r\n    \"DatapointId\": \"temperature\",\r\n    \"Value\": 21.7,\r\n    \"Timestamp\": \"2023-03-01T10:15:30.000Z\"\r\n  },\r\n  {\r\n    \"DatapointId\": \"humidity\",\r\n    \"Value\": 48,\r\n    \"Timestamp\": \"2023-03-01T10:15:35.000Z\"\r\n  },\r\n  {\r\n    \"DatapointId\": \"pressure\",\r\n    \"Value\": 1013,\r\n    \"Timestamp\": \"2023-03-01T10:15:40.000Z\"\r\n  }\r\n]\r\n```\r\n\r\nDieses Beispiel zeigt, wie die Datenpunkte im JSON-Format strukturiert werden. Ähnliche Beispiele können für CSV oder XML erzeugt werden, wobei CSV z. B. wie folgt aussehen könnte:\r\n\r\n```\r\nDatapointId,Value,Timestamp\r\ntemperature,21.7,2023-03-01T10:15:30.000Z\r\nhumidity,48,2023-03-01T10:15:35.000Z\r\npressure,1013,2023-03-01T10:15:40.000Z\r\n```\r\n\r\n#### **Konfigurierbare Umgebungsvariablen:**  \r\n| Variable           | Typ            | Standardwert           | Beschreibung                                                   |\r\n|--------------------|----------------|------------------------|----------------------------------------------------------------|\r\n| `PATH`             | String         | `/data`                | Verzeichnis, in dem die Datei gespeichert wird                 |\r\n| `FORMAT`           | String         | `json`                 | Dateiformat: JSON, CSV oder XML                                |\r\n| `MODE`             | String         | `new`                  | Schreibmodus: „append“ oder „new“                              |\r\n| `FILENAME`         | String         | (leer)                 | Basis-Dateiname für die Speicherung                          |\r\n| `INTERVAL (sec)`   | Num            | `60`                   | Speichervorgang-Intervall in Sekunden (wird zur Anzeige genutzt)|\r\n| `INTERVAL (MS)`    | Num            | `60000`                | Speichervorgang-Intervall in Millisekunden                     |\r\n| `BROKER`           | MQTT-Broker    | -                      | Verknüpfung zum MQTT-Broker                                    |\r\n| `TOPIC`            | String         | `data/#`               | MQTT-Topic, über das Daten empfangen werden                    |\r\n\r\n#### **Einsatzmöglichkeiten:**  \r\n✔ Aggregation und persistente Speicherung von Zeitreihendaten aus MQTT-Streams  \r\n✔ Erstellung von Datenexporten für spätere Analysen oder externe Systeme  \r\n✔ Flexible Speicherung in verschiedenen Formaten und Modi (Anhängen oder neu erstellen)  \r\n",
         "category": "IDPM-Data Forwarding",
         "in": [],
         "out": [],
@@ -341,16 +340,13 @@
         "id": "a83312e9e2e175ac",
         "type": "subflow",
         "name": "Img-Cap-Process-Backend",
-        "info": "",
+        "info": "### **Img-Cap-Process-Backend Node**  \r\n#### **Kategorie:** Image-Capture  \r\n#### **Beschreibung:**  \r\nDer **Img-Cap-Process-Backend**-Subflow sammelt alle für den Bildaufnahmeprozess relevanten Parameter – wie OPC UA Verbindungsdaten, Methoden- und Node-IDs, Sicherheitsparameter sowie Upload-Konfigurationen – und leitet diese in Form einer strukturierten Payload an ein vordefiniertes Go-Backend weiter. Dort wird der eigentliche Bildaufnahme- und Verarbeitungsprozess durchgeführt.\r\n\r\n#### **Funktionsweise:**  \r\n1. **Parameter-Sammlung:**  \r\n   - Der Subflow liest sämtliche Konfigurationsparameter entweder aus den Umgebungsvariablen oder aus der eingehenden Nachricht aus.  \r\n   - Dazu zählen unter anderem der OPC UA Endpoint, die zu verwendenden Methoden- und Node-IDs sowie die Sicherheitsparameter (Security Mode/Policy, Benutzername, Passwort).\r\n\r\n2. **Payload-Erstellung:**  \r\n   - Alle gesammelten Parameter werden in ein JSON-Objekt überführt, das alle erforderlichen Informationen für den Bildaufnahmeprozess enthält.\r\n\r\n3. **Weiterleitung an das Go-Backend:**  \r\n   - Das JSON-Payload wird per HTTP POST an eine konfigurierte Backend-URL gesendet.  \r\n   - Das Go-Backend übernimmt daraufhin den kompletten Bildaufnahmeprozess und liefert als Antwort den entsprechenden Verarbeitungsstatus zurück.\r\n\r\n4. **Ergebnisrückgabe:**  \r\n   - Das Ergebnis (z. B. Erfolgsmeldung, Bilddaten, Metainformationen) wird an den weiteren Flow zurückgegeben.\r\n\r\n#### **Konfigurierbare Umgebungsvariablen:**  \r\n| Variable           | Typ   | Standardwert                                    | Beschreibung |\r\n|--------------------|-------|-------------------------------------------------|--------------|\r\n| `OPC_ENDPOINT`     | String| `\"opc.tcp://192.168.0.84:48010\"`                  | OPC UA Server Endpoint |\r\n| `OPC_SEC_MODE`     | String| `\"NONE\"`                                        | Sicherheitsmodus (z. B. NONE, SIGN, SIGNANDENCRYPT) |\r\n| `OPC_SEC_POLICY`   | String| `\"NONE\"`                                        | Sicherheits-Policy (z. B. BASIC128RSA15, BASIC256, BASIC256SHA256) |\r\n| `OPC_USER`         | String| `\"\"`                                            | Benutzername für OPC UA (optional) |\r\n| `OPC_PW`           | String| `\"\"`                                            | Passwort für OPC UA (optional) |\r\n| `M_NODE_PARENT`    | String| `\"ns=3;s=Demo.Method\"`                           | Objekt-ID der OPC UA Methode |\r\n| `M_NODE_IMAGE`     | String| `\"ns=3;s=Demo.Method.Multiply\"`                  | Methoden-ID bzw. Node-ID, die den Bildaufnahmeprozess triggert |\r\n| `M_ARGS`           | JSON  | `{\"a\":\"5\",\"b\":\"11\"}`                             | Parameter für die Methode (im JSON-Format) |\r\n| `NODE_CHECK`       | String| `\"ns=3;s=Demo.Dynamic.Scalar.Boolean\"`           | Node-ID, die den Status (Boolean) überwacht |\r\n| `NODE_IMAGE`       | String| `\"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\"`          | Node-ID, von der der Bildstring ausgelesen wird |\r\n| `NODE_ACK_READ`    | String| `\"ns=3;s=Demo.Dynamic.Scalar.Boolean\"`           | Node-ID, in die das ACK geschrieben wird |\r\n| `BASEPATH`         | String| `\"\"`                                            | Basis-Pfad für lokale Speicherung (nicht aktiv genutzt) |\r\n| `DEVICE_ID`        | String| `\"\"`                                            | Geräte-/Unterordner-Bezeichnung (wird an das Backend übermittelt) |\r\n| `ENABLE_UPLOAD`    | String| `\"true\"`                                        | Aktivierung des Uploads (`\"true\"` oder `\"false\"`) |\r\n| `UPLOAD_URL`       | String| `\"https://192.168.0.84/nodered/opc-upload\"`       | URL für den optionalen Upload der Bilddaten |\r\n| `HEADERS`          | JSON  | `{\"Content-Type\":\"application/octet-stream\"}`   | Zusätzliche HTTP-Header für den Upload |\r\n| `BACKEND_URL`      | String| `\"http://iot-gateway:8088/api/img-process\"`       | URL des Go-Backends, das den Bildaufnahmeprozess umsetzt |\r\n\r\n#### **Einsatzmöglichkeiten:**  \r\n✔ Zentrale Steuerung der Bildaufnahmeprozesse, indem lediglich die notwendigen Parameter an ein spezialisiertes Backend weitergereicht werden.  \r\n✔ Entlastung des Node-RED-Systems durch Auslagerung der Bildverarbeitung an ein dediziertes Go-Backend.  \r\n✔ Einheitliche und skalierbare Implementierung des Bildaufnahmeprozesses innerhalb der gesamten Node-RED-Instanz.  ",
         "category": "Image-Capture",
         "in": [
             {
                 "x": 240,
                 "y": 100,
                 "wires": [
-                    {
-                        "id": "da0584c47df5ed3d"
-                    },
                     {
                         "id": "92f6fd0436ca3513"
                     }
@@ -362,10 +358,6 @@
                 "x": 910,
                 "y": 100,
                 "wires": [
-                    {
-                        "id": "da0584c47df5ed3d",
-                        "port": 0
-                    },
                     {
                         "id": "92f6fd0436ca3513",
                         "port": 0
@@ -394,29 +386,7 @@
                 "value": "NONE",
                 "ui": {
                     "icon": "font-awesome/fa-user-secret",
-                    "type": "select",
-                    "opts": {
-                        "opts": [
-                            {
-                                "l": {
-                                    "de": "None"
-                                },
-                                "v": "NONE"
-                            },
-                            {
-                                "l": {
-                                    "de": "Sign"
-                                },
-                                "v": "SIGN"
-                            },
-                            {
-                                "l": {
-                                    "de": "Sign & Encrypt"
-                                },
-                                "v": "SIGNANDENCRYPT"
-                            }
-                        ]
-                    }
+                    "type": "hide"
                 }
             },
             {
@@ -425,35 +395,7 @@
                 "value": "NONE",
                 "ui": {
                     "icon": "font-awesome/fa-user-secret",
-                    "type": "select",
-                    "opts": {
-                        "opts": [
-                            {
-                                "l": {
-                                    "de": "None"
-                                },
-                                "v": "NONE"
-                            },
-                            {
-                                "l": {
-                                    "de": "Basic128Rsa15"
-                                },
-                                "v": "BASIC128RSA15"
-                            },
-                            {
-                                "l": {
-                                    "de": "Basic256"
-                                },
-                                "v": "BASIC256"
-                            },
-                            {
-                                "l": {
-                                    "de": "Basic256Sha256"
-                                },
-                                "v": "BASIC256SHA256"
-                            }
-                        ]
-                    }
+                    "type": "hide"
                 }
             },
             {
@@ -462,25 +404,16 @@
                 "value": "",
                 "ui": {
                     "icon": "font-awesome/fa-address-book-o",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
+                    "type": "hide"
                 }
             },
             {
                 "name": "OPC_PW",
-                "type": "cred",
+                "type": "str",
+                "value": "",
                 "ui": {
                     "icon": "font-awesome/fa-lock",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "cred"
-                        ]
-                    }
+                    "type": "hide"
                 }
             },
             {
@@ -664,7 +597,7 @@
         "id": "ef4290a715908540",
         "type": "subflow",
         "name": "InfluxDB to REST",
-        "info": "",
+        "info": "### **InfluxDB-to-REST Node**  \r\n#### **Kategorie:** IDPM-Data Forwarding  \r\n#### **Beschreibung:**  \r\nDer **InfluxDB-to-REST**-Subflow ermöglicht das periodische Abrufen von Daten aus einer **InfluxDB**-Datenbank und sendet diese per **HTTP-POST** an eine definierte **REST-API**.  \r\nDie Node erlaubt eine flexible Konfiguration der **Ziel-URL**, **HTTP-Header** und **Abfrageintervalle**.\r\n\r\n#### **Funktionsweise:**  \r\n1. **Abfrageerstellung:**  \r\n   - Die Node generiert eine **Flux-Query**, um die letzten *n* Sekunden aus der InfluxDB abzufragen.  \r\n   - Der Zeitbereich kann über die Umgebungsvariable `TIMER (sec)` konfiguriert werden.  \r\n   - Der Filter basiert auf der `DEVICE_ID`, um gerätespezifische Daten zu extrahieren.  \r\n\r\n2. **Datenabruf:**  \r\n   - Die generierte Flux-Query wird an die InfluxDB gesendet.  \r\n   - Die abgerufenen Daten werden als JSON-Objekt weitergeleitet.  \r\n\r\n3. **Datenversand:**  \r\n   - Die abgerufenen Daten werden per **HTTP-POST** an den konfigurierten **REST-API-Endpoint** gesendet.  \r\n   - Die Ziel-URL und HTTP-Header können über die Umgebungsvariablen `URL` und `HEADER` definiert werden.  \r\n\r\n4. **Statusanzeige:**  \r\n   - Während des Prozesses werden Statusmeldungen zur Laufzeitdauer und Anzahl der gesendeten Datensätze ausgegeben.  \r\n\r\n#### **Konfigurierbare Umgebungsvariablen:**  \r\n| Variable       | Typ       | Standardwert | Beschreibung |  \r\n|---------------|----------|-------------|-------------|  \r\n| `INFLUXDB`    | InfluxDB | -           | Verknüpfung zur InfluxDB-Instanz |  \r\n| `URL`         | String   | `\"http://192.168.0.84:4999\"` | Ziel-URL für den REST-Request |  \r\n| `HEADER`      | JSON     | `{}`        | Zusätzliche HTTP-Header im JSON-Format |  \r\n| `DEVICE_ID`   | String   | `1`         | ID des Geräts, dessen Daten abgefragt werden |  \r\n| `TIMER (sec)` | String   | `10`        | Zeitintervall für die Datenabfrage (in Sekunden) |  \r\n\r\n#### **Einsatzmöglichkeiten:**  \r\n✔ Automatische Übertragung von Sensordaten aus InfluxDB an REST-APIs  \r\n✔ Integration in IoT-Datenpipelines für Cloud- und Edge-Anwendungen  \r\n✔ Datensynchronisation mit externen Datenplattformen  ",
         "category": "IDPM-Data Forwarding",
         "in": [
             {
@@ -698,7 +631,7 @@
                 "value": "{}"
             },
             {
-                "name": "DEVICEID",
+                "name": "DEVICE_ID",
                 "type": "str",
                 "value": "1"
             },
@@ -726,7 +659,7 @@
         "id": "f5c5556a9e4eb0ae",
         "type": "subflow",
         "name": "Influx-to-File",
-        "info": "",
+        "info": "### **Influx-to-File Node**\r\n#### **Kategorie:** IDPM-Data Forwarding  \r\n#### **Beschreibung:**  \r\nDer **Influx-to-File**-Subflow ermöglicht das periodische Abrufen von Daten aus einer **InfluxDB**-Datenbank und speichert diese in einer Datei. Die Daten können in den Formaten **JSON, CSV oder XML** gespeichert werden.  \r\nDie Node unterstützt sowohl das **Anhängen** an bestehende Dateien als auch das **Erstellen** neuer Dateien mit einem Zeitstempel.  \r\n\r\n#### **Funktionsweise:**\r\n1. **Abfrageerstellung:**  \r\n   - Die Node generiert eine **Flux-Query**, um die letzten *n* Sekunden aus der InfluxDB abzufragen.  \r\n   - Der Zeitbereich kann über die Umgebungsvariable `TIMER (sec)` konfiguriert werden.  \r\n   - Der Filter basiert auf der `DEVICE_ID`, um gerätespezifische Daten zu extrahieren.\r\n\r\n2. **Datenabruf:**  \r\n   - Die generierte Flux-Query wird an die InfluxDB gesendet.  \r\n   - Die abgerufenen Daten werden als JSON-Objekt weitergeleitet.  \r\n\r\n3. **Dateispeicherung:**  \r\n   - Die Daten werden im angegebenen `FILE_PATH` als JSON, CSV oder XML gespeichert.  \r\n   - Falls der Speicherpfad nicht existiert, wird er automatisch erstellt.  \r\n   - Bestehende Dateien können überschrieben (`new`) oder ergänzt (`append`) werden.  \r\n\r\n4. **Statusanzeige:**  \r\n   - Während des Prozesses werden Statusmeldungen zur Laufzeitdauer und Anzahl der gespeicherten Datensätze ausgegeben.  \r\n\r\n#### **Konfigurierbare Umgebungsvariablen:**\r\n| Variable       | Typ       | Standardwert | Beschreibung |\r\n|---------------|----------|-------------|-------------|\r\n| `INFLUXDB`    | InfluxDB | -           | Verknüpfung zur InfluxDB-Instanz |\r\n| `FILE_PATH`   | String   | `/data`     | Verzeichnis, in dem die Datei gespeichert wird |\r\n| `DEVICE_ID`   | String   | `1`         | ID des Geräts, dessen Daten abgefragt werden |\r\n| `TIMER (sec)` | String   | `1`         | Zeitintervall für die Datenabfrage (in Sekunden) |\r\n\r\n#### **Einsatzmöglichkeiten:**\r\n✔ Speicherung von Zeitreihenmesswerten aus einer InfluxDB  \r\n✔ Erstellung von Datenexporten für externe Systeme  \r\n✔ Regelmäßige Datensicherung oder Analysezwecke  ",
         "category": "IDPM-Data Forwarding",
         "in": [
             {
@@ -763,7 +696,7 @@
                 }
             },
             {
-                "name": "DEVICEID",
+                "name": "DEVICE_ID",
                 "type": "str",
                 "value": "1",
                 "ui": {
@@ -845,7 +778,7 @@
     {
         "id": "4fa0c14be559bdb6",
         "type": "group",
-        "z": "4438aad0eeb0b771",
+        "z": "e7b0b0bc76ad7903",
         "name": "publish data to existing device",
         "style": {
             "label": true
@@ -855,8 +788,8 @@
             "6d52b6f1c958ee82",
             "5bfc5c4ac52ffcec"
         ],
-        "x": 114,
-        "y": 79,
+        "x": 154,
+        "y": 379,
         "w": 512,
         "h": 182
     },
@@ -1296,7 +1229,7 @@
             }
         ],
         "x": 530,
-        "y": 40,
+        "y": 20,
         "wires": [
             [
                 "7a91daf2877a46a5"
@@ -1320,6 +1253,7 @@
         "id": "18c462c840ed1a77",
         "type": "http request",
         "z": "a83312e9e2e175ac",
+        "d": true,
         "name": "",
         "method": "POST",
         "ret": "txt",
@@ -1332,8 +1266,8 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 870,
-        "y": 260,
+        "x": 1130,
+        "y": 20,
         "wires": [
             []
         ]
@@ -1342,6 +1276,7 @@
         "id": "7a91daf2877a46a5",
         "type": "function",
         "z": "a83312e9e2e175ac",
+        "d": true,
         "name": "toBase64",
         "func": "// Extrahiere den Dateinamen aus dem savedFilePath\nconst fileName = msg.savedFilePath || msg.payload.savedFilePath; \n// const fileName = filePath.split(\"/\").pop(); // Letzter Abschnitt nach dem \"/\"\n\n// Konvertiere das Bild in Base64\nmsg.payload.device = msg.payload.device_id;\nmsg.payload.image = msg.payload.image.toString(\"base64\");\n\n// Übergabe des Dateinamens\nmsg.fileName = fileName;\nmsg.url = env.get(\"GATEWAY_UPLOAD_URL\");\n\nreturn msg;\n",
         "outputs": 1,
@@ -1350,8 +1285,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 720,
-        "y": 260,
+        "x": 980,
+        "y": 20,
         "wires": [
             [
                 "18c462c840ed1a77"
@@ -1363,7 +1298,7 @@
         "type": "function",
         "z": "a83312e9e2e175ac",
         "name": "OPC-Image-Capture-Process via GO Backend",
-        "func": "// ------------------------------------------------------\n// \"Image Capture Process via Go Backend\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen aus der Umgebung\nconst endpoint = env.get(\"OPC_ENDPOINT\") || \"opc.tcp://192.168.0.84:48010\";\nconst objectId = env.get(\"M_NODE_PARENT\") || \"ns=3;s=Demo.Method\";\nconst methodId = env.get(\"M_NODE_IMAGE\") || \"ns=3;s=Demo.Method.DoSomethingAfter10s\";\nconst methodArgs = env.get(\"M_ARGS\") || \"\";\nconst checkNodeId = env.get(\"NODE_CHECK\") || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst imageNodeId = env.get(\"NODE_IMAGE\") || \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\";\nconst ackNodeId = env.get(\"NODE_ACK_READ\") || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst basePath = env.get(\"BASEPATH\") || \"./data/images\";\nconst device = env.get(\"DEVICE_ID\");\nconst enableUpload = env.get(\"ENABLE_UPLOAD\").toLowerCase();\nconst uploadUrl = env.get(\"UPLOAD_URL\");\n\nconst additionalHeaders = typeof env.get(\"HEADERS\") === \"string\" ? JSON.parse(env.get(\"HEADERS\")) : env.get(\"HEADERS\") || { \"Content-Type\": \"application/json\" };\n\n// 2) Lese Security-Parameter aus der Umgebung\nconst securityModeVar = String(env.get(\"OPC_SEC_MODE\") || \"NONE\").toUpperCase();\nconst securityPolicyVar = String(env.get(\"OPC_SEC_POLICY\") || \"NONE\").toUpperCase();\nconst username = env.get(\"OPC_USER\");\nconst password = env.get(\"OPC_PW\");\n\n// 3) Backend-URL für die Verarbeitung\nconst backendUrl = env.get(\"BACKEND_URL\") || \"http://iot-gateway:8088/api/img-process\";\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    try {\n        // 4) Payload für das Go-Backend vorbereiten\n        const payload = {\n            endpoint,\n            objectId,\n            methodId,\n            methodArgs,\n            checkNodeId,\n            imageNodeId,\n            ackNodeId,\n            basePath,\n            deviceId: device,\n            enableUpload,\n            uploadUrl,\n            securityMode: securityModeVar,\n            securityPolicy: securityPolicyVar,\n            username: username || \"\",\n            password: password || \"\",\n            headers: additionalHeaders\n        };\n\n        // 5) Anfrage an das Go-Backend senden\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"Sending request...\" });\n        const response = await axios.post(backendUrl, payload, { headers: additionalHeaders });\n\n        // 6) Überprüfe die Antwort des Go-Backends\n        if (response.status !== 200 || !response.data.success) {\n            throw new Error(`Backend error: ${response.data.error || \"Unknown error\"}`);\n        }\n\n        // 7) Erfolgreiche Verarbeitung\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n\n        msg.payload = {\n            success: true,\n            endpoint: response.data.endpoint,\n            securityMode: response.data.securityMode,\n            securityPolicy: response.data.securityPolicy,\n            username: response.data.username,\n            image: response.data.image,\n            device_id: response.data.device_id,\n            uploaded: response.data.uploaded || false\n        };\n\n        return msg;\n    } catch (err) {\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.error(err.message, msg);\n        throw err;\n    }\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => finalMsg,\n    err => null\n);\n",
+        "func": "// ------------------------------------------------------\n// \"Image Capture Process via Go Backend\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen aus der Umgebung\nconst endpoint = env.get(\"OPC_ENDPOINT\") || \"opc.tcp://192.168.0.84:48010\";\nconst objectId = env.get(\"M_NODE_PARENT\") || \"ns=3;s=Demo.Method\";\nconst methodId = env.get(\"M_NODE_IMAGE\") || \"ns=3;s=Demo.Method.DoSomethingAfter10s\";\nconst methodArgs = env.get(\"M_ARGS\") || \"\";\nconst checkNodeId = env.get(\"NODE_CHECK\") || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst imageNodeId = env.get(\"NODE_IMAGE\") || \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\";\nconst ackNodeId = env.get(\"NODE_ACK_READ\") || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst basePath = env.get(\"BASEPATH\") || \"./data/images\";\nconst device = env.get(\"DEVICE_ID\");\nconst enableUpload = env.get(\"ENABLE_UPLOAD\").toLowerCase();\nconst uploadUrl = env.get(\"UPLOAD_URL\");\n\nconst additionalHeaders = typeof env.get(\"HEADERS\") === \"string\" ? JSON.parse(env.get(\"HEADERS\")) : env.get(\"HEADERS\") || { \"Content-Type\": \"application/json\" };\n\n// 2) Lese Security-Parameter aus der Umgebung\nconst securityModeVar = String(env.get(\"OPC_SEC_MODE\") || \"NONE\").toUpperCase();\nconst securityPolicyVar = String(env.get(\"OPC_SEC_POLICY\") || \"NONE\").toUpperCase();\nconst username = env.get(\"OPC_USER\") || \"\";\nconst password = env.get(\"OPC_PW\") || \"\";\n\n// 3) Backend-URL für die Verarbeitung\nconst backendUrl = env.get(\"BACKEND_URL\") || \"http://iot-gateway:8088/api/img-process\";\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    try {\n        // 4) Payload für das Go-Backend vorbereiten\n        const payload = {\n            endpoint,\n            objectId,\n            methodId,\n            methodArgs,\n            checkNodeId,\n            imageNodeId,\n            ackNodeId,\n            basePath,\n            deviceId: device,\n            enableUpload,\n            uploadUrl,\n            securityMode: securityModeVar,\n            securityPolicy: securityPolicyVar,\n            username: username || \"\",\n            password: password || \"\",\n            headers: additionalHeaders\n        };\n\n        // 5) Anfrage an das Go-Backend senden\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"Sending request...\" });\n        const response = await axios.post(backendUrl, payload, { headers: additionalHeaders });\n\n        // 6) Überprüfe die Antwort des Go-Backends\n        if (response.status !== 200 || !response.data.success) {\n            throw new Error(`Backend error: ${response.data.error || \"Unknown error\"}`);\n        }\n\n        // 7) Erfolgreiche Verarbeitung\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n\n        msg.payload = {\n            success: true,\n            endpoint: response.data.endpoint,\n            securityMode: response.data.securityMode,\n            securityPolicy: response.data.securityPolicy,\n            username: response.data.username,\n            image: response.data.image,\n            device_id: response.data.device_id,\n            uploaded: response.data.uploaded || false\n        };\n\n        return msg;\n    } catch (err) {\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.error(err.message, msg);\n        throw err;\n    }\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => finalMsg,\n    err => null\n);\n",
         "outputs": 1,
         "timeout": "30",
         "noerr": 0,
@@ -1418,13 +1353,18 @@
         "type": "function",
         "z": "ef4290a715908540",
         "name": "build query",
-        "func": "var deviceId = msg.deviceID || env.get(\"DEVICEID\");\nvar timer = msg.timer || env.get(\"TIMER (sec)\"); // Erwartet einen numerischen Wert in Sekunden\n\n// Fallback, falls timer nicht definiert ist\nif (!timer) {\n    timer = 3600; // Standard: 1 Stunde (3600 Sekunden)\n}\n\n// Erstelle eine relative Zeitangabe im Flux-Format\nvar durationStr = \"-\" + timer + \"s\";\n\n// Aufbau des Flux-Queries: Daten vom aktuellen Zeitpunkt zurück bis zum angegebenen Zeitraum\nmsg.query = `\nfrom(bucket: \"iot-data\")\n  |> range(start: ${durationStr}, stop: now())\n  |> filter(fn: (r) => r[\"deviceId\"] == \"${deviceId}\")\n`;\n\nreturn msg;\n",
+        "func": "var deviceId = msg.deviceID || env.get(\"DEVICE_ID\");\nvar timer = msg.timer || env.get(\"TIMER (sec)\"); // Erwartet einen numerischen Wert in Sekunden\n\nmsg.startTime = process.hrtime();\n\n// Fallback, falls timer nicht definiert ist\nif (!timer) {\n    timer = 3600; // Standard: 1 Stunde (3600 Sekunden)\n}\n\n// Erstelle eine relative Zeitangabe im Flux-Format\nvar durationStr = \"-\" + timer + \"s\";\n\n// Aufbau des Flux-Queries: Daten vom aktuellen Zeitpunkt zurück bis zum angegebenen Zeitraum\nmsg.query = `\nfrom(bucket: \"iot-data\")\n  |> range(start: ${durationStr}, stop: now())\n  |> filter(fn: (r) => r[\"deviceId\"] == \"${deviceId}\")\n`;\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
-        "libs": [],
+        "libs": [
+            {
+                "var": "process",
+                "module": "process"
+            }
+        ],
         "x": 210,
         "y": 80,
         "wires": [
@@ -1438,7 +1378,7 @@
         "type": "function",
         "z": "ef4290a715908540",
         "name": "http send",
-        "func": "/**\n * Node-RED Function: Datenversand (Send) - für InfluxDB-Daten\n *\n * - Nimmt die von InfluxDB gelieferten Daten in msg.payload entgegen.\n * - Versendet diese per HTTP POST an den konfigurierten Endpoint.\n * - HTTP-Header und Endpoint können über Umgebungsvariablen (env) oder msg überschrieben werden.\n * - Aktualisiert ausschließlich den Status (node.status).\n */\n\n// Konfiguration: Werte aus env oder msg übernehmen\nvar endpoint = env.get(\"URL\") || msg.endpoint;\nvar headers  = env.get(\"HEADER\") || msg.headers;\n\n// Überprüfe, ob msg.payload Daten enthält\nif (!msg.payload || (Array.isArray(msg.payload) && msg.payload.length === 0)) {\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Kein Data zu senden\" });\n    return null;\n}\n\n// Status: Sende Daten...\nnode.status({ fill: \"yellow\", shape: \"ring\", text: \"Send Data ...\" });\n\n// Erstelle den POST-Datenstring (JSON) aus msg.payload\nvar postData = JSON.stringify(msg.payload);\n\n// Zerlege den Endpoint in seine Bestandteile\nvar endpointUrl = url.parse(endpoint);\nvar options = {\n    hostname: endpointUrl.hostname,\n    port: endpointUrl.port,\n    path: endpointUrl.path,\n    method: 'POST',\n    headers: Object.assign({}, headers, {\n        'Content-Length': Buffer.byteLength(postData),\n        'Content-Type': 'application/json'\n    })\n};\n\n// Initialisiere den HTTP POST Request\nvar req = http.request(options, function (res) {\n    var responseBody = \"\";\n    res.setEncoding('utf8');\n    res.on('data', function (chunk) {\n        responseBody += chunk;\n    });\n    res.on('end', function () {\n        var entryCount = Array.isArray(msg.payload) ? msg.payload.length : 1;\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Daten versendet (\" + entryCount + \" Einträge)\" });\n    });\n});\n\nreq.on('error', function (e) {\n    node.error(\"HTTP POST request error: \" + e.message);\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Versand fehlgeschlagen\" });\n});\n\n// Sende den POST-Datenstring\nreq.write(postData);\nreq.end();\n\n// Es wird keine Nachricht weitergereicht.\nreturn null;\n",
+        "func": "/**\n * Node-RED Function: Datenversand (Send) - für InfluxDB-Daten\n *\n * - Nimmt die von InfluxDB gelieferten Daten in msg.payload entgegen.\n * - Versendet diese per HTTP POST an den konfigurierten Endpoint.\n * - HTTP-Header und Endpoint können über Umgebungsvariablen (env) oder msg überschrieben werden.\n * - Aktualisiert ausschließlich den Status (node.status).\n */\n\n// Konfiguration: Werte aus env oder msg übernehmen\nvar endpoint = env.get(\"URL\") || msg.endpoint;\nvar headers  = env.get(\"HEADER\") || msg.headers;\n\n// Prüfe, ob die Startzeit vorhanden ist\nif (!msg.startTime) {\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Fehler: Keine Startzeit!\" });\n    return null;\n}\n\n// Endzeit erfassen und Dauer berechnen\nconst endTime = process.hrtime(msg.startTime);\nconst durationMs = (endTime[0] * 1000) + (endTime[1] / 1e6); // Umwandlung in Millisekunden\n\n\n// Überprüfe, ob msg.payload Daten enthält\nif (!msg.payload || (Array.isArray(msg.payload) && msg.payload.length === 0)) {\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Kein Data zu senden\" });\n    return null;\n}\n\n// Status: Sende Daten...\nnode.status({ fill: \"yellow\", shape: \"ring\", text: \"Send Data ...\" });\n\n// Erstelle den POST-Datenstring (JSON) aus msg.payload\nvar postData = JSON.stringify(msg.payload);\n\n// Zerlege den Endpoint in seine Bestandteile\nvar endpointUrl = url.parse(endpoint);\nvar options = {\n    hostname: endpointUrl.hostname,\n    port: endpointUrl.port,\n    path: endpointUrl.path,\n    method: 'POST',\n    headers: Object.assign({}, headers, {\n        'Content-Length': Buffer.byteLength(postData),\n        'Content-Type': 'application/json'\n    })\n};\n\n// Initialisiere den HTTP POST Request\nvar req = http.request(options, function (res) {\n    var responseBody = \"\";\n    res.setEncoding('utf8');\n    res.on('data', function (chunk) {\n        responseBody += chunk;\n    });\n    res.on('end', function () {\n        var entryCount = Array.isArray(msg.payload) ? msg.payload.length : 1;\n        node.status({\n            fill: \"green\",\n            shape: \"dot\",\n            text: `Daten versendet (${entryCount} Einträge), Dauer: ${durationMs.toFixed(2)} ms`\n        });\n        // node.status({ fill: \"green\", shape: \"dot\", text: \"Daten versendet (\" + entryCount + \" Einträge), Dauer: ${durationMs.toFixed(2)} ms\" });\n    });\n});\n\nreq.on('error', function (e) {\n    node.error(\"HTTP POST request error: \" + e.message);\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Versand fehlgeschlagen\" });\n});\n\n// Sende den POST-Datenstring\nreq.write(postData);\nreq.end();\n\n// Es wird keine Nachricht weitergereicht.\nreturn null;\n",
         "outputs": 0,
         "timeout": 0,
         "noerr": 0,
@@ -1452,6 +1392,10 @@
             {
                 "var": "url",
                 "module": "url"
+            },
+            {
+                "var": "process",
+                "module": "process"
             }
         ],
         "x": 540,
@@ -1494,13 +1438,18 @@
         "type": "function",
         "z": "f5c5556a9e4eb0ae",
         "name": "build query",
-        "func": "var deviceId = msg.deviceID || env.get(\"DEVICEID\");\nvar timer = msg.timer || env.get(\"TIMER (sec)\"); // Erwartet einen numerischen Wert in Sekunden\n\n// Fallback, falls timer nicht definiert ist\nif (!timer) {\n    timer = 3600; // Standard: 1 Stunde (3600 Sekunden)\n}\n\n// Erstelle eine relative Zeitangabe im Flux-Format\nvar durationStr = \"-\" + timer + \"s\";\n\n// Aufbau des Flux-Queries: Daten vom aktuellen Zeitpunkt zurück bis zum angegebenen Zeitraum\nmsg.query = `\nfrom(bucket: \"iot-data\")\n  |> range(start: ${durationStr}, stop: now())\n  |> filter(fn: (r) => r[\"deviceId\"] == \"${deviceId}\")\n`;\n\nreturn msg;\n",
+        "func": "var deviceId = msg.deviceID || env.get(\"DEVICE_ID\");\nvar timer = msg.timer || env.get(\"TIMER (sec)\"); // Erwartet einen numerischen Wert in Sekunden\n\n// Fallback, falls timer nicht definiert ist\nif (!timer) {\n    timer = 3600; // Standard: 1 Stunde (3600 Sekunden)\n}\n\n// Erfassen des Startzeitpunktes\nmsg.startTime = process.hrtime();\n\n// Erstelle eine relative Zeitangabe im Flux-Format\nvar durationStr = \"-\" + timer + \"s\";\n\n// Aufbau des Flux-Queries: Daten vom aktuellen Zeitpunkt zurück bis zum angegebenen Zeitraum\nmsg.query = `\nfrom(bucket: \"iot-data\")\n  |> range(start: ${durationStr}, stop: now())\n  |> filter(fn: (r) => r[\"deviceId\"] == \"${deviceId}\")\n`;\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
-        "libs": [],
+        "libs": [
+            {
+                "var": "process",
+                "module": "process"
+            }
+        ],
         "x": 210,
         "y": 80,
         "wires": [
@@ -1514,7 +1463,7 @@
         "type": "function",
         "z": "f5c5556a9e4eb0ae",
         "name": "influx-to-file",
-        "func": "/**\n * Node-RED Function: Speichert die empfangenen Daten in eine Datei.\n *\n * - Unterstützt verschiedene Formate (JSON, CSV, XML).\n * - Kann entweder an eine Datei anhängen oder eine neue Datei mit Timestamp erstellen.\n * - Erstellt automatisch das Verzeichnis, falls es nicht existiert.\n * - Aktualisiert den Node-Status entsprechend.\n */\n// Konfiguration aus Umgebungsvariablen oder msg übernehmen\nvar filePath = env.get(\"FILE_PATH\") || msg.filePath || \"/data\";  // Standardverzeichnis\nvar fileName = env.get(\"FILENAME\") || msg.fileName || \"influx_data\"; // Basis-Dateiname\nvar fileMode = env.get(\"FILE_MODE\") || msg.fileMode || \"append\"; // \"append\" oder \"new\"\nvar fileFormat = (env.get(\"FILE_FORMAT\") || msg.fileFormat || \"json\").toLowerCase(); // \"json\", \"csv\", \"xml\"\n\n// Überprüfen, ob msg.payload Daten enthält\nif (!msg.payload || (Array.isArray(msg.payload) && msg.payload.length === 0)) {\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Kein Data zu speichern\" });\n    return null;\n}\n\n// Status: Speichern der Daten...\nnode.status({ fill: \"yellow\", shape: \"ring\", text: \"Speichere Daten...\" });\n\n// Funktion zur Umwandlung des Zeitformats\nfunction formatTimestamp(isoString) {\n    let date = new Date(isoString);\n    const pad = (num, size = 2) => ('000' + num).slice(-size);\n    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ` +\n        `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;\n}\n\n// Funktion zur Umwandlung der Daten in das gewünschte Format\nfunction convertData(data, format, existingContent = \"\") {\n    // Umwandlung der Datenstruktur\n    let transformedData = data.map(item => ({\n        DatapointId: item.datapointId,\n        Value: item._value,\n        Timestamp: formatTimestamp(item._time)\n    }));\n\n    if (format === \"json\") {\n        if (fileMode === \"append\" && existingContent) {\n            try {\n                let existingData = JSON.parse(existingContent);\n                if (Array.isArray(existingData)) {\n                    existingData.push(...transformedData);\n                } else {\n                    existingData = [...transformedData];\n                }\n                return JSON.stringify(existingData, null, 2);\n            } catch (err) {\n                node.error(\"JSON Parsing Error: \" + err.message);\n            }\n        }\n        return JSON.stringify(transformedData, null, 2);\n    }\n    if (format === \"csv\") {\n        let keys = [\"DatapointId\", \"Value\", \"Timestamp\"];\n        let csvRows = transformedData.map(row => keys.map(k => row[k]).join(\",\"));\n        if (fileMode === \"append\" && existingContent) {\n            return existingContent + \"\\n\" + csvRows.join(\"\\n\");\n        }\n        return keys.join(\",\") + \"\\n\" + csvRows.join(\"\\n\");\n    }\n    if (format === \"xml\") {\n        let xml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<data>\\n';\n        transformedData.forEach(item => {\n            xml += \"  <entry>\\n\";\n            xml += `    <DatapointId>${item.DatapointId}</DatapointId>\\n`;\n            xml += `    <Value>${item.Value}</Value>\\n`;\n            xml += `    <Timestamp>${item.Timestamp}</Timestamp>\\n`;\n            xml += \"  </entry>\\n\";\n        });\n        xml += \"</data>\";\n        return xml;\n    }\n    return JSON.stringify(transformedData, null, 2); // Fallback: JSON\n}\n\n\n// Dateiname & Pfad ermitteln\nvar fileExtension = fileFormat === \"xml\" ? \"xml\" : fileFormat === \"csv\" ? \"csv\" : \"json\";\nvar finalFileName = fileMode === \"new\"\n    ? `${fileName}_${new Date().toISOString().replace(/[:.]/g, '-')}.${fileExtension}`\n    : `${fileName}.${fileExtension}`;\nvar fullPath = path.join(filePath, finalFileName);\n\n// Falls nötig, Verzeichnis erstellen\ntry {\n    fs.mkdirSync(filePath, { recursive: true });\n} catch (e) {\n    node.error(\"Fehler beim Erstellen des Verzeichnisses: \" + e.message);\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Verzeichnisfehler\" });\n    return null;\n}\n\n// Falls append-Modus, existierenden Inhalt lesen\nlet existingContent = \"\";\nif (fileMode === \"append\" && fs.existsSync(fullPath)) {\n    try {\n        existingContent = fs.readFileSync(fullPath, 'utf8');\n    } catch (err) {\n        node.error(\"Fehler beim Lesen der Datei: \" + err.message);\n    }\n}\n\n// Dateiinhalt generieren\nvar fileContents = convertData(msg.payload, fileFormat, existingContent);\n\n// Datei schreiben\nfs.writeFile(fullPath, fileContents, 'utf8', function (err) {\n    if (err) {\n        node.error(\"Fehler beim Speichern der Datei: \" + err.message);\n        node.status({ fill: \"red\", shape: \"ring\", text: \"Speichern fehlgeschlagen\" });\n    } else {\n        var entryCount = Array.isArray(msg.payload) ? msg.payload.length : 1;\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Gespeichert (\" + entryCount + \" Einträge)\" });\n    }\n});\n\n// Keine Weitergabe der Nachricht\nreturn null;\n",
+        "func": "/**\n * Node-RED Function: Speichert die empfangenen Daten in eine Datei.\n *\n * - Unterstützt verschiedene Formate (JSON, CSV, XML).\n * - Kann entweder an eine Datei anhängen oder eine neue Datei mit Timestamp erstellen.\n * - Erstellt automatisch das Verzeichnis, falls es nicht existiert.\n * - Aktualisiert den Node-Status entsprechend.\n */\n\nif (!msg.startTime) {\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Fehler: Keine Startzeit!\" });\n    return null;\n}\n\n// Endzeit erfassen und Dauer berechnen\nconst endTime = process.hrtime(msg.startTime);\nconst durationMs = (endTime[0] * 1000) + (endTime[1] / 1e6); // Umwandlung in Millisekunden\n\n// Konfiguration aus Umgebungsvariablen oder msg übernehmen\nvar filePath = env.get(\"FILE_PATH\") || msg.filePath || \"/data\";  // Standardverzeichnis\nvar fileName = env.get(\"FILENAME\") || msg.fileName || \"influx_data\"; // Basis-Dateiname\nvar fileMode = env.get(\"FILE_MODE\") || msg.fileMode || \"append\"; // \"append\" oder \"new\"\nvar fileFormat = (env.get(\"FILE_FORMAT\") || msg.fileFormat || \"json\").toLowerCase(); // \"json\", \"csv\", \"xml\"\n\n// Überprüfen, ob msg.payload Daten enthält\nif (!msg.payload || (Array.isArray(msg.payload) && msg.payload.length === 0)) {\n    node.status({ fill: \"blue\", shape: \"dot\", text: \"Kein Data zu speichern\" });\n    return null;\n}\n\n// Status: Speichern der Daten...\nnode.status({ fill: \"yellow\", shape: \"ring\", text: \"Speichere Daten...\" });\n\n// Funktion zur Umwandlung des Zeitformats\nfunction formatTimestamp(isoString) {\n    let date = new Date(isoString);\n    const pad = (num, size = 2) => ('000' + num).slice(-size);\n    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ` +\n        `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;\n}\n\n// Funktion zur Umwandlung der Daten in das gewünschte Format\nfunction convertData(data, format, existingContent = \"\") {\n    // Umwandlung der Datenstruktur\n    let transformedData = data.map(item => ({\n        DatapointId: item.datapointId,\n        Value: item._value,\n        Timestamp: formatTimestamp(item._time)\n    }));\n\n    if (format === \"json\") {\n        if (fileMode === \"append\" && existingContent) {\n            try {\n                let existingData = JSON.parse(existingContent);\n                if (Array.isArray(existingData)) {\n                    existingData.push(...transformedData);\n                } else {\n                    existingData = [...transformedData];\n                }\n                return JSON.stringify(existingData, null, 2);\n            } catch (err) {\n                node.error(\"JSON Parsing Error: \" + err.message);\n            }\n        }\n        return JSON.stringify(transformedData, null, 2);\n    }\n    if (format === \"csv\") {\n        let keys = [\"DatapointId\", \"Value\", \"Timestamp\"];\n        let csvRows = transformedData.map(row => keys.map(k => row[k]).join(\",\"));\n        if (fileMode === \"append\" && existingContent) {\n            return existingContent + \"\\n\" + csvRows.join(\"\\n\");\n        }\n        return keys.join(\",\") + \"\\n\" + csvRows.join(\"\\n\");\n    }\n    if (format === \"xml\") {\n        let xml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<data>\\n';\n        transformedData.forEach(item => {\n            xml += \"  <entry>\\n\";\n            xml += `    <DatapointId>${item.DatapointId}</DatapointId>\\n`;\n            xml += `    <Value>${item.Value}</Value>\\n`;\n            xml += `    <Timestamp>${item.Timestamp}</Timestamp>\\n`;\n            xml += \"  </entry>\\n\";\n        });\n        xml += \"</data>\";\n        return xml;\n    }\n    return JSON.stringify(transformedData, null, 2); // Fallback: JSON\n}\n\n\n// Dateiname & Pfad ermitteln\nvar fileExtension = fileFormat === \"xml\" ? \"xml\" : fileFormat === \"csv\" ? \"csv\" : \"json\";\nvar finalFileName = fileMode === \"new\"\n    ? `${fileName}_${new Date().toISOString().replace(/[:.]/g, '-')}.${fileExtension}`\n    : `${fileName}.${fileExtension}`;\nvar fullPath = path.join(filePath, finalFileName);\n\n// Falls nötig, Verzeichnis erstellen\ntry {\n    fs.mkdirSync(filePath, { recursive: true });\n} catch (e) {\n    node.error(\"Fehler beim Erstellen des Verzeichnisses: \" + e.message);\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Verzeichnisfehler\" });\n    return null;\n}\n\n// Falls append-Modus, existierenden Inhalt lesen\nlet existingContent = \"\";\nif (fileMode === \"append\" && fs.existsSync(fullPath)) {\n    try {\n        existingContent = fs.readFileSync(fullPath, 'utf8');\n    } catch (err) {\n        node.error(\"Fehler beim Lesen der Datei: \" + err.message);\n    }\n}\n\n// Dateiinhalt generieren\nvar fileContents = convertData(msg.payload, fileFormat, existingContent);\n\n// Datei schreiben\nfs.writeFile(fullPath, fileContents, 'utf8', function (err) {\n    if (err) {\n        node.error(\"Fehler beim Speichern der Datei: \" + err.message);\n        node.status({ fill: \"red\", shape: \"ring\", text: \"Speichern fehlgeschlagen\" });\n    } else {\n        var entryCount = Array.isArray(msg.payload) ? msg.payload.length : 1;\n        node.status({\n            fill: \"green\",\n            shape: \"dot\",\n            text: `Gespeichert (${entryCount} Einträge), Dauer: ${durationMs.toFixed(2)} ms`\n        });\n\n        // Ausgabe der Zeitmessung für Debugging\n        node.log(`Datei gespeichert in ${durationMs.toFixed(2)} ms: ${fullPath}`);\n    }\n});\n\n// Keine Weitergabe der Nachricht\nreturn null;\n",
         "outputs": 0,
         "timeout": 0,
         "noerr": 0,
@@ -1528,6 +1477,10 @@
             {
                 "var": "path",
                 "module": "path"
+            },
+            {
+                "var": "process",
+                "module": "process"
             }
         ],
         "x": 550,
@@ -1819,13 +1772,14 @@
             },
             {
                 "name": "TIMER (sec)",
-                "value": "2",
+                "value": "60",
                 "type": "str"
             }
         ],
         "x": 380,
         "y": 280,
-        "wires": []
+        "wires": [],
+        "info": "#### InfluxDB-to-REST Node\r\n#### Kategorie: IDPM-Data Forwarding\r\n#### Beschreibung:\r\nDer InfluxDB-to-REST-Subflow ermöglicht das periodische Abrufen von Daten aus einer InfluxDB-Datenbank und sendet diese per HTTP-POST an eine definierte REST-API.\r\nDie Node erlaubt eine flexible Konfiguration der Ziel-URL, HTTP-Header und Abfrageintervalle.\r\n\r\n#### Funktionsweise:\r\n 1. Abfrageerstellung:\r\n\r\nDie Node generiert eine Flux-Query, um die letzten n Sekunden aus der InfluxDB abzufragen.\r\nDer Zeitbereich kann über die Umgebungsvariable TIMER (sec) konfiguriert werden.\r\nDer Filter basiert auf der DEVICE_ID, um gerätespezifische Daten zu extrahieren.\r\n 2. Datenabruf:\r\n\r\nDie generierte Flux-Query wird an die InfluxDB gesendet.\r\nDie abgerufenen Daten werden als JSON-Objekt weitergeleitet.\r\nDatenversand:\r\n\r\nDie abgerufenen Daten werden per HTTP-POST an den konfigurierten REST-API-Endpoint gesendet.\r\nDie Ziel-URL und HTTP-Header können über die Umgebungsvariablen URL und HEADER definiert werden.\r\nStatusanzeige:\r\n\r\nWährend des Prozesses werden Statusmeldungen zur Laufzeitdauer und Anzahl der gesendeten Datensätze ausgegeben.\r\nKonfigurierbare Umgebungsvariablen:\r\nVariable\tTyp\tStandardwert\tBeschreibung\r\nINFLUXDB\tInfluxDB\t-\tVerknüpfung zur InfluxDB-Instanz\r\nURL\tString\t\"http://192.168.0.84:4999\"\tZiel-URL für den REST-Request\r\nHEADER\tJSON\t{}\tZusätzliche HTTP-Header im JSON-Format\r\nDEVICE_ID\tString\t1\tID des Geräts, dessen Daten abgefragt werden\r\nTIMER (sec)\tString\t10\tZeitintervall für die Datenabfrage (in Sekunden)\r\nEinsatzmöglichkeiten:\r\n✔ Automatische Übertragung von Sensordaten aus InfluxDB an REST-APIs\r\n✔ Integration in IoT-Datenpipelines für Cloud- und Edge-Anwendungen\r\n✔ Datensynchronisation mit externen Datenplattformen"
     },
     {
         "id": "8c3c74570e164ae4",
@@ -1845,13 +1799,14 @@
             },
             {
                 "name": "TIMER (sec)",
-                "value": "2",
+                "value": "600",
                 "type": "str"
             }
         ],
         "x": 370,
         "y": 340,
-        "wires": []
+        "wires": [],
+        "info": "Hier ist eine geeignete Node-RED-Beschreibung für den **\"Influx-to-File\"** Subflow:\r\n\r\n---\r\n\r\n### **Influx-to-File Node**\r\n#### **Kategorie:** IDPM-Data Forwarding  \r\n#### **Beschreibung:**  \r\nDer **Influx-to-File**-Subflow ermöglicht das periodische Abrufen von Daten aus einer **InfluxDB**-Datenbank und speichert diese in einer Datei. Die Daten können in den Formaten **JSON, CSV oder XML** gespeichert werden.  \r\nDie Node unterstützt sowohl das **Anhängen** an bestehende Dateien als auch das **Erstellen** neuer Dateien mit einem Zeitstempel.  \r\n\r\n#### **Funktionsweise:**\r\n1. **Abfrageerstellung:**  \r\n   - Die Node generiert eine **Flux-Query**, um die letzten *n* Sekunden aus der InfluxDB abzufragen.  \r\n   - Der Zeitbereich kann über die Umgebungsvariable `TIMER (sec)` konfiguriert werden.  \r\n   - Der Filter basiert auf der `DEVICE_ID`, um gerätespezifische Daten zu extrahieren.\r\n\r\n2. **Datenabruf:**  \r\n   - Die generierte Flux-Query wird an die InfluxDB gesendet.  \r\n   - Die abgerufenen Daten werden als JSON-Objekt weitergeleitet.  \r\n\r\n3. **Dateispeicherung:**  \r\n   - Die Daten werden im angegebenen `FILE_PATH` als JSON, CSV oder XML gespeichert.  \r\n   - Falls der Speicherpfad nicht existiert, wird er automatisch erstellt.  \r\n   - Bestehende Dateien können überschrieben (`new`) oder ergänzt (`append`) werden.  \r\n\r\n4. **Statusanzeige:**  \r\n   - Während des Prozesses werden Statusmeldungen zur Laufzeitdauer und Anzahl der gespeicherten Datensätze ausgegeben.  \r\n\r\n#### **Konfigurierbare Umgebungsvariablen:**\r\n| Variable       | Typ       | Standardwert | Beschreibung |\r\n|---------------|----------|-------------|-------------|\r\n| `INFLUXDB`    | InfluxDB | -           | Verknüpfung zur InfluxDB-Instanz |\r\n| `FILE_PATH`   | String   | `/data`     | Verzeichnis, in dem die Datei gespeichert wird |\r\n| `DEVICE_ID`   | String   | `1`         | ID des Geräts, dessen Daten abgefragt werden |\r\n| `TIMER (sec)` | String   | `1`         | Zeitintervall für die Datenabfrage (in Sekunden) |\r\n\r\n#### **Einsatzmöglichkeiten:**\r\n✔ Speicherung von Zeitreihenmesswerten aus einer InfluxDB  \r\n✔ Erstellung von Datenexporten für externe Systeme  \r\n✔ Regelmäßige Datensicherung oder Analysezwecke  "
     },
     {
         "id": "7c2c66976c1232ea",
@@ -1886,7 +1841,7 @@
             }
         ],
         "x": 380,
-        "y": 420,
+        "y": 400,
         "wires": []
     },
     {
@@ -1896,26 +1851,12 @@
         "name": "Img-Cap-Process-1",
         "env": [
             {
-                "name": "OPC_PW",
-                "type": "cred"
-            },
-            {
-                "name": "BASEPATH",
-                "value": "/data/shared",
-                "type": "str"
-            },
-            {
-                "name": "DEVICE_ID",
-                "value": "",
-                "type": "str"
-            },
-            {
                 "name": "UPLOAD_URL",
                 "value": "http://node-red:1880/opc-upload",
                 "type": "str"
             }
         ],
-        "x": 130,
+        "x": 230,
         "y": 60,
         "wires": [
             [
@@ -1935,10 +1876,6 @@
                 "type": "str"
             },
             {
-                "name": "OPC_PW",
-                "type": "cred"
-            },
-            {
                 "name": "M_NODE_IMAGE",
                 "value": "ns=3;s=Demo.Method.DoSomethingAfter10s",
                 "type": "str"
@@ -1947,19 +1884,9 @@
                 "name": "M_ARGS",
                 "value": "{}",
                 "type": "json"
-            },
-            {
-                "name": "BASEPATH",
-                "value": "/data/shared/images",
-                "type": "str"
-            },
-            {
-                "name": "DEVICE_ID",
-                "value": "",
-                "type": "str"
             }
         ],
-        "x": 150,
+        "x": 230,
         "y": 280,
         "wires": [
             [
@@ -1999,7 +1926,7 @@
         "active": true,
         "pass": false,
         "outputs": 0,
-        "x": 360,
+        "x": 460,
         "y": 60,
         "wires": []
     },
@@ -2008,14 +1935,14 @@
         "type": "image",
         "z": "e129ee69a298a464",
         "name": "",
-        "width": 160,
+        "width": "200",
         "data": "payload.image",
         "dataType": "msg",
         "thumbnail": false,
         "active": true,
         "pass": false,
         "outputs": 0,
-        "x": 360,
+        "x": 440,
         "y": 280,
         "wires": []
     },
@@ -2103,75 +2030,18 @@
         ]
     },
     {
-        "id": "385afc11275439a0",
-        "type": "http in",
-        "z": "e7b0b0bc76ad7903",
-        "d": true,
-        "name": "",
-        "url": "/api/nodered/images",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 210,
-        "y": 840,
-        "wires": [
-            [
-                "d90419344fe2913d"
-            ]
-        ]
-    },
-    {
-        "id": "d4e74fac803db0f2",
-        "type": "http response",
-        "z": "e7b0b0bc76ad7903",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 630,
-        "y": 840,
-        "wires": []
-    },
-    {
-        "id": "d90419344fe2913d",
-        "type": "function",
-        "z": "e7b0b0bc76ad7903",
-        "name": "get images",
-        "func": "// Definiere den Pfad, aus dem alle Dateien ausgelesen werden sollen\nlet dirPath = env.get(\"BASEPATH\");\ndirPath = \"/data/shared/images/99999\";\n\n// Array, in dem die Ergebnisse gesammelt werden\nlet filesOutput = [];\n\ntry {\n    // Lese alle Dateinamen im Verzeichnis\n    let files = fs.readdirSync(dirPath);\n\n    // Iteriere über alle gefundenen Dateien\n    files.forEach(file => {\n        let filePath = path.join(dirPath, file);\n        // Prüfe, ob es sich um eine reguläre Datei handelt\n        if (fs.statSync(filePath).isFile()) {\n            // Lese den Inhalt der Datei (als UTF-8-Text; je nach Dateityp ggf. anpassen)\n            let content = fs.readFileSync(filePath, 'utf8');\n            filesOutput.push({\n                filename: file,\n                content: content\n            });\n        }\n    });\n\n    // Setze das Ergebnis in den Payload\n    msg.payload = filesOutput;\n} catch (err) {\n    // Im Fehlerfall gib die Fehlermeldung zurück\n    msg.payload = { error: err.toString() };\n}\n\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "fs",
-                "module": "fs"
-            },
-            {
-                "var": "path",
-                "module": "path"
-            }
-        ],
-        "x": 450,
-        "y": 840,
-        "wires": [
-            [
-                "d4e74fac803db0f2"
-            ]
-        ]
-    },
-    {
         "id": "981c7a177fa98054",
         "type": "s7 in",
-        "z": "4438aad0eeb0b771",
+        "z": "e7b0b0bc76ad7903",
+        "d": true,
         "g": "4fa0c14be559bdb6",
         "endpoint": "5007a50a62dcb950",
         "mode": "single",
         "variable": "Output_Num_1",
         "diff": false,
         "name": "",
-        "x": 220,
-        "y": 220,
+        "x": 260,
+        "y": 520,
         "wires": [
             [
                 "6d52b6f1c958ee82",
@@ -2182,7 +2052,7 @@
     {
         "id": "6d52b6f1c958ee82",
         "type": "mqtt out",
-        "z": "4438aad0eeb0b771",
+        "z": "e7b0b0bc76ad7903",
         "g": "4fa0c14be559bdb6",
         "name": "",
         "topic": "data/s7/14/[223] Q20",
@@ -2194,14 +2064,14 @@
         "correl": "",
         "expiry": "",
         "broker": "0b7c7515b1c6aa53",
-        "x": 500,
-        "y": 220,
+        "x": 540,
+        "y": 520,
         "wires": []
     },
     {
         "id": "5bfc5c4ac52ffcec",
         "type": "debug",
-        "z": "4438aad0eeb0b771",
+        "z": "e7b0b0bc76ad7903",
         "g": "4fa0c14be559bdb6",
         "name": "debug 1",
         "active": true,
@@ -2211,8 +2081,8 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 430,
-        "y": 120,
+        "x": 470,
+        "y": 420,
         "wires": []
     }
 ]

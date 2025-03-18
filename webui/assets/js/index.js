@@ -11,7 +11,6 @@
                 return response.json();
             })
             .then(data => {
-                // Expected: { token: "abcdef...", expires: "..." }
                 const token = data.token;
                 if (!token) {
                     throw new Error("No token received");
@@ -36,27 +35,22 @@
                         nodeRedElement.textContent = data.nodeRedConnection ? 'Connected' : 'Disconnected';
                         nodeRedElement.style.color = data.nodeRedConnection ? 'green' : 'red';
 
-                        // Update the Node-RED URL only if the value is not empty
-                        if (data.nodeRedURL !== undefined) {
-                            fetch('/api/get-node-red-url')
-                                .then(response => response.json())
-                            .then(data => {
-                                nodeRedElement.href = data.nodeRedURL;
-                            });
-                        }
+                        // // Update the Node-RED URL only if the value is not empty
+                        // if (data.nodeRedURL !== undefined) {
+                        //     const currentUrl = window.location.href;
+                        //     const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
+                        //     nodeRedElement.href = `${baseUrl}/nodered`;
+                        // }
                     }
                     // Update the Node-RED address if there is no value yet
                     const nodeRedAddressElement = document.getElementById('node-red-address');
                     
                     // Check if there is already a value in nodeRedAddressElement
                     if (nodeRedAddressElement.href === undefined || nodeRedAddressElement.href === "" || nodeRedAddressElement.href === null) {
-                        // Update the Node-RED URL only if the value is not empty
-                        fetch('/api/get-node-red-url')
-                        .then(response => response.json())
-                        .then(data => {
-                            nodeRedAddressElement.href = data.nodeRedURL;
-                            nodeRedAddressElement.style.color = 'black';
-                        });
+                        nodeRedAddressElement.style.color = 'black';
+                        const currentUrl = window.location.href;
+                        const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
+                        nodeRedAddressElement.href = `${baseUrl}/nodered`;
                     }
                 }
 

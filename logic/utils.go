@@ -8,7 +8,6 @@ import (
 	opcua "iot-gateway/driver/opcua"
 	"strconv"
 	"sync"
-	"time"
 
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
@@ -64,30 +63,14 @@ func getOrCreateDeviceState(deviceName string, deviceStates map[string]*DeviceSt
 
 // MQTT-Publikation mit exponentiellem Backoff
 func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status string) {
-	topic := "iot-gateway/driver/states/" + deviceType + "/" + deviceID
+	topic := "driver/states/" + deviceType + "/" + deviceID
 	server.Publish(topic, []byte(status), false, 0)
-
-	// publishWithBackoff(server, topic, status, 5)
 
 	// Publish the state to the db
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)
 	if err != nil {
 		logrus.Errorf("Error updating device state in the database: %v", err)
 	}
-}
-
-// Implementiere exponentiellen Backoff
-func publishWithBackoff(server *MQTT.Server, topic string, payload string, maxRetries int) {
-	backoff := 1000 * time.Millisecond
-	for i := 0; i < maxRetries; i++ {
-		err := server.Publish(topic, []byte(payload), true, 2)
-		if err == nil {
-			return
-		}
-		time.Sleep(backoff)
-		backoff *= 2 // Exponentielles Wachstum der Wartezeit
-	}
-	logrus.Errorf("Failed to publish message after %d retries", maxRetries)
 }
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPC-UA-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

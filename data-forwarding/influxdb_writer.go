@@ -42,7 +42,11 @@ func setInfluxDBConfig() {
 
 	// Prüfe, ob alle erforderlichen Umgebungsvariablen gesetzt sind
 	if influxdbURL == "" || influxdbToken == "" || influxdbOrg == "" || influxdbBucket == "" {
-		logrus.Warn("Mindestens eine InfluxDB-Umgebungsvariable ist nicht gesetzt. Verwende Standardwerte oder leere Werte.")
+		logrus.Warn("Mindestens eine InfluxDB-Umgebungsvariable ist nicht gesetzt. Verwende Standardwerte.")
+		influxdbURL = "http://influxdb:8086"
+		influxdbToken = "secret-token"
+		influxdbOrg = "idpm"
+		influxdbBucket = "iot-data"
 	}
 
 	influxConfig = &InfluxConfig{

@@ -116,7 +116,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 
 // MQTT-Publikation mit exponentiellem Backoff
 func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status string, db *sql.DB) {
-	topic := "iot-gateway/driver/states/" + deviceType + "/" + deviceID
+	topic := "driver/states/" + deviceType + "/" + deviceID
 	server.Publish(topic, []byte(status), false, 0)
 
 	// Publish the state to the db

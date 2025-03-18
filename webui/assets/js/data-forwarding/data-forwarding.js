@@ -3,11 +3,11 @@ let num_images = 25;
 // Lade Node-RED URL
 async function loadNodeRedURLFlow() {
     try {
-        const response = await fetch('/api/get-node-red-url');
-        const data = await response.json();
+        const currentUrl = window.location.href;
+        const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
         const nodeRedURLFlow = document.getElementById('node-red-data-forwarding-flow');
         if (nodeRedURLFlow) {
-            nodeRedURLFlow.src = data.nodeRedURL;
+            nodeRedURLFlow.src = `${baseUrl}/nodered`;
         }
     } catch (error) {
         console.error('Fehler beim Laden der Node-RED URL:', error);
@@ -112,20 +112,20 @@ function showImageModal(image) {
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Bildvorschau</h5>
+                        <h5 class="modal-title">Image Preview</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body text-center">
-                        <img id="modal-image" class="img-fluid" alt="Bildvorschau">
+                        <img id="modal-image" class="img-fluid" alt="Image Preview">
                         <div class="mt-2">
                             <p id="modal-device" class="mb-1"></p>
                             <p id="modal-timestamp" class="text-muted small"></p>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <a id="modal-download" class="btn btn-primary" download>
-                            <i class="fas fa-download"></i> Herunterladen
+                            <i class="fas fa-download"></i> Download
                         </a>
                     </div>
                 </div>
@@ -144,10 +144,10 @@ function showImageModal(image) {
     const imageSource = image.image.startsWith('data:image') ? image.image : 'data:image/png;base64,' + image.image;
     
     modalImage.src = imageSource;
-    modalDevice.textContent = 'Gerät: ' + image.device;
+    modalDevice.textContent = 'Device ID: ' + image.device;
     
     const date = new Date(image.timestamp);
-    modalTimestamp.textContent = 'Aufgenommen am: ' + date.toLocaleString('de-DE');
+    modalTimestamp.textContent = 'Captured at: ' + date.toLocaleString('de-DE');
     
     modalDownload.href = imageSource;
     modalDownload.download = `image_${image.device}_${date.toISOString().split('T')[0]}.png`;

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -159,19 +158,6 @@ func removeNonVariableNodes(nodeList []NodeDef) []NodeDef {
 		}
 	}
 	return nodeList
-}
-
-func getNodeRedURL(c *gin.Context) {
-	// check if NodeRED_URL is set
-	if NodeRED_URL != "" {
-		c.JSON(http.StatusOK, gin.H{"nodeRedURL": NodeRED_URL})
-		logrus.Infof("NodeRED_URL: %s", NodeRED_URL)
-		return
-	} else {
-		NodeRED_URL = os.Getenv("NODE_RED_URL")
-		logrus.Infof("NodeRED_URL set from env: %s", NodeRED_URL)
-		c.JSON(http.StatusOK, gin.H{"nodeRedURL": NodeRED_URL})
-	}
 }
 
 // captureImage ist ein Endpunkt, der einen Bildaufnahmeprozess über OPC UA auslöst

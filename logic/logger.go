@@ -10,7 +10,7 @@ import (
 var log = logrus.New()    // Eigene Logger-Instanz
 var logMutex sync.Mutex   // Mutex für Thread-Safety
 var inMemoryLogs []string // Speicher für Log-Einträge
-var maxLogEntries = 500   // Maximale Anzahl von Log-Einträgen im Speicher
+var maxLogEntries = 300   // Maximale Anzahl von Log-Einträgen im Speicher
 
 // init wird automatisch beim Import des Pakets aufgerufen
 // und konfiguriert sowohl den globalen logrus.Logger als auch
@@ -38,8 +38,8 @@ func init() {
 // Sie loggt nur eine Startnachricht, die eigentliche Konfiguration
 // passiert bereits in der init()-Funktion.
 func GatewayLogs() {
-	log.Info("Logging-System initialisiert")
-	logrus.Info("Globales Logging aktiviert - alle logrus-Aufrufe werden erfasst")
+	// log.Info("Logging-System initialisiert")
+	// logrus.Info("Globales Logging aktiviert - alle logrus-Aufrufe werden erfasst")
 }
 
 // GetLogger gibt die Logger-Instanz zurück, die für

@@ -64,36 +64,39 @@ func userExists(db *sql.DB, username string) (bool, error) {
 	return userCount > 0, nil
 }
 
-// WebUIAccessManagement verwaltet den Web-UI-Benutzer in der Datenbank
-func WebUIAccessManagement(db *sql.DB) error {
-	username1 := "webui-admin"
+// WebAccessManagement verwaltet den Web-UI-Benutzer in der Datenbank
+func NodeREDAccessManagement(db *sql.DB) error {
+	username := "nodered"
 	password := genRandomPW()
 	filters := map[string]int{
-		"#":                           1, // Lesezugriff auf alle Topics
-		"data/#":                      3, // Lese- und Schreibzugriff auf Daten-Topics
-		"iot-gateway/driver/states/#": 3, // Lese- und Schreibzugriff auf Treiberzustände
-		"iot-gateway/config/#":        3, // Lese- und Schreibzugriff auf Konfigurationen
+		"#": 3, // Lese- und Schreibzugriff auf alle Topics
 	}
 
-	err := addUser(db, username1, password, true, filters)
+	err := addUser(db, username, password, true, filters)
 	if err != nil {
-		deleteUser(db, username1)
-		err = addUser(db, username1, password, true, filters)
+		deleteUser(db, username)
+		err = addUser(db, username, password, true, filters)
 		if err != nil {
-			return fmt.Errorf("failed to create user for webui-admin: %v", err)
+			return fmt.Errorf("failed to create user for nodered: %v", err)
 		}
 	}
 
-	username2 := "webui"
-	password = genRandomPW()
-	filters = map[string]int{
-		"#": 3, // Voller Zugriff auf alle Topics
+	return nil
+}
+
+// WebAccessManagement verwaltet den Web-UI-Benutzer in der Datenbank
+func WebAccessManagement(db *sql.DB) error {
+	username := "web"
+	password := genRandomPW()
+	filters := map[string]int{
+		"data/#": 3, // Lese- und Schreibzugriff auf Daten-Topics
+		"#":      1, // Lesezugriff auf alle Topics
 	}
 
-	err = addUser(db, username2, password, true, filters)
+	err := addUser(db, username, password, true, filters)
 	if err != nil {
-		deleteUser(db, username2)
-		err = addUser(db, username2, password, true, filters)
+		deleteUser(db, username)
+		err = addUser(db, username, password, true, filters)
 		if err != nil {
 			return fmt.Errorf("failed to create user for webui: %v", err)
 		}
@@ -102,11 +105,32 @@ func WebUIAccessManagement(db *sql.DB) error {
 	return nil
 }
 
-// WebUIAccessManagement verwaltet den Web-UI-Benutzer in der Datenbank
+// ExternalDriverAccessManagement verwaltet den Zugriff auf die Treiber-Topics
+func ExternalDriverAccessManagement(db *sql.DB) error {
+	username := "driver"
+	password := genRandomPW()
+	filters := map[string]int{
+		"#":               1,
+		"data/#":          3, // Lese- und Schreibzugriff auf Daten-Topics
+		"driver/states/#": 3, // Schreibzugriff auf Treiberzustände
+	}
+
+	err := addUser(db, username, password, true, filters)
+	if err != nil {
+		deleteUser(db, username)
+		err = addUser(db, username, password, true, filters)
+		if err != nil {
+			return fmt.Errorf("failed to create user for driver: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// AddAdminUser fügt einen neuen Admin-Benutzer zur Datenbank hinzu
 func AddAdminUser(db *sql.DB) error {
 	username := "admin"
-	// username2 := "webui-user"
-	password := "abc+1247"
+	password := "password"
 	filters := map[string]int{
 		"#": 3, // voller Zugriff auf alle Topics
 	}

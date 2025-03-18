@@ -233,11 +233,11 @@ func deviceDataWebSocket(c *gin.Context) {
 		topic := pk.TopicName
 		payloadStr := string(pk.Payload)
 
-		if strings.HasPrefix(topic, "iot-gateway/driver/states/") {
+		if strings.HasPrefix(topic, "driver/states/") {
 			parts := strings.Split(topic, "/")
-			if len(parts) >= 5 {
-				deviceType := parts[3]
-				deviceID := parts[4]
+			if len(parts) >= 4 {
+				deviceType := parts[2]
+				deviceID := parts[3]
 
 				if deviceType == "" || deviceID == "" {
 					logrus.Warn("Invalid device type or ID in topic:", topic)
@@ -258,7 +258,7 @@ func deviceDataWebSocket(c *gin.Context) {
 
 		// Normale Datenpunkt-Verarbeitung
 		parts := strings.Split(topic, "/")
-		if len(parts) < 4 {
+		if len(parts) < 3 {
 			logrus.Warn("Ungültiges Topic-Format: " + topic)
 			return
 		}
@@ -296,8 +296,8 @@ func deviceDataWebSocket(c *gin.Context) {
 		return
 	}
 
-	if err := server.Subscribe("iot-gateway/driver/states/#", rand.Intn(100), callbackFn); err != nil {
-		logrus.Errorf("Error subscribing to topic iot-gateway/driver/states/#: %v", err)
+	if err := server.Subscribe("driver/states/#", rand.Intn(100), callbackFn); err != nil {
+		logrus.Errorf("Error subscribing to topic driver/states/#: %v", err)
 		return
 	}
 
@@ -551,7 +551,7 @@ func addDevice(c *gin.Context) {
 	}
 
 	// Erstelle das MQTT-Topic
-	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%d", deviceData.DeviceType, deviceID)
+	topic := fmt.Sprintf("driver/states/%s/%d", deviceData.DeviceType, deviceID)
 	server.Publish(topic, []byte("2 (initializing)"), false, 2)
 
 	// Restarte den Treiber für das neue Gerät
@@ -593,7 +593,7 @@ func deleteDevice(c *gin.Context) {
 
 	// Erstelle das MQTT-Topic
 	payload := ""
-	topic := fmt.Sprintf("iot-gateway/driver/states/%s/%s", deviceType, device_id)
+	topic := fmt.Sprintf("driver/states/%s/%s", deviceType, device_id)
 	server.Publish(topic, []byte(payload), true, 2)
 
 	RestartGateway(c)

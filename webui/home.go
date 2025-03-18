@@ -28,7 +28,6 @@ type BrokerStatus struct {
 // Variable zum Speichern der Nachrichtenanzahl
 var messageCount int
 var brokerUptime string
-
 var nodeRedUrl string
 
 // showDashboard shows the dashboard page
@@ -69,8 +68,6 @@ func brokerStatusWebSocket(c *gin.Context) {
 	// get server from context
 	server := c.MustGet("server").(*MQTT.Server)
 
-	// driverIDs := make(map[string]bool)
-
 	// Starte eine Goroutine, um den Broker-Status regelmäßig zu lesen
 	go func() {
 		// Subscribe to a filter and handle any received messages via a callback function.
@@ -89,7 +86,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 				}
 			default:
 				// logrus.Infof("states Topic: %s mit Payload: %s", topic, payload)
-				const prefix = "iot-gateway/driver/states/"
+				const prefix = "driver/states/"
 				if len(topic) >= len(prefix) && topic[:len(prefix)] == prefix {
 					// Hier den Mutex verwenden beim Schreiben in die Map
 					// driverIDsMutex.Lock()
@@ -103,7 +100,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 		}
 
 		_ = server.Subscribe("$SYS/broker/messages/received", rand.Intn(100), callbackFn)
-		// _ = server.Subscribe("iot-gateway/driver/states/#", rand.Intn(100), callbackFn)
+		// _ = server.Subscribe("driver/states/#", rand.Intn(100), callbackFn)
 		_ = server.Subscribe("$SYS/broker/uptime", rand.Intn(100), callbackFn)
 	}()
 
@@ -111,13 +108,18 @@ func brokerStatusWebSocket(c *gin.Context) {
 		Timeout: 5 * time.Second,
 	}
 
+	// format node-red url
+	nodeRedPort := os.Getenv("NODE_RED_HTTP_PORT")
+	if nodeRedPort == "" {
+		nodeRedUrl = "http://node-red:1880"
+	} else {
+		nodeRedUrl = "http://node-red:" + nodeRedPort
+	}
+
 	// Starte eine Goroutine für die Node-RED-Überprüfung
 	go func() {
 		nodeRedTicker := time.NewTicker(10 * time.Second) // Prüfe alle 10 Sekunden
 		defer nodeRedTicker.Stop()
-
-		// format node-red url
-		nodeRedUrl = os.Getenv("NODE_RED_URL")
 
 		// Einmal zu Beginn die Verbindung prüfen
 		httpClient.Transport = &http.Transport{
@@ -144,12 +146,10 @@ func brokerStatusWebSocket(c *gin.Context) {
 				continue
 			}
 
-			logrus.Debugf("Node-RED Antwort: Status=%d, Header=%v", resp.StatusCode, resp.Header)
-
 			// Überprüfe den Statuscode der Antwort
 			if resp.StatusCode == 200 || resp.StatusCode == 302 {
 				stateConnection = true
-				logrus.Infof("Node-RED URL: %s, Status: %d", nodeRedUrl, resp.StatusCode)
+				// logrus.Infof("Node-RED URL: %s, Status: %d", nodeRedUrl, resp.StatusCode)
 			} else {
 				stateConnection = false
 				logrus.Infof("Node-RED URL: %s, Status: %d", nodeRedUrl, resp.StatusCode)
@@ -160,6 +160,9 @@ func brokerStatusWebSocket(c *gin.Context) {
 	// Ticker für den Broker-Status
 	ticker := time.NewTicker(1000 * time.Millisecond)
 	defer ticker.Stop()
+
+	// get db connection
+	db, _ := getDBConnection(c)
 
 	for range ticker.C {
 		// Überprüfen, ob der Token noch gültig ist
@@ -173,7 +176,6 @@ func brokerStatusWebSocket(c *gin.Context) {
 			return
 		}
 		// get device count from db table devices
-		db, _ := getDBConnection(c)
 		deviceCount := getDeviceCount(db)
 
 		status := BrokerStatus{

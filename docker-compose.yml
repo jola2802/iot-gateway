@@ -9,16 +9,15 @@ services:
       - ${MQTT_LISTENER_LOCAL_WS_ADDRESS}
       - ${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}
       - ${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
-      - ${MQTT_LISTENER_STATS_ADDRESS}
       - ${WEBUI_HTTP_PORT}
-    volumes:
-      ## only for quick testing
+    # volumes:
+      ## only for testing during development
       # - ./iot_gateway.db:/app/iot_gateway.db
       # - ./webui/templates:/app/webui/templates
       # - ./webui/assets:/app/webui/assets
       # - ./server.crt:/data/server.crt
       # - ./server.key:/data/server.key
-      - ${DATA_PATH}:/data/shared/
+      # - ${DATA_PATH}:/data/shared/
     environment:
       - INFLUXDB_URL=${INFLUXDB_URL}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
@@ -28,16 +27,14 @@ services:
       - MQTT_LISTENER_LOCAL_WS_ADDRESS=${MQTT_LISTENER_LOCAL_WS_ADDRESS}
       - MQTT_LISTENER_PUBLIC_TCP_ADDRESS=${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}
       - MQTT_LISTENER_PUBLIC_WS_ADDRESS=${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
-      - MQTT_LISTENER_STATS_ADDRESS=${MQTT_LISTENER_STATS_ADDRESS}
       - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
       - WEBUI_HTTPS_PORT=${WEBUI_HTTPS_PORT}
       - WEBUI_USE_HTTPS=${WEBUI_USE_HTTPS}
       - WEBUI_TLS_CERT=${WEBUI_TLS_CERT}
       - WEBUI_TLS_KEY=${WEBUI_TLS_KEY}
       - TZ=Europe/Berlin
-      - NODE_RED_URL=${NODE_RED_URL}
     networks:
-      - app-network
+      - gateway-network
     restart: unless-stopped
 
   node-red:
@@ -46,16 +43,16 @@ services:
       context: .
       dockerfile: dockerfile_nodered
     expose:
-      - "1880"
+      - ${NODE_RED_HTTP_PORT}
     environment:
       - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
-      - NODE_RED_ADMIN_USER=${NODE_RED_ADMIN_USER}
-      - NODE_RED_ADMIN_PASSWORD=${NODE_RED_ADMIN_PASSWORD}
+      # - NODE_RED_ADMIN_USER=${NODE_RED_ADMIN_USER}
+      # - NODE_RED_ADMIN_PASSWORD=${NODE_RED_ADMIN_PASSWORD}
       - NODE_RED_CREDENTIAL_SECRET=${NODE_RED_CREDENTIAL_SECRET}
     volumes:
       - ${DATA_PATH}:/data/shared/
     networks:
-      - app-network
+      - gateway-network
     restart: unless-stopped
 
   influxdb:
@@ -73,7 +70,7 @@ services:
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
       - TZ=Europe/Berlin
     networks:
-      - app-network
+      - gateway-network
     restart: unless-stopped
 
   nginx:
@@ -88,7 +85,7 @@ services:
       - "${MQTT_LISTENER_LOCAL_WS_ADDRESS}:${MQTT_LISTENER_LOCAL_WS_ADDRESS}"
       - "${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}:${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}"
       - "${MQTT_LISTENER_PUBLIC_WS_ADDRESS}:${MQTT_LISTENER_PUBLIC_WS_ADDRESS}"
-      - "${WEBUI_HTTP_PORT}:${WEBUI_HTTP_PORT}" # war auskommentiert
+      # - "${WEBUI_HTTP_PORT}:${WEBUI_HTTP_PORT}"
       - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
     volumes:
       - ./server.crt:/etc/nginx/certs/server.crt
@@ -105,9 +102,9 @@ services:
       - INFLUXDB_HTTP_PORT
     command: /bin/sh -c "envsubst '$$MQTT_LISTENER_LOCAL_TCP_ADDRESS $$MQTT_LISTENER_LOCAL_WS_ADDRESS $$MQTT_LISTENER_PUBLIC_TCP_ADDRESS $$MQTT_LISTENER_PUBLIC_WS_ADDRESS $$WEBUI_HTTP_PORT $$NGINX_HTTPS_PORT $$NODE_RED_HTTP_PORT $$INFLUXDB_HTTP_PORT' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     networks:
-      - app-network
+      - gateway-network
     restart: unless-stopped
 
 networks:
-  app-network:
+  gateway-network:
     driver: bridge

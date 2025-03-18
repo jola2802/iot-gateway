@@ -54,12 +54,18 @@ func startBrokerInstance(db *sql.DB) *MQTT.Server {
 	if err := logic.AddAdminUser(db); err != nil {
 		logrus.Fatal("Failed to manage Admin access: ", err)
 	}
-	if err := logic.WebUIAccessManagement(db); err != nil {
+
+	if err := logic.WebAccessManagement(db); err != nil {
 		logrus.Fatal("Failed to manage Web-UI access: ", err)
 	}
-	// if err := logic.DriverAccessManagement(db); err != nil {
-	// 	logrus.Fatal("Failed to manage driver access: ", err)
-	// }
+
+	if err := logic.NodeREDAccessManagement(db); err != nil {
+		logrus.Fatal("Failed to manage Node-RED access: ", err)
+	}
+
+	if err := logic.ExternalDriverAccessManagement(db); err != nil {
+		logrus.Fatal("Failed to manage External Driver access: ", err)
+	}
 
 	// Authentifizierungsdaten aus der Datenbank laden.
 	authData, err := loadAuthDataFromDB(db)
@@ -130,12 +136,6 @@ func loadConfigFromEnv() Config {
 				Address: ":" + os.Getenv("MQTT_LISTENER_PUBLIC_WS_ADDRESS"),
 				Type:    "websocket",
 				TLS:     true,
-			},
-			{
-				ID:      "stats",
-				Address: ":" + os.Getenv("MQTT_LISTENER_STATS_ADDRESS"),
-				Type:    "http",
-				TLS:     false,
 			},
 		},
 	}

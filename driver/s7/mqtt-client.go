@@ -35,7 +35,7 @@ func pubData(data []map[string]interface{}, deviceID string, server *MQTT.Server
 		name = fmt.Sprintf("[%s] %s", id, name)
 
 		topic := fmt.Sprintf("data/s7/%s/%s", deviceID, name)
-		err = server.Publish(topic, []byte(payload), false, 2)
+		err = server.Publish(topic, []byte(payload), true, 2)
 		if err != nil {
 			logrus.Errorf("S7: Failed to publish data for datapoint %s: %v", name, err)
 			publishDeviceState(server, "s7", deviceID, "6 (connection lost)", db)

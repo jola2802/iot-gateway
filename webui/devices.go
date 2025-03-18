@@ -552,7 +552,7 @@ func addDevice(c *gin.Context) {
 
 	// Erstelle das MQTT-Topic
 	topic := fmt.Sprintf("driver/states/%s/%d", deviceData.DeviceType, deviceID)
-	server.Publish(topic, []byte("2 (initializing)"), false, 2)
+	server.Publish(topic, []byte("2 (initializing)"), true, 2)
 
 	// Restarte den Treiber für das neue Gerät
 	// übergeben der device id
@@ -605,6 +605,8 @@ func deleteDevice(c *gin.Context) {
 func updateDevice(c *gin.Context) {
 	device_id := c.Param("device_id")
 
+	logrus.Infof("Updating device with id: %s", device_id)
+
 	type Device struct {
 		DeviceType      string `json:"deviceType"`
 		DeviceName      string `json:"deviceName"`
@@ -629,7 +631,7 @@ func updateDevice(c *gin.Context) {
 
 	var updatedDevice Device
 	if err := c.ShouldBindJSON(&updatedDevice); err != nil {
-		logrus.Fatalf("Error binding JSON: %v", err)
+		logrus.Errorf("Error binding JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
@@ -643,10 +645,12 @@ func updateDevice(c *gin.Context) {
 	query := `UPDATE devices SET address = ?, acquisition_time = ? WHERE id = ?`
 	_, err := db.Exec(query, updatedDevice.Address, updatedDevice.AcquisitionTime, device_id)
 	if err != nil {
-		logrus.Println("Error updating device data:", err)
+		logrus.Errorf("Error updating device data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating device data"})
 		return
 	}
+
+	logrus.Infof("Device data updated successfully for %s", updatedDevice.DeviceName)
 
 	// Gerätetyp-spezifische Logik für S7
 	if updatedDevice.DeviceType == "s7" {
@@ -654,7 +658,7 @@ func updateDevice(c *gin.Context) {
 		query = `UPDATE devices SET rack = ?, slot = ? WHERE id = ?`
 		_, err := db.Exec(query, updatedDevice.Rack, updatedDevice.Slot, device_id)
 		if err != nil {
-			logrus.Println("Error updating S7-specific fields:", err)
+			logrus.Errorf("Error updating S7-specific fields: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating S7-specific fields"})
 			return
 		}
@@ -662,7 +666,7 @@ func updateDevice(c *gin.Context) {
 		// Aktualisiere die S7-Datapoints
 		_, err = db.Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 		if err != nil {
-			logrus.Println("Error clearing old datapoints:", err)
+			logrus.Errorf("Error clearing old datapoints: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old datapoints"})
 			return
 		}
@@ -674,14 +678,14 @@ func updateDevice(c *gin.Context) {
 				var deviceId int
 				err := db.QueryRow(`SELECT id FROM devices WHERE id = ?`, device_id).Scan(&deviceId)
 				if err != nil {
-					logrus.Println("Error retrieving device_id:", err)
+					logrus.Errorf("Error retrieving device_id: %v", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device_id"})
 					return
 				}
 				var nextId int
 				err = db.QueryRow(`SELECT COALESCE(MAX(CAST(id AS INTEGER)), 0) + 1 FROM s7_datapoints WHERE device_id = ?`, deviceId).Scan(&nextId)
 				if err != nil {
-					logrus.Println("Error finding next datapoint ID:", err)
+					logrus.Errorf("Error finding next datapoint ID: %v", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
 					return
 				}
@@ -690,17 +694,19 @@ func updateDevice(c *gin.Context) {
 			}
 
 			if dp.DatapointId == "" || dp.Name == "" || dp.Address == "" {
-				logrus.Println("Skipping empty datapoint:", dp)
+				logrus.Errorf("Skipping empty datapoint: %+v", dp)
 				continue
 			}
 
 			_, err = db.Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`, device_id, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
 			if err != nil {
-				logrus.Println("Error inserting new datapoints:", err)
+				logrus.Errorf("Error inserting new datapoints: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new datapoints"})
 				return
 			}
 		}
+
+		logrus.Infof("S7 device and datapoints updated successfully for %s", updatedDevice.DeviceName)
 	}
 
 	// Gerätetyp-spezifische Logik für OPC UA
@@ -709,7 +715,7 @@ func updateDevice(c *gin.Context) {
 		query = `UPDATE devices SET security_mode = ?, security_policy = ?, username = ?, password = ? WHERE id = ?`
 		_, err := db.Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, updatedDevice.Username, updatedDevice.Password, device_id)
 		if err != nil {
-			logrus.Println("Error updating OPC-UA-specific fields:", err)
+			logrus.Errorf("Error updating OPC-UA-specific fields: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating OPC-UA-specific fields"})
 			return
 		}
@@ -717,12 +723,12 @@ func updateDevice(c *gin.Context) {
 		// Lösche alte OPC-UA DataNodes
 		_, err = db.Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 		if err != nil {
-			logrus.Println("Error clearing old OPC-UA nodes:", err)
+			logrus.Errorf("Error clearing old OPC-UA nodes: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old OPC-UA nodes"})
 			return
 		}
 
-		// Device_id to INT
+		// Device_id to INT-Value
 		dev_id, _ := strconv.Atoi(device_id)
 
 		// Füge die neuen OPC-UA DataNodes ein
@@ -732,7 +738,7 @@ func updateDevice(c *gin.Context) {
 				var nextId int
 				err = db.QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, device_id).Scan(&nextId)
 				if err != nil {
-					logrus.Println("Error finding next datapoint ID:", err)
+					logrus.Errorf("Error finding next datapoint ID: %v", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
 					return
 				}
@@ -740,7 +746,7 @@ func updateDevice(c *gin.Context) {
 			}
 
 			if node.DatapointId == "" || node.Name == "" || node.Address == "" {
-				logrus.Println("Skipping empty OPC-UA node:", node)
+				logrus.Errorf("Skipping empty OPC-UA node: %+v", node)
 				continue
 			}
 
@@ -749,11 +755,13 @@ func updateDevice(c *gin.Context) {
 				VALUES ( ?, ?, ?, ?)`
 			_, err = db.Exec(query, dev_id, node.DatapointId, node.Name, node.Address)
 			if err != nil {
-				logrus.Println("Error inserting new OPC-UA nodes:", err)
+				logrus.Errorf("Error inserting new OPC-UA nodes: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new OPC-UA nodes"})
 				return
 			}
 		}
+
+		logrus.Infof("OPC-UA device and nodes updated successfully for %s", updatedDevice.DeviceName)
 	}
 
 	if updatedDevice.DeviceType == "mqtt" {
@@ -762,7 +770,7 @@ func updateDevice(c *gin.Context) {
 		var existingUser bool
 		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM auth WHERE username = ?)", updatedDevice.DeviceName).Scan(&existingUser)
 		if err != nil {
-			logrus.Println("Error checking if user exists:", err)
+			logrus.Errorf("Error checking if user exists: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error checking if user exists"})
 			return
 		}
@@ -771,7 +779,7 @@ func updateDevice(c *gin.Context) {
 			// Schritt 2: Benutzer existiert, Passwort aktualisieren
 			_, err = db.Exec("UPDATE auth SET password = ? WHERE username = ?", updatedDevice.Password, updatedDevice.DeviceName)
 			if err != nil {
-				logrus.Println("Error updating password:", err)
+				logrus.Errorf("Error updating password: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating password"})
 				return
 			}
@@ -779,7 +787,7 @@ func updateDevice(c *gin.Context) {
 			// Schritt 3: Benutzer existiert nicht, neuen Benutzer erstellen
 			_, err = db.Exec("INSERT INTO auth (username, password, allow) VALUES (?, ?, ?)", updatedDevice.DeviceName, updatedDevice.Password, 1)
 			if err != nil {
-				logrus.Println("Error adding new MQTT user:", err)
+				logrus.Errorf("Error adding new MQTT user: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error adding new MQTT user"})
 				return
 			}
@@ -791,7 +799,7 @@ func updateDevice(c *gin.Context) {
 		// Lösche vorhandene ACL-Einträge für diesen Benutzer und dieses Topic
 		_, err = db.Exec("DELETE FROM acl WHERE username = ? ", updatedDevice.DeviceName)
 		if err != nil {
-			logrus.Println("Error deleting existing ACL entries:", err)
+			logrus.Errorf("Error deleting existing ACL entries: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting existing ACL entries"})
 			return
 		}
@@ -800,13 +808,15 @@ func updateDevice(c *gin.Context) {
 		_, err1 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, "#", 0)
 		_, err2 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, deviceTopic, 3)
 		if err1 != nil || err2 != nil {
-			logrus.Println("Error adding ACL entry:", err1, err2)
+			logrus.Errorf("Error adding ACL entry: %v, %v", err1, err2)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error adding ACL entry"})
 			return
 		}
 
 		logrus.Infof("MQTT device and user updated successfully for %s", updatedDevice.DeviceName)
 	}
+
+	logrus.Infof("Device updated successfully for %s", updatedDevice.DeviceName)
 
 	c.Set("device_id", device_id)
 	RestartDriver(c)

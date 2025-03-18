@@ -62,7 +62,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/getDevices", getDevices)
 		authorized.GET("/api/getDevice/:device_id", getDevice)
 		authorized.POST("/api/add-device", addDevice)
-		authorized.PUT("/api/update-device/:device_id", updateDevice)
+		authorized.POST("/api/update-device/:device_id", updateDevice)
 		authorized.DELETE("/api/delete-device/:device_id", deleteDevice)
 		authorized.GET("/api/ws-token", generateToken)
 		authorized.POST("/api/restart-device/:device_id", restartDevice)

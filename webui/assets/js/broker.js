@@ -26,7 +26,7 @@ async function fetchAndPopulateBrokerUsers() {
 
             // Password (versteckt oder dargestellt)
             const passwordCell = document.createElement('td');
-            passwordCell.className = 'text-center';
+            passwordCell.className = 'text-center align-middle';
             const inputGroup = document.createElement('div');
             inputGroup.className = 'input-group';
             inputGroup.style.maxWidth = '250px';

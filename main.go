@@ -38,11 +38,5 @@ func main() {
 	go logic.StartAllDrivers(db, server)
 	defer logic.StopAllDrivers()
 
-	// go dataforwarding.StartDataForwarding(db, server)
-	// defer dataforwarding.StopDataForwarding()
-
-	// webui.StartAllImageProcessWorkers(db, noderedURL)
-	// go webui.StartAllImageProcessWorkers(db, noderedURL)
-
 	select {}
 }

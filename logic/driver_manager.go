@@ -215,8 +215,8 @@ func StartOPCUADriver(db *sql.DB, deviceID string) {
 	}()
 
 	state.running = true
-	// state.status = Running
-	// publishDeviceState(server, "opc-ua", deviceID, state.status)
+	state.status = Running
+	publishDeviceState(server, "opc-ua", deviceID, state.status)
 	logrus.Infof("DM: OPC-UA driver started for device %s.", opcuaConfig.Name)
 }
 
@@ -263,7 +263,7 @@ func stopOPCUADriver(deviceID string) {
 func restartOPCUADriver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting OPC-UA driver for device %s...", deviceID)
 	stopOPCUADriver(deviceID)
-	time.Sleep(1 * time.Second)
+	time.Sleep(3000 * time.Millisecond)
 	go StartOPCUADriver(db, deviceID)
 }
 
@@ -330,8 +330,8 @@ func StartS7Driver(db *sql.DB, deviceID string) {
 	}(s7Config)
 
 	state.running = true
-	// state.status = Running
-	// publishDeviceState(server, "s7", deviceID, state.status)
+	state.status = Running
+	publishDeviceState(server, "s7", deviceID, state.status)
 	logrus.Infof("DM: S7 driver started for device %s.", s7Config.Name)
 }
 
@@ -357,6 +357,7 @@ func stopS7Driver(deviceID string) {
 func restartS7Driver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting S7 driver for device %s...", deviceID)
 	stopS7Driver(deviceID)
-	time.Sleep(1 * time.Second)
+	publishDeviceState(server, "s7", deviceID, "2 (initializing)")
+	time.Sleep(3000 * time.Millisecond)
 	go StartS7Driver(db, deviceID)
 }

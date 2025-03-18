@@ -25,7 +25,8 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 	lastStatus := ""
 
 	// Starten mit Initializing
-	updateDeviceStatus(server, "s7", device.ID, "2 (initializing)", db, &lastStatus)
+	// updateDeviceStatus(server, "s7", device.ID, "2 (initializing)", db, &lastStatus)
+	publishDeviceState(server, "s7", device.ID, "2 (initializing)", db)
 
 	for {
 		select {
@@ -117,7 +118,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 // MQTT-Publikation mit exponentiellem Backoff
 func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status string, db *sql.DB) {
 	topic := "driver/states/" + deviceType + "/" + deviceID
-	server.Publish(topic, []byte(status), false, 0)
+	server.Publish(topic, []byte(status), true, 2)
 
 	// Publish the state to the db
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)

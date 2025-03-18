@@ -64,7 +64,7 @@ func getOrCreateDeviceState(deviceName string, deviceStates map[string]*DeviceSt
 // MQTT-Publikation mit exponentiellem Backoff
 func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status string) {
 	topic := "driver/states/" + deviceType + "/" + deviceID
-	server.Publish(topic, []byte(status), false, 0)
+	server.Publish(topic, []byte(status), true, 2)
 
 	// Publish the state to the db
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)

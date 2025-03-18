@@ -138,7 +138,7 @@ function saveEditDevice() {
 
         // API-Request senden
         fetch(`/api/update-device/${deviceData.deviceId}`, {
-            method: 'PUT',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },

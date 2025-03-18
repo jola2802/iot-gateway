@@ -417,5 +417,5 @@ async function handleEditButtonClick(event) {
     }
 }
 
-// // Initialisiere den Event-Listener einmal
+// Initialisiere den Event-Listener einmal
 setupEditButtonListener();

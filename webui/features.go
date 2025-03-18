@@ -297,7 +297,7 @@ func parseAndValidateParams(c *gin.Context) (ImageCaptureParams, error) {
 		params.AckNodeId = "ns=3;s=Demo.Dynamic.Scalar.Boolean"
 	}
 	if params.BasePath == "" {
-		params.BasePath = "./data/images"
+		params.BasePath = "./data/shared/images"
 	}
 	if params.SecurityMode == "" {
 		params.SecurityMode = "NONE"

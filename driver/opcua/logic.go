@@ -116,8 +116,9 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 
 // MQTT-Publikation mit exponentiellem Backoff
 func publishDeviceState(server *MQTT.Server, deviceType, deviceID string, status string, db *sql.DB) {
-	topic := "driver/states/" + deviceType + "/" + deviceID
-	server.Publish(topic, []byte(status), false, 0)
+	topic := fmt.Sprintf("driver/states/%s/%s", deviceType, deviceID)
+	logrus.Debugf("OPC-UA: Publishing device state to %s: %s", topic, status)
+	server.Publish(topic, []byte(status), true, 2)
 
 	// Publish the state to the db
 	_, err := db.Exec("UPDATE devices SET status = ? WHERE id = ?", status, deviceID)

@@ -30,7 +30,7 @@ func pubData(data []map[string]interface{}, deviceID string, server *MQTT.Server
 			return nil
 		}
 
-		// name muss aus [DatapointId]_DatapointName bestehen
+		// name muss aus "[DatapointId] DatapointName" bestehen
 		id := dp["id"].(string)
 		name = fmt.Sprintf("[%s] %s", id, name)
 

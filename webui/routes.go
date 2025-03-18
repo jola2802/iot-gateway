@@ -82,7 +82,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.PUT("/api/changePassword", changePassword)
 
 		// Browse Nodes
-		authorized.GET("/browse-nodes/:deviceID", browseNodes)
+		authorized.GET("/api/browse-nodes/:deviceID", browseNodes)
 
 		// Settings Routes
 		authorized.POST("/api/restart", restartGatewayHandler)

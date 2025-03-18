@@ -22,10 +22,11 @@ import (
 // Globale Variablen für das Buffering
 var (
 	// Puffer mit Kapazität für 1100 Punkte
-	influxBuffer = make([]*write.Point, 0, 1100)
-	bufferMutex  sync.Mutex
-	flushTimer   *time.Timer
-	influxConfig *InfluxConfig
+	influxBuffer   = make([]*write.Point, 0, 1100)
+	bufferMutex    sync.Mutex
+	flushTimer     *time.Timer
+	influxConfig   *InfluxConfig
+	subscriptionID = rand.Intn(100)
 
 	client   influxdb2.Client
 	writeAPI api.WriteAPI
@@ -248,12 +249,21 @@ func monitorServer(db *sql.DB, server *MQTT.Server) {
 
 	for {
 		<-ticker.C
-		// Prüfe, ob in den letzten 30 Sekunden Nachrichten empfangen wurden
-		if time.Since(lastMessageReceived) > 5000*time.Millisecond {
-			logrus.Warn("Keine Nachrichten in den letzten 5000 Millisekunden empfangen. Versuche, die MQTT-Verbindung wiederherzustellen (Re-Subscribe)...")
+		// Prüfe, ob in den letzten 15 Sekunden Nachrichten empfangen wurden
+		if time.Since(lastMessageReceived) > 15000*time.Millisecond {
+			logrus.Warn("Keine Nachrichten in den letzten 15 Sekunden empfangen. Versuche, die MQTT-Verbindung wiederherzustellen (Re-Subscribe)...")
+
+			// Altes Abonnement entfernen
+			if err := server.Unsubscribe("data/#", subscriptionID); err != nil {
+				logrus.Warnf("Fehler beim Entfernen des alten Abonnements: %v", err)
+			}
+
+			// Neue Abonnement-ID generieren
+			subscriptionID = rand.Intn(100)
+
 			// Re-Subscribe: Die Verwendung unserer Callback-Hilfsfunktion stellt sicher,
 			// dass auch der Zeitstempel neu gesetzt wird, sobald eine Nachricht ankommt.
-			if err := server.Subscribe("data/#", rand.Intn(100), influxMessageCallback(db)); err != nil {
+			if err := server.Subscribe("data/#", subscriptionID, influxMessageCallback(db)); err != nil {
 				logrus.Errorf("Fehler beim erneuten Subscriben: %v", err)
 			} else {
 				logrus.Infof("Re-Subscribe erfolgreich")

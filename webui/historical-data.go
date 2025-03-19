@@ -13,11 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type DataPoint struct {
-	X time.Time `json:"x"`
-	Y float64   `json:"y"`
-}
-
 var influxConfig *dataforwarding.InfluxConfig
 
 func showHistoricalDataPage(c *gin.Context) {

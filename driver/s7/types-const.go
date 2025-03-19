@@ -28,16 +28,6 @@ type Datapoint struct {
 }
 
 //
-// mqtt-client.go types
-//
-// DataPoint repräsentiert einen Datenpunkt für die MQTT-Nachricht
-type DataPoint struct {
-	DeviceName string      `json:"deviceName"`
-	NodeId     string      `json:"nodeId"`
-	Value      interface{} `json:"value"`
-}
-
-//
 // s7-connector.go types
 //
 const (

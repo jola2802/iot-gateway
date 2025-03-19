@@ -36,12 +36,6 @@ type Header struct {
 	Value string `json:"value"`
 }
 
-type DataPoint struct {
-	DatapointId string `json:"DatapointId"`
-	Value       string `json:"Value"`
-	Timestamp   string `json:"Timestamp"`
-}
-
 // DataReading enthält das Format für das JSON-Objekt, das gesendet wird
 type DataReading struct {
 	DatapointId string `json:"DatapointId"`

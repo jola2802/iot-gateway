@@ -516,7 +516,7 @@ function createDatatypeCell(deviceType) {
     
     const datatypeSelect = document.createElement('select');
     datatypeSelect.className = 'form-select';
-    ['-', 'BOOL', 'INT', 'DINT', 'REAL', 'WORD', 'DWORD', 'STRING'].forEach(type => {
+    ['-', 'BOOL', 'BYTE', 'INT', 'DINT', 'REAL', 'WORD', 'DWORD', 'STRING'].forEach(type => {
         const option = document.createElement('option');
         option.value = type;
         option.textContent = type;

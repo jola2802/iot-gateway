@@ -12,12 +12,12 @@ services:
       - ${WEBUI_HTTP_PORT}
     volumes:
       ## only for testing during development
-      # - ./iot_gateway.db:/app/iot_gateway.db
-      # - ./webui/templates:/app/webui/templates
-      # - ./webui/assets:/app/webui/assets
-      # - ./server.crt:/data/server.crt
-      # - ./server.key:/data/server.key
-      # - ${DATA_PATH}:/data/shared/
+      - ./iot_gateway.db:/app/iot_gateway.db
+      - ./webui/templates:/app/webui/templates
+      - ./webui/assets:/app/webui/assets
+      - ./server.crt:/data/server.crt
+      - ./server.key:/data/server.key
+      - ${DATA_PATH}:/data/shared/
     environment:
       - INFLUXDB_URL=${INFLUXDB_URL}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}

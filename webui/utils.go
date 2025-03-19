@@ -53,22 +53,10 @@ func loadConfigFromEnv() (*Config, error) {
 	config := &Config{}
 
 	config.WebUI.HTTPPort = os.Getenv("WEBUI_HTTP_PORT")
-	config.WebUI.HTTPSPort = os.Getenv("WEBUI_HTTPS_PORT")
-	config.WebUI.TLSCert = os.Getenv("WEBUI_TLS_CERT")
-	config.WebUI.TLSKey = os.Getenv("WEBUI_TLS_KEY")
 
 	// if config.WebUI.HTTPPort is empty, set it to 8080
 	if config.WebUI.HTTPPort == "" {
 		config.WebUI.HTTPPort = "8088"
-	}
-	if config.WebUI.HTTPSPort == "" {
-		config.WebUI.HTTPSPort = "8443"
-	}
-	if config.WebUI.TLSCert == "" {
-		config.WebUI.TLSCert = "server.crt"
-	}
-	if config.WebUI.TLSKey == "" {
-		config.WebUI.TLSKey = "server.key"
 	}
 
 	return config, nil

@@ -682,7 +682,7 @@ func uploadToExternalDatabase(base64String, uploadUrl string, headers map[string
 	}
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   30 * time.Second,
+		Timeout:   20 * time.Second,
 	}
 
 	// Request-Body erstellen

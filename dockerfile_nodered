@@ -1,8 +1,5 @@
 FROM nodered/node-red:latest-minimal
 
-# Wechsle zu Root-Benutzer für die Installation
-USER root
-
 # Kopiere package.json und installiere die Abhängigkeiten
 WORKDIR /data
 COPY node-red-data/package.json .
@@ -12,13 +9,6 @@ RUN npm install --unsafe-perm --no-update-notifier --no-fund --only=production
 COPY node-red-data/settings.js .
 COPY node-red-data/flows.json .
 COPY node-red-data/flows_cred.json .
-
-# Setze die richtigen Berechtigungen für das /data Verzeichnis
-RUN chown -R node-red:node-red /data && \
-    chmod -R 775 /data
-
-# Wechsle zum node-red Benutzer für die Ausführung
-USER node-red
 
 # Setze Arbeitsverzeichnis zurück
 WORKDIR /usr/src/node-red

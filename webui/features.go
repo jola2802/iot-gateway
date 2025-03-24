@@ -165,6 +165,7 @@ func captureImage(c *gin.Context) {
 	// 1) Parameter aus der Anfrage lesen und validieren
 	params, err := parseAndValidateParams(c)
 	if err != nil {
+		logrus.Errorf("Fehler beim Parsen der Parameter zum Image Capture Prozess: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Parameter", "details": err.Error()})
 		return
 	}
@@ -306,25 +307,26 @@ func parseAndValidateParams(c *gin.Context) (ImageCaptureParams, error) {
 		params.SecurityPolicy = "NONE"
 	}
 
-	// nehme nur deviceid wenn nicht in tabelle vorhanden
-	db, err := getDBConnection(c)
-	if err != nil {
-		logrus.Errorf("Fehler beim Verbinden mit der Datenbank: %v", err)
-		return params, err
-	}
+	// wenn deviceid leer dann schaue ob in tabelle vorhanden
+	if params.DeviceId == "" {
+		db, err := getDBConnection(c)
+		if err != nil {
+			logrus.Errorf("Fehler beim Verbinden mit der Datenbank: %v", err)
+			return params, err
+		}
 
-	// get id from tabelle devices where address = params.Endpoint
-	var id int
-	err = db.QueryRow("SELECT id FROM devices WHERE address = ?", params.Endpoint).Scan(&id)
-	if err != nil {
-		logrus.Errorf("Device not found in database: %v", err)
-		// return params, err
-	}
+		// get id from tabelle devices where address = params.Endpoint
+		var id int
+		err = db.QueryRow("SELECT id FROM devices WHERE address = ?", params.Endpoint).Scan(&id)
+		if err != nil {
+			logrus.Errorf("Device not found in database: %v", err)
+			return params, err
+		}
 
-	if id == 0 {
-		params.DeviceId = "999999"
-	} else {
 		params.DeviceId = strconv.Itoa(id)
+	} else if params.DeviceId == "0" {
+		// nehme nur deviceid wenn nicht in tabelle vorhanden
+		params.DeviceId = "999999"
 	}
 
 	return params, nil

@@ -326,7 +326,7 @@ module.exports = {
              * trace - record very detailed logging + debug + info + warn + error + fatal errors
              * off - turn off all logging (doesn't affect metrics or audit)
              */
-            level: "info",
+            level: "warn",
             /** Whether or not to include metric events in the log output */
             metrics: false,
             /** Whether or not to include audit events in the log output */
@@ -409,7 +409,7 @@ module.exports = {
         /** To disable the 'Welcome to Node-RED' tour that is displayed the first
          * time you access the editor for each release of Node-RED, set this to false
          */
-        //tours: false,
+        tours: false,
 
         palette: {
             /** The following property can be used to order the categories in the editor

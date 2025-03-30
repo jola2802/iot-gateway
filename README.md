@@ -85,5 +85,6 @@ Die Hauptkonfiguration erfolgt über die Weboberfläche. Dort können Sie:
 Das Gateway ist in Go geschrieben und verwendet Webtechnologien für die Benutzeroberfläche.
 
 
-![software-architecture](https://github.com/jola2802/iot-gateway/assets/99344189/6d9614d5-e93f-4640-ad7a-ee7fd8f940f0)
-![image](https://github.com/jola2802/iot-gateway/assets/99344189/dc17c774-fe7e-40bd-94d5-4ac419c14b5d)
+![image](https://github.com/user-attachments/assets/56c040b5-9369-4436-b30b-a19908585609)
+
+![image](https://github.com/user-attachments/assets/a3801731-e3d9-4d86-9a6b-9daa987c2e66)

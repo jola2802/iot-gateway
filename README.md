@@ -78,7 +78,7 @@ Die Hauptkonfiguration erfolgt über die Weboberfläche. Dort können Sie:
 1. Geräte hinzufügen und konfigurieren
 2. Datenpunkte definieren
 3. Datenweiterleitung einrichten
-4. Bildverarbeitung konfigurieren
+4. Bildverarbeitung (BMK) konfigurieren
 
 ## Entwicklung
 

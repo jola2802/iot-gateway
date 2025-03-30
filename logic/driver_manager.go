@@ -142,6 +142,25 @@ func RestartDevice(db *sql.DB, deviceID string) {
 	}
 }
 
+func StopDriver(deviceID string) {
+	// Erstelle einen Kontext mit Timeout, damit die Abfrage nicht unendlich blockiert.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	var deviceType string
+	if err := db.QueryRowContext(ctx, `SELECT type FROM devices WHERE id = ?`, deviceID).Scan(&deviceType); err != nil {
+		logrus.Errorf("DM: Error querying device type: %v", err)
+		return
+	}
+
+	switch deviceType {
+	case "opc-ua", "opcua":
+		stopOPCUADriver(deviceID)
+	case "s7":
+		stopS7Driver(deviceID)
+	}
+}
+
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPC-UA-Part %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 // StartOPCUADriver-Funktion
@@ -255,15 +274,10 @@ func stopOPCUADriver(deviceID string) {
 // RestartOPCUADriver restarts the OPC-UA driver for a given device.
 //
 // It stops the OPC-UA driver, waits for 3 seconds, and then starts the OPC-UA driver again.
-//
-// Example:
-//
-//	db, _ := sql.Open("mysql", "user:password@tcp(localhost:3306)/database")
-//	restartOPCUADriver(db, "1")
 func restartOPCUADriver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting OPC-UA driver for device %s...", deviceID)
 	stopOPCUADriver(deviceID)
-	time.Sleep(3000 * time.Millisecond)
+	time.Sleep(2000 * time.Millisecond)
 	go StartOPCUADriver(db, deviceID)
 }
 
@@ -358,6 +372,6 @@ func restartS7Driver(db *sql.DB, deviceID string) {
 	logrus.Infof("DM: Restarting S7 driver for device %s...", deviceID)
 	stopS7Driver(deviceID)
 	publishDeviceState(server, "s7", deviceID, "2 (initializing)")
-	time.Sleep(3000 * time.Millisecond)
+	time.Sleep(2000 * time.Millisecond)
 	go StartS7Driver(db, deviceID)
 }

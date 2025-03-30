@@ -591,12 +591,14 @@ func deleteDevice(c *gin.Context) {
 		return
 	}
 
+	logic.StopDriver(device_id)
+
 	// Erstelle das MQTT-Topic
 	payload := ""
 	topic := fmt.Sprintf("driver/states/%s/%s", deviceType, device_id)
-	server.Publish(topic, []byte(payload), true, 2)
+	server.Publish(topic, []byte(payload), false, 2)
 
-	RestartGateway(c)
+	// RestartGateway(c)
 
 	// Erfolgreiche Löschbestätigung senden
 	c.JSON(http.StatusOK, gin.H{"message": "Device deleted successfully"})

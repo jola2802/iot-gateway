@@ -23,6 +23,7 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 
 	retryInterval := 5 * time.Second
 	lastStatus := ""
+	sleeptime := time.Duration(device.AcquisitionTime) * time.Millisecond
 
 	// Starten mit Initializing
 	// updateDeviceStatus(server, "s7", device.ID, "2 (initializing)", db, &lastStatus)
@@ -38,6 +39,9 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 			updateDeviceStatus(server, "s7", device.ID, "0 (stopped)", db, &lastStatus)
 			return nil
 		default:
+			// Startzeit ermitteln
+			cycleStart := time.Now()
+
 			// Wenn kein Client existiert, erstelle einen neuen
 			if client == nil || handler == nil {
 				client, handler, err = createS7Client(device)
@@ -110,7 +114,14 @@ func Run(device opcua.DeviceConfig, db *sql.DB, stopChan chan struct{}, server *
 				updateDeviceStatus(server, "s7", device.ID, "4 (no datapoints)", db, &lastStatus)
 			}
 
-			time.Sleep(time.Duration(device.AcquisitionTime) * time.Millisecond)
+			// Berechnung der Dauer der Cycle
+			cycleDuration := time.Since(cycleStart)
+
+			// Cycle Time von sleeptime abziehen
+			remainingTime := sleeptime - cycleDuration
+			if remainingTime > 0 {
+				time.Sleep(remainingTime)
+			}
 		}
 	}
 }

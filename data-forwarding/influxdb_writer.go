@@ -88,7 +88,7 @@ func GetInfluxConfig(db *sql.DB) (*InfluxConfig, error) {
 
 // initializeClient erstellt einen neuen InfluxDB-Client, falls noch keiner existiert.
 // Falls noch keine gültige Konfiguration vorhanden ist, wird alle 10 Sekunden versucht, diese zu laden.
-func initializeClient(db *sql.DB) error {
+func initializeClient() error {
 	// Warte auf eine gültige InfluxDB-Konfiguration, falls nicht vorhanden
 	for influxConfig == nil || influxConfig.URL == "" {
 		// Wenn keine Konfiguration vorhanden ist, versuche sie zu laden
@@ -132,14 +132,14 @@ func flushBuffer(db *sql.DB) error {
 
 	// Stelle sicher, dass ein Client existiert und funktionsfähig ist
 	if client == nil {
-		if err := initializeClient(db); err != nil {
+		if err := initializeClient(); err != nil {
 			logrus.Errorf("Fehler beim Initialisieren des Clients: %v", err)
 			return err
 		}
 	} else {
 		health, err := client.Health(context.Background())
 		if err != nil || health.Status != "pass" {
-			if err := initializeClient(db); err != nil {
+			if err := initializeClient(); err != nil {
 				logrus.Errorf("Fehler beim Initialisieren des Clients: %v", err)
 				return err
 			}
@@ -231,7 +231,7 @@ func StartInfluxDBWriter(db *sql.DB, server *MQTT.Server) {
 	setInfluxDBConfig()
 
 	// Initialisiere den InfluxDB-Client
-	if err := initializeClient(db); err != nil {
+	if err := initializeClient(); err != nil {
 		logrus.Errorf("Fehler beim Initialisieren des InfluxDB-Clients: %v", err)
 	}
 
@@ -239,36 +239,41 @@ func StartInfluxDBWriter(db *sql.DB, server *MQTT.Server) {
 	server.Subscribe("data/#", rand.Intn(100), influxMessageCallback(db))
 	// Setze den initialen Zeitpunkt auf jetzt
 	lastMessageReceived = time.Now()
-	go monitorServer(db, server)
+	// go monitorServer(db, server) // erstmal nicht, weil sonst bei jedem Re-Subscribe eine neue, zusätzliche Verbindung hergestellt wird
 }
 
 // monitorServer überwacht die MQTT-Verbindung und führt bei Verbindungsverlust einen Re-Subscribe durch.
 func monitorServer(db *sql.DB, server *MQTT.Server) {
-	ticker := time.NewTicker(1000 * time.Millisecond) // alle 1000 millisekunden wird der server überwacht
+	ticker := time.NewTicker(5000 * time.Millisecond) // alle 1000 millisekunden wird der server überwacht
 	defer ticker.Stop()
 
 	for {
 		<-ticker.C
-		// Prüfe, ob in den letzten 15 Sekunden Nachrichten empfangen wurden
-		if time.Since(lastMessageReceived) > 15000*time.Millisecond {
-			logrus.Warn("Keine Nachrichten in den letzten 15 Sekunden empfangen. Versuche, die MQTT-Verbindung wiederherzustellen (Re-Subscribe)...")
+		// Prüfe, ob in den letzten 30 Sekunden Nachrichten empfangen wurden
+		if time.Since(lastMessageReceived) > 30000*time.Millisecond {
+			logrus.Warn("InfluxDB-Writer: Keine Nachrichten in den letzten 15 Sekunden empfangen. Versuche, die MQTT-Verbindung wiederherzustellen (Re-Subscribe)...")
 
-			// Altes Abonnement entfernen
-			if err := server.Unsubscribe("data/#", subscriptionID); err != nil {
-				logrus.Warnf("Fehler beim Entfernen des alten Abonnements: %v", err)
-			}
+			if server == nil {
+				logrus.Warn("InfluxDB-Writer: MQTT-Server nicht mehr aktiv. Beende den Writer...")
 
-			// Neue Abonnement-ID generieren
-			subscriptionID = rand.Intn(100)
+				// Altes Abonnement entfernen
+				if err := server.Unsubscribe("data/#", subscriptionID); err != nil {
+					logrus.Warnf("Fehler beim Entfernen des alten Abonnements: %v", err)
+				}
 
-			// Re-Subscribe: Die Verwendung unserer Callback-Hilfsfunktion stellt sicher,
-			// dass auch der Zeitstempel neu gesetzt wird, sobald eine Nachricht ankommt.
-			if err := server.Subscribe("data/#", subscriptionID, influxMessageCallback(db)); err != nil {
-				logrus.Errorf("Fehler beim erneuten Subscriben: %v", err)
-			} else {
-				logrus.Infof("Re-Subscribe erfolgreich")
-				// Aktualisiere lastMessageReceived, um wieder holpernde Reconnects zu vermeiden.
-				lastMessageReceived = time.Now()
+				// Neue Abonnement-ID generieren
+				subscriptionID = rand.Intn(100)
+
+				// Re-Subscribe: Die Verwendung unserer Callback-Hilfsfunktion stellt sicher,
+				// dass auch der Zeitstempel neu gesetzt wird, sobald eine Nachricht ankommt.
+				if err := server.Subscribe("data/#", subscriptionID, influxMessageCallback(db)); err != nil {
+					logrus.Errorf("Fehler beim erneuten Subscriben: %v", err)
+				} else {
+					logrus.Infof("Re-Subscribe erfolgreich")
+					// Aktualisiere lastMessageReceived, um wieder holpernde Reconnects zu vermeiden.
+					lastMessageReceived = time.Now()
+				}
+				return
 			}
 		}
 	}

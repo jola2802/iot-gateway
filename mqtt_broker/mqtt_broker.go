@@ -111,29 +111,48 @@ func startBrokerInstance(db *sql.DB) *MQTT.Server {
 }
 
 func loadConfigFromEnv() Config {
+
+	// Get all environment variables for Listener
+	listenerLocalTCPAddress := os.Getenv("MQTT_LISTENER_LOCAL_TCP_ADDRESS")
+	if listenerLocalTCPAddress == "" {
+		listenerLocalTCPAddress = "5000"
+	}
+	listenerLocalWSAddress := os.Getenv("MQTT_LISTENER_LOCAL_WS_ADDRESS")
+	if listenerLocalWSAddress == "" {
+		listenerLocalWSAddress = "5001"
+	}
+	listenerPublicTCPAddress := os.Getenv("MQTT_LISTENER_PUBLIC_TCP_ADDRESS")
+	if listenerPublicTCPAddress == "" {
+		listenerPublicTCPAddress = "5100"
+	}
+	listenerPublicWSAddress := os.Getenv("MQTT_LISTENER_PUBLIC_WS_ADDRESS")
+	if listenerPublicWSAddress == "" {
+		listenerPublicWSAddress = "5101"
+	}
+
 	return Config{
 		Listeners: []ListenerConfig{
 			{
 				ID:      "localTCP",
-				Address: ":" + os.Getenv("MQTT_LISTENER_LOCAL_TCP_ADDRESS"),
+				Address: ":" + listenerLocalTCPAddress,
 				Type:    "tcp",
 				TLS:     false,
 			},
 			{
 				ID:      "localWS",
-				Address: ":" + os.Getenv("MQTT_LISTENER_LOCAL_WS_ADDRESS"),
+				Address: ":" + listenerLocalWSAddress,
 				Type:    "websocket",
 				TLS:     false,
 			},
 			{
 				ID:      "publicTCP",
-				Address: ":" + os.Getenv("MQTT_LISTENER_PUBLIC_TCP_ADDRESS"),
+				Address: ":" + listenerPublicTCPAddress,
 				Type:    "tcp",
 				TLS:     true,
 			},
 			{
 				ID:      "publicWS",
-				Address: ":" + os.Getenv("MQTT_LISTENER_PUBLIC_WS_ADDRESS"),
+				Address: ":" + listenerPublicWSAddress,
 				Type:    "websocket",
 				TLS:     true,
 			},

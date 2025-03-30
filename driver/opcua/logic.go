@@ -147,6 +147,9 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 		case <-stopChan:
 			return nil
 		default:
+			// Startzeit ermitteln
+			cycleStart := time.Now()
+
 			data, err := readData(client, dataNodes)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Error reading data from %v: %s", device.Name, err)
@@ -173,7 +176,15 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 			} else {
 				updateDeviceStatus(server, "opc-ua", device.ID, "4 (no datapoints)", db, lastStatus)
 			}
-			time.Sleep(sleeptime)
+
+			// Berechnung der Dauer der Cycle
+			cycleDuration := time.Since(cycleStart)
+
+			// Cycle Time von sleeptime abziehen
+			remainingTime := sleeptime - cycleDuration
+			if remainingTime > 0 {
+				time.Sleep(remainingTime)
+			}
 		}
 	}
 }

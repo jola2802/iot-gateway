@@ -3,6 +3,8 @@ package webui
 import (
 	"crypto/rand"
 	"database/sql"
+	"os"
+	"strconv"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -26,10 +28,15 @@ type Config struct {
 
 var server *MQTT.Server
 var stateConnection bool
-var num_images_db int = 100
+var num_images_db int
 
 // Main function to start the web server
 func Main(db *sql.DB, serverF *MQTT.Server) {
+	// 0) set num_images_db from env
+	num_images_db, _ = strconv.Atoi(os.Getenv("NUM_IMAGES_DB"))
+	if num_images_db == 0 {
+		num_images_db = 100 //default value
+	}
 	server = serverF
 
 	if db == nil {

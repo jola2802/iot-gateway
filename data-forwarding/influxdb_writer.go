@@ -56,9 +56,6 @@ func setInfluxDBConfig() {
 		Org:    influxdbOrg,
 		Bucket: influxdbBucket,
 	}
-
-	logrus.Infof("InfluxDB-Konfiguration geladen: URL=%s, Org=%s, Bucket=%s",
-		influxdbURL, influxdbOrg, influxdbBucket)
 }
 
 // GetInfluxConfig gibt die aktuelle InfluxDB-Konfiguration zurück.

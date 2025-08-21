@@ -127,6 +127,11 @@ async function initializeNodeBrowser() {
     const browseButton = document.getElementById('browse-nodes-btn');
     const nodeBrowserModal = new bootstrap.Modal(document.getElementById('node-browser-modal'));
     
+    // Prüfe ob Event-Listener bereits hinzugefügt wurde
+    if (browseButton.dataset.listenerAdded === 'true') {
+        return;
+    }
+    
     // Füge Suchfeld zum Modal hinzu
     const modalBody = document.querySelector('#node-browser-modal .modal-body');
     modalBody.innerHTML = `
@@ -292,6 +297,9 @@ async function initializeNodeBrowser() {
         addSelectedNodesToTable();
         nodeBrowserModal.hide();
     });
+    
+    // Markiere, dass Event-Listener hinzugefügt wurden
+    browseButton.dataset.listenerAdded = 'true';
 }
 
 // Hilfsfunktion zum Anzeigen von Fehlermeldungen
@@ -465,7 +473,11 @@ async function initializeEditDeviceModal(device_id) {
             datapointsTableBody.appendChild(createEmptyRow(deviceData.deviceType));
 
             showBrowseNodesButton(deviceData.deviceType);
-            initializeNodeBrowser();
+            
+            // Initialisiere Node-Browser nur für OPC-UA Geräte und nur einmal
+            if (deviceData.deviceType === 'opc-ua') {
+                initializeNodeBrowser();
+            }
 
             resolve();
         } catch (error) {

@@ -3,12 +3,19 @@ const dataTableBody = document.getElementById('data-table-body');
 const ctx = document.getElementById('data-chart').getContext('2d');
 const deviceSelect = document.getElementById('device-select');
 const datapointSelect = document.getElementById('datapoint-select');
-const exportButton = document.createElement('button'); // Export-Button erstellen
-// Tooltip for export button
-exportButton.setAttribute('data-bs-toggle', 'tooltip');
-exportButton.setAttribute('data-bs-placement', 'top');
-exportButton.setAttribute('title', 'Export data as CSV');
+const exportButton = document.getElementById('export-btn');
+const dataSummary = document.getElementById('data-summary');
+const dataCount = document.getElementById('data-count');
+const tableContainer = document.getElementById('table-container');
+const showTableToggle = document.getElementById('auto-refresh');
+const prevPageBtn = document.getElementById('prev-page');
+const nextPageBtn = document.getElementById('next-page');
+const pageInfo = document.getElementById('page-info');
+
 let chart;
+let allData = []; // Alle Daten speichern
+let currentPage = 0;
+const itemsPerPage = 50;
 
 // Funktion: Lade die Geräte und fülle das Dropdown
 async function loadDevices() {
@@ -61,6 +68,122 @@ async function loadMeasurementsForDevice(id) {
     }
 }
 
+// Funktionen für Paginierung
+function updatePagination() {
+    const totalPages = Math.ceil(allData.length / itemsPerPage);
+    prevPageBtn.disabled = currentPage === 0;
+    nextPageBtn.disabled = currentPage >= totalPages - 1;
+    pageInfo.textContent = totalPages > 0 ? `${currentPage + 1} / ${totalPages}` : '0 / 0';
+}
+
+function displayCurrentPage() {
+    const startIdx = currentPage * itemsPerPage;
+    const endIdx = Math.min(startIdx + itemsPerPage, allData.length);
+    const pageData = allData.slice(startIdx, endIdx);
+    
+    if (pageData.length === 0) {
+        dataTableBody.innerHTML = `
+            <tr>
+                <td colspan="2" class="text-center text-muted py-4">
+                    <i class="fas fa-search me-2"></i>No data found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    dataTableBody.innerHTML = pageData.map((item) =>
+        `<tr>
+            <td class="text-center font-monospace small">${new Date(item.x).toLocaleString('de-DE')}</td>
+            <td class="text-center"><span class="badge bg-light text-dark">${Number(item.y).toFixed(3)}</span></td>
+        </tr>`
+    ).join('');
+}
+
+function calculateStatistics(data) {
+    if (data.length === 0) return null;
+    
+    const values = data.map(item => Number(item.y)).filter(val => !isNaN(val));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const first = new Date(data[0].x);
+    const last = new Date(data[data.length - 1].x);
+    const duration = (last - first) / 1000 / 60; // Minuten
+    
+    return { min, max, avg, count: values.length, duration, first, last };
+}
+
+function updateDataSummary(stats) {
+    if (!stats) {
+        dataSummary.innerHTML = '<p class="text-muted">No data available</p>';
+        return;
+    }
+    
+    dataSummary.innerHTML = `
+        <div class="row g-2">
+            <div class="col-6">
+                <div class="text-center p-2 bg-light rounded">
+                    <div class="h6 mb-0 text-primary">${stats.count}</div>
+                    <small class="text-muted">Records</small>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="text-center p-2 bg-light rounded">
+                    <div class="h6 mb-0 text-success">${stats.duration.toFixed(1)}m</div>
+                    <small class="text-muted">Duration</small>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="text-center p-2 bg-light rounded">
+                    <div class="h6 mb-0 text-danger">${stats.max.toFixed(3)}</div>
+                    <small class="text-muted">Maximum</small>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="text-center p-2 bg-light rounded">
+                    <div class="h6 mb-0 text-info">${stats.min.toFixed(3)}</div>
+                    <small class="text-muted">Minimum</small>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="text-center p-2 bg-light rounded">
+                    <div class="h6 mb-0 text-warning">${stats.avg.toFixed(3)}</div>
+                    <small class="text-muted">Average</small>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="small text-muted">
+            <div><i class="fas fa-clock me-1"></i><strong>From:</strong> ${stats.first.toLocaleString('de-DE')}</div>
+            <div><i class="fas fa-clock me-1"></i><strong>To:</strong> ${stats.last.toLocaleString('de-DE')}</div>
+        </div>
+    `;
+}
+
+// Event-Listener für Paginierung
+prevPageBtn.addEventListener('click', () => {
+    if (currentPage > 0) {
+        currentPage--;
+        displayCurrentPage();
+        updatePagination();
+    }
+});
+
+nextPageBtn.addEventListener('click', () => {
+    const totalPages = Math.ceil(allData.length / itemsPerPage);
+    if (currentPage < totalPages - 1) {
+        currentPage++;
+        displayCurrentPage();
+        updatePagination();
+    }
+});
+
+// Event-Listener für Tabelle ein-/ausblenden
+showTableToggle.addEventListener('change', () => {
+    tableContainer.style.display = showTableToggle.checked ? 'block' : 'none';
+});
+
 // Event-Listener für Gerätewechsel
 deviceSelect.addEventListener('change', (event) => {
     const selectedDevice = event.target.value;
@@ -99,16 +222,23 @@ form.addEventListener('submit', async (event) => {
 
         console.log('Data:', data);
 
+        // Aktualisiere globale Daten
+        allData = data;
+        currentPage = 0;
+
+        // Aktualisiere Counter
+        dataCount.textContent = `${data.length} records`;
+
+        // Berechne und zeige Statistiken
+        const stats = calculateStatistics(data);
+        updateDataSummary(stats);
+
+        // Zeige erste Seite der Tabelle
+        displayCurrentPage();
+        updatePagination();
+
         const timestamps = data.map((item) => new Date(item.x)); // Konvertiere Zeitstempel in Date-Objekte
         const values = data.map((item) => item.y);
-
-        
-        dataTableBody.innerHTML = data.map((item) =>
-            `<tr>
-                <td>${new Date(item.x).toLocaleString()}</td>
-                <td>${item.y}</td>
-            </tr>`
-        ).join('');
 
         // Update Chart
         // Destroy existing chart if it exists
@@ -163,17 +293,14 @@ form.addEventListener('submit', async (event) => {
     }
 });
 
-// Füge den Export-Button zum chart-Container hinzu
-exportButton.textContent = 'Export Data';
-exportButton.className = 'btn btn-secondary btn-sm mt-3';
-
-// Füge den Button in den Container mit der ID "chart-container" ein
-const chartContainer = document.getElementById('chart-container');
-if (chartContainer) {
-    chartContainer.appendChild(exportButton);
-} else {
-    console.error('Container #chart-container not found!');
-}
+// Event-Listener für den Export-Button
+exportButton.addEventListener('click', () => {
+    if (allData.length === 0) {
+        alert('No data to export');
+        return;
+    }
+    exportToCSV(allData);
+});
 
 
 // Funktion: Daten als CSV herunterladen
@@ -211,13 +338,7 @@ function exportToPDF(data) {
     pdf.save('data.pdf');
 }
 
-// Event-Listener für den Export-Button
-exportButton.addEventListener('click', () => {
-    exportToCSV(chart.data.datasets[0].data.map((value, index) => ({
-        x: chart.data.labels[index],
-        y: value,
-    })));
-});
+
 
 // Lade Geräte, wenn die Seite geladen wird
 document.addEventListener('DOMContentLoaded', loadDevices);

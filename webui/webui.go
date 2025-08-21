@@ -3,8 +3,12 @@ package webui
 import (
 	"crypto/rand"
 	"database/sql"
+	"net/http"
 	"os"
 	"strconv"
+	"time"
+
+	"net/http/pprof"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -72,7 +76,26 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 	// Define routes
 	setupRoutes(r)
 
-	// Starte den Server basierend auf der Konfiguration
+	// Starte zuerst den pprof Server
+	go func() {
+		mux := http.NewServeMux()
+		// Registriere alle pprof-Endpunkte
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+		logrus.Info("Starting pprof server on port 6060")
+		if err := http.ListenAndServe(":6060", mux); err != nil {
+			logrus.Error("pprof server failed: ", err)
+		}
+	}()
+
+	// Warte kurz, damit der pprof-Server Zeit hat zu starten
+	time.Sleep(time.Second)
+
+	// Starte dann den Hauptserver
 	if config.WebUI.UseHTTPS {
 		// Starte den HTTPS-Server
 		if config.WebUI.TLSCert == "" || config.WebUI.TLSKey == "" {

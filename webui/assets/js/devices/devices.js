@@ -373,6 +373,19 @@ function updateDeviceTables(devices) {
 fetchAndPopulateDevices();
 hideAllConfigs();
 
+// Event-Listener für Modal-Events hinzufügen
+document.getElementById('modal-edit-device').addEventListener('hidden.bs.modal', function () {
+    // Modal vollständig zurücksetzen wenn es geschlossen wird
+    resetEditModal();
+});
+
+document.getElementById('modal-edit-device').addEventListener('hide.bs.modal', function () {
+    // Seite aktualisieren wenn Modal geschlossen wird
+    setTimeout(() => {
+        fetchAndPopulateDevices();
+    }, 100);
+});
+
 // #########
 // Modal new device dynamisieren
 // #########
@@ -384,38 +397,59 @@ document.getElementById('modal-new-device').addEventListener('show.bs.modal', in
 // Modal edit device dynamisieren
 // #########
 
-// Event-Listener für Edit-Buttons
-function setupEditButtonListener() {
-    document.removeEventListener('click', handleEditButtonClick); // Alten Listener entfernen
-    document.addEventListener('click', handleEditButtonClick); // Neuen Listener hinzufügen
-}
-
-async function handleEditButtonClick(event) {
+// Einmaliger Event-Listener für Edit-Buttons mit korrekter Modal-Behandlung
+document.addEventListener('click', async function(event) {
     const editButton = event.target.closest('.btn-flat.success');
-    if (editButton) {
+    if (editButton && editButton.getAttribute('data-bs-target') === '#modal-edit-device') {
         event.preventDefault();
+        event.stopPropagation();
         
         // Device ID aus dem Button-Attribut holen
-        const deviceId = document.getElementById('modal-edit-device').getAttribute('data-device-id');
+        const modalElement = document.getElementById('modal-edit-device');
+        const deviceId = modalElement.getAttribute('data-device-id');
         
         if (deviceId) {
             try {
+                // Modal-Element vollständig zurücksetzen
+                resetEditModal();
+                
                 // Warte bis die Daten geladen sind
                 await initializeEditDeviceModal(deviceId);
                 
                 // Erst dann das Modal öffnen
-                const modal = new bootstrap.Modal(document.getElementById('modal-edit-device'));
+                const modal = new bootstrap.Modal(modalElement);
                 modal.show();
             } catch (error) {
                 console.error('Fehler beim Laden der Gerätedaten:', error);
                 alert('Fehler beim Laden der Gerätedaten. Bitte versuchen Sie es erneut.');
-                // Modal schließen
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modal-edit-device'));
-                modal.hide();
             }
         }
     }
-}
+});
 
-// Initialisiere den Event-Listener einmal
-setupEditButtonListener();
+// Funktion zum vollständigen Zurücksetzen des Edit-Modals
+function resetEditModal() {
+    const modalElement = document.getElementById('modal-edit-device');
+    
+    // Entferne alle bestehenden Modal-Instanzen
+    const existingModal = bootstrap.Modal.getInstance(modalElement);
+    if (existingModal) {
+        existingModal.dispose();
+    }
+    
+    // Lösche localStorage
+    localStorage.removeItem('device_id');
+    
+    // Zurücksetzen aller Formulare
+    const form = modalElement.querySelector('#edit-device-form');
+    if (form) {
+        form.reset();
+    }
+    
+    // Entferne alle Event-Listener vom Browse-Button
+    const browseButton = document.getElementById('browse-nodes-btn');
+    if (browseButton) {
+        const newButton = browseButton.cloneNode(true);
+        browseButton.parentNode.replaceChild(newButton, browseButton);
+    }
+}

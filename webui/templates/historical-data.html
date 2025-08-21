@@ -102,25 +102,80 @@
                         </div>
                     </form>
             
-                    <!-- Chart Container -->
-                    <div class="mb-4" id="chart-container">
-                        <canvas id="data-chart" height="100"></canvas>
+                                <!-- Chart Container -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>Data Visualization
+                            </h5>
+                            <button id="export-btn" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-download me-1"></i>Export CSV
+                            </button>
+                        </div>
+                        <div class="card-body" id="chart-container">
+                            <canvas id="data-chart" height="80"></canvas>
+                        </div>
                     </div>
-            
-                    <!-- Table for Data -->
-                    <div>
-                        <h4>Data Table</h4>
-                        <table class="table table-striped table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Value</th>
-                                </tr>
-                            </thead>
-                            <tbody id="data-table-body">
-                            </tbody>
-                        </table>
+                </div>
+                
+                <!-- Data Summary Sidebar -->
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Data Summary
+                            </h6>
+                        </div>
+                        <div class="card-body" id="data-summary">
+                            <p class="text-muted">Run a query to see summary statistics</p>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Compact Data Table -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-table me-2"></i>Raw Data
+                        <span id="data-count" class="badge bg-secondary ms-2">0 records</span>
+                    </h6>
+                    <div class="d-flex gap-2">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+                            <label class="form-check-label" for="auto-refresh">Show table</label>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="prev-page" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="btn btn-outline-secondary btn-sm disabled" id="page-info">1 / 1</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="next-page" disabled>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0" id="table-container" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="text-center" style="width: 60%;">Timestamp</th>
+                                <th class="text-center" style="width: 40%;">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table-body">
+                            <tr>
+                                <td colspan="2" class="text-center text-muted py-4">
+                                    <i class="fas fa-search me-2"></i>Run a query to see data
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
                 </div>
             </div>
             <footer class="bg-white sticky-footer">

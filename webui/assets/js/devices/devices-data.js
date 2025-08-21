@@ -151,15 +151,12 @@ function saveEditDevice() {
             console.error('Fehler beim Aktualisieren des Geräts:', error);
         });
 
-        // Modal schließen und Seite aktualisieren
+        // Modal schließen
         const modalEl = document.getElementById('modal-edit-device');
-        // Versuche, eine bestehende Instanz abzurufen
-        let modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (!modalInstance) {
-            // Falls keine Instanz existiert, erstelle eine neue
-            modalInstance = new bootstrap.Modal(modalEl);
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) {
+            modalInstance.hide();
         }
-        modalInstance.hide();
     } catch (error) {
         console.error('Fehler beim Aktualisieren des Geräts:', error);
         // alert('Fehler beim Aktualisieren des Geräts. Bitte versuchen Sie es erneut.');

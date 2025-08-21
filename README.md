@@ -1,4 +1,4 @@
-# IoT-Gateway
+# 🏭 IoT-Gateway 
 
 ### Hauptfunktionen
 
@@ -45,7 +45,7 @@ Das Gateway besteht aus mehreren Komponenten, die in Docker-Containern laufen:
    cd iot-gateway-neu
    ```
 
-2. Umgebungsvariablen konfigurieren (optional):
+2. Umgebungsvariablen konfigurieren:
    Die Standardkonfiguration in der `.env`-Datei kann bei Bedarf angepasst werden.
 
 3. Gateway starten:

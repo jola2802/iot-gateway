@@ -36,7 +36,7 @@ func setupRoutes(r *gin.Engine) {
 	r.GET("/logout", logout)
 	r.GET("/api/ws-broker-status", brokerStatusWebSocket)
 	r.GET("/api/ws-device-data", deviceDataWebSocket)
-	r.POST("/api/img-process", captureImage)
+	// r.POST("/api/img-process", captureImage)
 
 	// Files
 	r.POST("/api/save-image", saveImage)

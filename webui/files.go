@@ -2,10 +2,12 @@ package webui
 
 import (
 	"archive/zip"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +21,12 @@ type ImageRequest struct {
 }
 
 func saveImage(c *gin.Context) {
+	db, err := getDBConnection(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection failed"})
+		return
+	}
+
 	var req ImageRequest
 
 	// Parse den JSON-Requestbody in das Struct
@@ -27,24 +35,27 @@ func saveImage(c *gin.Context) {
 		return
 	}
 
-	// Hole die Datenbankverbindung (hier ggf. Fehlerbehandlung einbauen)
-	db, err := getDBConnection(c)
+	deviceID, err := strconv.Atoi(req.Device)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID: " + err.Error()})
 		return
 	}
+	saveImageToDB(db, req.Image, time.Now(), deviceID)
 
+	// Sende eine Erfolgsmeldung zurück.
+	c.JSON(http.StatusOK, gin.H{"message": "Image saved"})
+}
+
+func saveImageToDB(db *sql.DB, image string, timestamp time.Time, deviceID int) {
 	// Speichere das Bild (als Blob) und den Timestamp in der Datenbank.
 	query := "INSERT INTO images (device, image, timestamp) VALUES (?, ?, ?)"
-	if _, err := db.Exec(query, req.Device, req.Image, time.Now()); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert image: " + err.Error()})
+	if _, err := db.Exec(query, deviceID, image, timestamp); err != nil {
 		return
 	}
 
 	// max 1000 Bilder in der Datenbank speichern
 	rows, err := db.Query("SELECT COUNT(*) FROM images")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query image count"})
 		return
 	}
 	defer rows.Close()
@@ -53,18 +64,18 @@ func saveImage(c *gin.Context) {
 	for rows.Next() {
 		err = rows.Scan(&count)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan image count"})
 			return
 		}
 	}
 
-	// Lösche das älteste Bild, wenn die Anzahl der Bilder 50 überschreitet
-	if count >= 50 {
+	// Lösche das älteste Bild, wenn die Anzahl der Bilder NUM_IMAGES_DB überschreitet
+	maxImages, err := strconv.Atoi(os.Getenv("NUM_IMAGES_DB"))
+	if err != nil {
+		return
+	}
+	if count >= maxImages {
 		db.Exec("DELETE FROM images WHERE id = (SELECT id FROM images ORDER BY timestamp ASC LIMIT 1)")
 	}
-
-	// Sende eine Erfolgsmeldung zurück.
-	c.JSON(http.StatusOK, gin.H{"message": "Image saved"})
 }
 
 type Image struct {

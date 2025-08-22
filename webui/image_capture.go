@@ -23,28 +23,29 @@ func showImageCapturePage(c *gin.Context) {
 
 // ImageCaptureProcess repräsentiert einen Image Capture Prozess
 type ImageCaptureProcess struct {
-	ID             int                    `json:"id"`
-	Name           string                 `json:"name"`
-	DeviceID       int                    `json:"device_id"`
-	DeviceName     string                 `json:"device_name"`
-	Endpoint       string                 `json:"endpoint"`
-	ObjectID       string                 `json:"object_id"`
-	MethodID       string                 `json:"method_id"`
-	MethodArgs     map[string]interface{} `json:"method_args"`
-	CheckNodeID    string                 `json:"check_node_id"`
-	ImageNodeID    string                 `json:"image_node_id"`
-	AckNodeID      string                 `json:"ack_node_id"`
-	EnableUpload   bool                   `json:"enable_upload"`
-	UploadURL      string                 `json:"upload_url"`
-	UploadHeaders  map[string]string      `json:"upload_headers"`
-	EnableCyclic   bool                   `json:"enable_cyclic"`
-	CyclicInterval int                    `json:"cyclic_interval"`
-	Description    string                 `json:"description"`
-	Status         string                 `json:"status"`
-	LastExecution  *time.Time             `json:"last_execution"`
-	LastImage      string                 `json:"last_image"`
-	CreatedAt      time.Time              `json:"created_at"`
-	UpdatedAt      time.Time              `json:"updated_at"`
+	ID                  int                    `json:"id"`
+	Name                string                 `json:"name"`
+	DeviceID            int                    `json:"device_id"`
+	DeviceName          string                 `json:"device_name"`
+	Endpoint            string                 `json:"endpoint"`
+	ObjectID            string                 `json:"object_id"`
+	MethodID            string                 `json:"method_id"`
+	MethodArgs          map[string]interface{} `json:"method_args"`
+	CheckNodeID         string                 `json:"check_node_id"`
+	ImageNodeID         string                 `json:"image_node_id"`
+	AckNodeID           string                 `json:"ack_node_id"`
+	EnableUpload        bool                   `json:"enable_upload"`
+	UploadURL           string                 `json:"upload_url"`
+	UploadHeaders       map[string]string      `json:"upload_headers"`
+	TimestampHeaderName string                 `json:"timestamp_header_name"`
+	EnableCyclic        bool                   `json:"enable_cyclic"`
+	CyclicInterval      int                    `json:"cyclic_interval"`
+	Description         string                 `json:"description"`
+	Status              string                 `json:"status"`
+	LastExecution       *time.Time             `json:"last_execution"`
+	LastImage           string                 `json:"last_image"`
+	CreatedAt           string                 `json:"created_at"`
+	UpdatedAt           string                 `json:"updated_at"`
 }
 
 // ProcessManager verwaltet die laufenden Image Capture Prozesse
@@ -67,9 +68,6 @@ var processManager = &ProcessManager{
 	processes: make(map[int]*RunningProcess),
 }
 
-// Globale Datenbankvariable für Image Capture Prozesse
-var globalDB *sql.DB
-
 // InitImageCaptureProcesses initialisiert alle laufenden Prozesse beim Start der Anwendung
 func InitImageCaptureProcesses(db *sql.DB) {
 	if db == nil {
@@ -77,21 +75,16 @@ func InitImageCaptureProcesses(db *sql.DB) {
 		return
 	}
 
-	// Globale Datenbankvariable setzen
-	globalDB = db
-
 	query := `
 		SELECT 
-			icp.id, icp.name, icp.device_id, d.name as device_name,
-			icp.endpoint, icp.object_id, icp.method_id, icp.method_args,
-			icp.check_node_id, icp.image_node_id, icp.ack_node_id,
-			icp.enable_upload, icp.upload_url, icp.upload_headers,
-			icp.enable_cyclic, icp.cyclic_interval, icp.description,
-			icp.status, icp.last_execution, icp.last_image,
-			icp.created_at, icp.updated_at
-		FROM image_capture_processes icp
-		LEFT JOIN devices d ON icp.device_id = d.id
-		WHERE icp.status = 'running'
+			id, name, device_id, endpoint, object_id, method_id, method_args,
+			check_node_id, image_node_id, ack_node_id,
+			enable_upload, upload_url, upload_headers, timestamp_header_name,
+			enable_cyclic, cyclic_interval, description,
+			status, last_execution, last_image,
+			created_at, updated_at
+		FROM image_capture_processes
+		WHERE status = 'running'
 	`
 
 	rows, err := db.Query(query)
@@ -104,15 +97,16 @@ func InitImageCaptureProcesses(db *sql.DB) {
 	for rows.Next() {
 		var process ImageCaptureProcess
 		var methodArgsStr, uploadHeadersStr sql.NullString
-		var lastExecutionStr sql.NullString
+		var lastExecutionStr, lastImageStr sql.NullString
+		var uploadURLStr, descriptionStr, timestampHeaderNameStr sql.NullString
 
 		err := rows.Scan(
-			&process.ID, &process.Name, &process.DeviceID, &process.DeviceName,
+			&process.ID, &process.Name, &process.DeviceID,
 			&process.Endpoint, &process.ObjectID, &process.MethodID, &methodArgsStr,
 			&process.CheckNodeID, &process.ImageNodeID, &process.AckNodeID,
-			&process.EnableUpload, &process.UploadURL, &uploadHeadersStr,
-			&process.EnableCyclic, &process.CyclicInterval, &process.Description,
-			&process.Status, &lastExecutionStr, &process.LastImage,
+			&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &timestampHeaderNameStr,
+			&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
+			&process.Status, &lastExecutionStr, &lastImageStr,
 			&process.CreatedAt, &process.UpdatedAt,
 		)
 		if err != nil {
@@ -120,22 +114,18 @@ func InitImageCaptureProcesses(db *sql.DB) {
 			continue
 		}
 
-		// MethodArgs parsen
-		if methodArgsStr.Valid && methodArgsStr.String != "" {
-			if err := json.Unmarshal([]byte(methodArgsStr.String), &process.MethodArgs); err != nil {
-				logrus.Errorf("Fehler beim Parsen der MethodArgs: %v", err)
-			}
+		// Parse process data using the common function
+		process, err = parseProcessData(process, methodArgsStr, uploadHeadersStr, lastExecutionStr, lastImageStr, uploadURLStr, descriptionStr, timestampHeaderNameStr)
+		if err != nil {
+			logrus.Errorf("Fehler beim Parsen der Prozessdaten: %v", err)
+			continue
 		}
 
-		// UploadHeaders parsen
-		if uploadHeadersStr.Valid && uploadHeadersStr.String != "" {
-			if err := json.Unmarshal([]byte(uploadHeadersStr.String), &process.UploadHeaders); err != nil {
-				logrus.Errorf("Fehler beim Parsen der UploadHeaders: %v", err)
-			}
-		}
+		// Device-Namen separat laden
+		process.DeviceName = getDeviceNameByID(db, process.DeviceID)
 
 		// Prozess starten
-		if err := processManager.StartProcess(&process); err != nil {
+		if err := processManager.StartProcess(db, &process); err != nil {
 			logrus.Errorf("Fehler beim Starten des Prozesses %d: %v", process.ID, err)
 		} else {
 			logrus.Infof("Prozess %s (ID: %d) erfolgreich wiederhergestellt", process.Name, process.ID)
@@ -147,34 +137,31 @@ func InitImageCaptureProcesses(db *sql.DB) {
 func getImageCaptureProcesses(c *gin.Context) {
 	db, err := getDBConnection(c)
 	if err != nil {
+		logrus.Errorf("Datenbankverbindung fehlgeschlagen: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Datenbankverbindung fehlgeschlagen"})
 		return
 	}
 
-	query := `
-		SELECT 
-			icp.id, icp.name, icp.device_id, d.name as device_name,
-			icp.endpoint, icp.object_id, icp.method_id, icp.method_args,
-			icp.check_node_id, icp.image_node_id, icp.ack_node_id,
-			icp.enable_upload, icp.upload_url, icp.upload_headers,
-			icp.enable_cyclic, icp.cyclic_interval, icp.description,
-			icp.status, icp.last_execution, icp.last_image,
-			icp.created_at, icp.updated_at
-		FROM image_capture_processes icp
-		LEFT JOIN devices d ON icp.device_id = d.id
-		ORDER BY icp.created_at DESC
+	query := `SELECT id, name, device_id, endpoint, object_id, method_id, method_args,
+			check_node_id, image_node_id, ack_node_id,
+			enable_upload, upload_url, upload_headers, timestamp_header_name,
+			enable_cyclic, cyclic_interval, description,
+			status, last_execution, last_image,
+			created_at, updated_at
+		FROM image_capture_processes
 	`
 
 	rows, err := db.Query(query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der Prozesse"})
+		logrus.Errorf("Fehler beim Datenbankquery: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der Prozesse", "details": err.Error()})
 		return
 	}
 	defer rows.Close()
 
 	var processes []ImageCaptureProcess
 	for rows.Next() {
-		process, err := scanProcessFromRow(rows)
+		process, err := scanProcessFromRow(db, rows)
 		if err != nil {
 			logrus.Errorf("Fehler beim Scannen der Prozessdaten: %v", err)
 			continue
@@ -186,6 +173,7 @@ func getImageCaptureProcesses(c *gin.Context) {
 		processes = append(processes, process)
 	}
 
+	// logrus.Infof("API: %d Prozesse gefunden", len(processes))
 	c.JSON(http.StatusOK, gin.H{"processes": processes})
 }
 
@@ -211,20 +199,19 @@ func getImageCaptureProcess(c *gin.Context) {
 
 	query := `
 		SELECT 
-			icp.id, icp.name, icp.device_id, d.name as device_name,
-			icp.endpoint, icp.object_id, icp.method_id, icp.method_args,
-			icp.check_node_id, icp.image_node_id, icp.ack_node_id,
-			icp.enable_upload, icp.upload_url, icp.upload_headers,
-			icp.enable_cyclic, icp.cyclic_interval, icp.description,
-			icp.status, icp.last_execution, icp.last_image,
-			icp.created_at, icp.updated_at
-		FROM image_capture_processes icp
-		LEFT JOIN devices d ON icp.device_id = d.id
-		WHERE icp.id = ?
+			id, name, device_id, COALESCE(d.name, 'Unbekanntes Gerät') as device_name,
+			endpoint, object_id, method_id, method_args,
+			check_node_id, image_node_id, ack_node_id,
+			enable_upload, upload_url, upload_headers, timestamp_header_name,
+			enable_cyclic, cyclic_interval, description,
+			status, last_execution, last_image,
+			created_at, updated_at
+		FROM image_capture_processes
+		WHERE id = ?
 	`
 
 	row := db.QueryRow(query, id)
-	process, err := scanProcessFromQueryRow(row)
+	process, err := scanProcessFromQueryRow(db, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Prozess nicht gefunden"})
@@ -242,25 +229,33 @@ func getImageCaptureProcess(c *gin.Context) {
 
 // addImageCaptureProcess erstellt einen neuen Image Capture Prozess
 func addImageCaptureProcess(c *gin.Context) {
+	logrus.Infof("API: addImageCaptureProcess aufgerufen")
+
 	var process ImageCaptureProcess
 	if err := c.ShouldBindJSON(&process); err != nil {
+		logrus.Errorf("Fehler beim Parsen der JSON-Daten: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Daten", "details": err.Error()})
 		return
 	}
 
+	logrus.Infof("Neuer Prozess: %s (Device ID: %d)", process.Name, process.DeviceID)
+
 	// Validierung
 	if process.Name == "" {
+		logrus.Errorf("Validierungsfehler: Name ist leer")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name ist erforderlich"})
 		return
 	}
 
 	if process.DeviceID == 0 {
+		logrus.Errorf("Validierungsfehler: DeviceID ist 0")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Geräte-ID ist erforderlich"})
 		return
 	}
 
 	db, err := getDBConnection(c)
 	if err != nil {
+		logrus.Errorf("Datenbankverbindung fehlgeschlagen: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Datenbankverbindung fehlgeschlagen"})
 		return
 	}
@@ -273,27 +268,30 @@ func addImageCaptureProcess(c *gin.Context) {
 	query := `
 		INSERT INTO image_capture_processes (
 			name, device_id, endpoint, object_id, method_id, method_args,
-			check_node_id, image_node_id, ack_node_id, enable_upload, upload_url, upload_headers,
+			check_node_id, image_node_id, ack_node_id, enable_upload, upload_url, upload_headers, timestamp_header_name,
 			enable_cyclic, cyclic_interval, description, status, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
+	logrus.Infof("Führe INSERT-Query aus...")
 	result, err := db.Exec(query,
 		process.Name, process.DeviceID, process.Endpoint, process.ObjectID, process.MethodID, string(methodArgsJSON),
-		process.CheckNodeID, process.ImageNodeID, process.AckNodeID, process.EnableUpload, process.UploadURL, string(uploadHeadersJSON),
+		process.CheckNodeID, process.ImageNodeID, process.AckNodeID, process.EnableUpload, process.UploadURL, string(uploadHeadersJSON), process.TimestampHeaderName,
 		process.EnableCyclic, process.CyclicInterval, process.Description, "stopped", now, now,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Erstellen des Prozesses"})
+		logrus.Errorf("Fehler beim INSERT: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Erstellen des Prozesses", "details": err.Error()})
 		return
 	}
 
 	id, _ := result.LastInsertId()
 	process.ID = int(id)
 	process.Status = "stopped"
-	process.CreatedAt = now
-	process.UpdatedAt = now
+	process.CreatedAt = now.Format(time.RFC3339)
+	process.UpdatedAt = now.Format(time.RFC3339)
 
+	logrus.Infof("Prozess erfolgreich erstellt mit ID: %d", process.ID)
 	c.JSON(http.StatusCreated, gin.H{"process": process, "message": "Prozess erfolgreich erstellt"})
 }
 
@@ -348,7 +346,7 @@ func updateImageCaptureProcess(c *gin.Context) {
 		return
 	}
 
-	process.UpdatedAt = now
+	process.UpdatedAt = now.Format(time.RFC3339)
 	c.JSON(http.StatusOK, gin.H{"process": process, "message": "Prozess erfolgreich aktualisiert"})
 }
 
@@ -408,29 +406,29 @@ func startImageCaptureProcess(c *gin.Context) {
 
 	query := `
 		SELECT 
-			icp.id, icp.name, icp.device_id, d.name as device_name,
-			icp.endpoint, icp.object_id, icp.method_id, icp.method_args,
-			icp.check_node_id, icp.image_node_id, icp.ack_node_id,
-			icp.enable_upload, icp.upload_url, icp.upload_headers,
-			icp.enable_cyclic, icp.cyclic_interval, icp.description,
-			icp.status, icp.last_execution, icp.last_image,
-			icp.created_at, icp.updated_at
-		FROM image_capture_processes icp
-		LEFT JOIN devices d ON icp.device_id = d.id
-		WHERE icp.id = ?
+			id, name, device_id,
+			endpoint, object_id, method_id, method_args,
+			check_node_id, image_node_id, ack_node_id,
+			enable_upload, upload_url, upload_headers, timestamp_header_name,
+			enable_cyclic, cyclic_interval, description,
+			status, last_execution, last_image,
+			created_at, updated_at
+		FROM image_capture_processes
+		WHERE id = ?
 	`
 
 	var process ImageCaptureProcess
 	var methodArgsStr, uploadHeadersStr sql.NullString
-	var lastExecutionStr sql.NullString
+	var lastExecutionStr, lastImageStr sql.NullString
+	var uploadURLStr, descriptionStr, timestampHeaderNameStr sql.NullString
 
 	err = db.QueryRow(query, id).Scan(
-		&process.ID, &process.Name, &process.DeviceID, &process.DeviceName,
+		&process.ID, &process.Name, &process.DeviceID,
 		&process.Endpoint, &process.ObjectID, &process.MethodID, &methodArgsStr,
 		&process.CheckNodeID, &process.ImageNodeID, &process.AckNodeID,
-		&process.EnableUpload, &process.UploadURL, &uploadHeadersStr,
-		&process.EnableCyclic, &process.CyclicInterval, &process.Description,
-		&process.Status, &lastExecutionStr, &process.LastImage,
+		&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &process.TimestampHeaderName,
+		&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
+		&process.Status, &lastExecutionStr, &lastImageStr,
 		&process.CreatedAt, &process.UpdatedAt,
 	)
 	if err != nil {
@@ -438,21 +436,16 @@ func startImageCaptureProcess(c *gin.Context) {
 		return
 	}
 
-	// MethodArgs und UploadHeaders parsen
-	if methodArgsStr.Valid && methodArgsStr.String != "" {
-		if err := json.Unmarshal([]byte(methodArgsStr.String), &process.MethodArgs); err != nil {
-			logrus.Errorf("Fehler beim Parsen der MethodArgs: %v", err)
-		}
-	}
-
-	if uploadHeadersStr.Valid && uploadHeadersStr.String != "" {
-		if err := json.Unmarshal([]byte(uploadHeadersStr.String), &process.UploadHeaders); err != nil {
-			logrus.Errorf("Fehler beim Parsen der UploadHeaders: %v", err)
-		}
+	// Parse process data using the common function
+	process, err = parseProcessData(process, methodArgsStr, uploadHeadersStr, lastExecutionStr, lastImageStr, uploadURLStr, descriptionStr, timestampHeaderNameStr)
+	if err != nil {
+		logrus.Errorf("Fehler beim Parsen der Prozessdaten: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Parsen der Prozessdaten"})
+		return
 	}
 
 	// Prozess starten
-	if err := processManager.StartProcess(&process); err != nil {
+	if err := processManager.StartProcess(db, &process); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Starten des Prozesses", "details": err.Error()})
 		return
 	}
@@ -524,29 +517,29 @@ func executeImageCaptureProcess(c *gin.Context) {
 
 	query := `
 		SELECT 
-			icp.id, icp.name, icp.device_id, d.name as device_name,
-			icp.endpoint, icp.object_id, icp.method_id, icp.method_args,
-			icp.check_node_id, icp.image_node_id, icp.ack_node_id,
-			icp.enable_upload, icp.upload_url, icp.upload_headers,
-			icp.enable_cyclic, icp.cyclic_interval, icp.description,
-			icp.status, icp.last_execution, icp.last_image,
-			icp.created_at, icp.updated_at
-		FROM image_capture_processes icp
-		LEFT JOIN devices d ON icp.device_id = d.id
-		WHERE icp.id = ?
+			id, name, device_id,
+			endpoint, object_id, method_id, method_args,
+			check_node_id, image_node_id, ack_node_id,
+			enable_upload, upload_url, upload_headers, timestamp_header_name,
+			enable_cyclic, cyclic_interval, description,
+			status, last_execution, last_image,
+			created_at, updated_at
+		FROM image_capture_processes
+		WHERE id = ?
 	`
 
 	var process ImageCaptureProcess
 	var methodArgsStr, uploadHeadersStr sql.NullString
-	var lastExecutionStr sql.NullString
+	var lastExecutionStr, lastImageStr sql.NullString
+	var uploadURLStr, descriptionStr, timestampHeaderNameStr sql.NullString
 
 	err = db.QueryRow(query, id).Scan(
-		&process.ID, &process.Name, &process.DeviceID, &process.DeviceName,
+		&process.ID, &process.Name, &process.DeviceID,
 		&process.Endpoint, &process.ObjectID, &process.MethodID, &methodArgsStr,
 		&process.CheckNodeID, &process.ImageNodeID, &process.AckNodeID,
-		&process.EnableUpload, &process.UploadURL, &uploadHeadersStr,
-		&process.EnableCyclic, &process.CyclicInterval, &process.Description,
-		&process.Status, &lastExecutionStr, &process.LastImage,
+		&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &timestampHeaderNameStr,
+		&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
+		&process.Status, &lastExecutionStr, &lastImageStr,
 		&process.CreatedAt, &process.UpdatedAt,
 	)
 	if err != nil {
@@ -554,98 +547,147 @@ func executeImageCaptureProcess(c *gin.Context) {
 		return
 	}
 
-	// MethodArgs und UploadHeaders parsen
-	if methodArgsStr.Valid && methodArgsStr.String != "" {
-		if err := json.Unmarshal([]byte(methodArgsStr.String), &process.MethodArgs); err != nil {
-			logrus.Errorf("Fehler beim Parsen der MethodArgs: %v", err)
-		}
+	// Parse process data using the common function
+	process, err = parseProcessData(process, methodArgsStr, uploadHeadersStr, lastExecutionStr, lastImageStr, uploadURLStr, descriptionStr, timestampHeaderNameStr)
+	if err != nil {
+		logrus.Errorf("Fehler beim Parsen der Prozessdaten: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Parsen der Prozessdaten"})
+		return
 	}
 
-	if uploadHeadersStr.Valid && uploadHeadersStr.String != "" {
-		if err := json.Unmarshal([]byte(uploadHeadersStr.String), &process.UploadHeaders); err != nil {
-			logrus.Errorf("Fehler beim Parsen der UploadHeaders: %v", err)
-		}
-	}
+	// Kanal für das Bild erstellen
+	imageChan := make(chan *ImageCaptureResult)
 
 	// Einmalige Ausführung in einer Go-Routine
 	go func() {
-		// Geräteinformationen aus der Datenbank holen
-		deviceQuery := `SELECT security_mode, security_policy, username, password FROM devices WHERE id = ?`
-		var securityMode, securityPolicy, username, password sql.NullString
-		db.QueryRow(deviceQuery, process.DeviceID).Scan(&securityMode, &securityPolicy, &username, &password)
-
-		params := ImageCaptureParams{
-			Endpoint:       process.Endpoint,
-			ObjectId:       process.ObjectID,
-			MethodId:       process.MethodID,
-			MethodArgs:     json.RawMessage(methodArgsStr.String),
-			CheckNodeId:    process.CheckNodeID,
-			ImageNodeId:    process.ImageNodeID,
-			AckNodeId:      process.AckNodeID,
-			DeviceId:       strconv.Itoa(process.DeviceID),
-			EnableUpload:   fmt.Sprintf("%t", process.EnableUpload),
-			UploadUrl:      process.UploadURL,
-			SecurityMode:   securityMode.String,
-			SecurityPolicy: securityPolicy.String,
-			Username:       username.String,
-			Password:       password.String,
-			Headers:        process.UploadHeaders,
-		}
-
-		// Image Capture ausführen
-		client, err := createAndConnectOPCUAClient(params)
+		result, err := executeSingleImageCapture(db, &process)
 		if err != nil {
-			logrus.Errorf("Fehler beim Erstellen des OPC UA Clients: %v", err)
-			return
+			imageChan <- &ImageCaptureResult{Error: err}
+		} else {
+			imageChan <- result
 		}
-
-		ctx := context.Background()
-		defer client.Close(ctx)
-
-		// Methode aufrufen
-		if err := callOPCUAMethod(ctx, client, params); err != nil {
-			logrus.Errorf("Fehler beim Methodenaufruf: %v", err)
-			return
-		}
-
-		// Warten auf Boolean-Wert
-		if err := waitForBooleanTrue(ctx, client, params.CheckNodeId); err != nil {
-			logrus.Errorf("Fehler beim Warten auf Boolean-Wert: %v", err)
-			return
-		}
-
-		// Bild lesen
-		base64String, err := readImageString(ctx, client, params.ImageNodeId)
-		if err != nil {
-			logrus.Errorf("Fehler beim Lesen des Bildes: %v", err)
-			return
-		}
-
-		// Ack setzen
-		if err := writeBoolean(ctx, client, params.AckNodeId, true); err != nil {
-			logrus.Errorf("Fehler beim Setzen des Ack-Werts: %v", err)
-		}
-
-		// Upload verarbeiten
-		if process.EnableUpload {
-			handleUploads(c, params, base64String)
-		}
-
-		// Datenbank aktualisieren
-		now := time.Now()
-		updateQuery := `
-			UPDATE image_capture_processes SET
-				last_execution = ?, last_image = ?, updated_at = ?
-			WHERE id = ?
-		`
-		db.Exec(updateQuery, now.Format(time.RFC3339), base64String, now, process.ID)
 	}()
 
-	c.JSON(http.StatusOK, gin.H{"message": "Image Capture gestartet"})
+	// Auf das Ergebnis warten
+	select {
+	case result := <-imageChan:
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+			return
+		}
+		// c.JSON(http.StatusOK, gin.H{"image": result.Image})
+		c.Data(http.StatusOK, "image/jpeg", []byte(result.Image))
+
+	case <-time.After(30 * time.Second):
+		c.JSON(http.StatusRequestTimeout, gin.H{"error": "Zeitüberschreitung beim Image Capture"})
+	}
+}
+
+// ImageCaptureResult enthält das Ergebnis einer Image Capture Ausführung
+type ImageCaptureResult struct {
+	Image string
+	Error error
+}
+
+// executeSingleImageCapture führt eine einzelne Image Capture Ausführung durch
+func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess) (*ImageCaptureResult, error) {
+	// Geräteinformationen aus der Datenbank holen
+	if db == nil {
+		return nil, fmt.Errorf("Datenbankverbindung ist nil")
+	}
+
+	deviceQuery := `SELECT security_mode, security_policy, username, password FROM devices WHERE id = ?`
+	var securityMode, securityPolicy, username, password sql.NullString
+	err := db.QueryRow(deviceQuery, process.DeviceID).Scan(&securityMode, &securityPolicy, &username, &password)
+	if err != nil {
+		return nil, fmt.Errorf("Fehler beim Laden der Geräteinformationen: %v", err)
+	}
+
+	// MethodArgs konvertieren
+	methodArgsJSON := json.RawMessage("{}")
+	if process.MethodArgs != nil {
+		if jsonBytes, err := json.Marshal(process.MethodArgs); err == nil {
+			methodArgsJSON = json.RawMessage(jsonBytes)
+		}
+	}
+
+	// Image Capture Parameter vorbereiten
+	params := ImageCaptureParams{
+		Endpoint:       process.Endpoint,
+		ObjectId:       process.ObjectID,
+		MethodId:       process.MethodID,
+		MethodArgs:     methodArgsJSON,
+		CheckNodeId:    process.CheckNodeID,
+		ImageNodeId:    process.ImageNodeID,
+		AckNodeId:      process.AckNodeID,
+		DeviceId:       strconv.Itoa(process.DeviceID),
+		EnableUpload:   fmt.Sprintf("%t", process.EnableUpload),
+		UploadUrl:      process.UploadURL,
+		SecurityMode:   securityMode.String,
+		SecurityPolicy: securityPolicy.String,
+		Username:       username.String,
+		Password:       password.String,
+		Headers:        process.UploadHeaders,
+	}
+
+	// OPC UA Client erstellen und verbinden
+	client, err := createAndConnectOPCUAClient(params)
+	if err != nil {
+		return nil, fmt.Errorf("Fehler beim Erstellen des OPC UA Clients: %v", err)
+	}
+
+	ctx := context.Background()
+	defer client.Close(ctx)
+
+	// Methode aufrufen
+	if err := callOPCUAMethod(ctx, client, params); err != nil {
+		return nil, fmt.Errorf("Fehler beim Methodenaufruf: %v", err)
+	}
+
+	// Warten auf Boolean-Wert
+	if err := waitForBooleanTrue(ctx, client, params.CheckNodeId); err != nil {
+		return nil, fmt.Errorf("Fehler beim Warten auf Boolean-Wert: %v", err)
+	}
+
+	// Bild lesen
+	base64String, err := readImageString(ctx, client, params.ImageNodeId)
+	if err != nil {
+		return nil, fmt.Errorf("Fehler beim Lesen des Bildes: %v", err)
+	}
+
+	// Ack setzen
+	if err := writeBoolean(ctx, client, params.AckNodeId, true); err != nil {
+		logrus.Errorf("Fehler beim Setzen des Ack-Werts: %v", err)
+	}
+
+	// Upload verarbeiten (wenn aktiviert)
+	if process.EnableUpload && process.UploadURL != "" {
+		success := uploadToExternalDatabase(base64String, process.UploadURL, process.UploadHeaders, strconv.Itoa(process.DeviceID), process.TimestampHeaderName)
+		if !success {
+			logrus.Errorf("Fehler beim externen Upload")
+		}
+	}
+
+	// Datenbank aktualisieren
+	now := time.Now()
+	updateQuery := `
+		UPDATE image_capture_processes SET
+			last_execution = ?, last_image = ?, updated_at = ?
+		WHERE id = ?
+	`
+	db.Exec(updateQuery, now.Format(time.RFC3339), base64String, now.Format(time.RFC3339), process.ID)
+
+	// Bild in die Datenbank speichern
+	saveImageToDB(db, base64String, now, process.DeviceID)
+
+	return &ImageCaptureResult{
+		Image: base64String,
+		Error: nil,
+	}, nil
 }
 
 // StartProcess startet einen Image Capture Prozess
-func (pm *ProcessManager) StartProcess(process *ImageCaptureProcess) error {
+func (pm *ProcessManager) StartProcess(db *sql.DB, process *ImageCaptureProcess) error {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
 
@@ -665,7 +707,7 @@ func (pm *ProcessManager) StartProcess(process *ImageCaptureProcess) error {
 	pm.processes[process.ID] = runningProcess
 
 	// Prozess in einer Go-Routine starten
-	go pm.runProcess(runningProcess)
+	go pm.runProcess(db, runningProcess)
 
 	return nil
 }
@@ -683,7 +725,7 @@ func (pm *ProcessManager) StopProcess(processID int) {
 }
 
 // runProcess führt den Image Capture Prozess aus
-func (pm *ProcessManager) runProcess(runningProcess *RunningProcess) {
+func (pm *ProcessManager) runProcess(db *sql.DB, runningProcess *RunningProcess) {
 	process := runningProcess.Process
 
 	// Intervall für zyklische Ausführung bestimmen
@@ -702,88 +744,17 @@ func (pm *ProcessManager) runProcess(runningProcess *RunningProcess) {
 				return
 			}
 
-			// MethodArgs konvertieren
-			methodArgsJSON := json.RawMessage("{}")
-			if process.MethodArgs != nil {
-				if jsonBytes, err := json.Marshal(process.MethodArgs); err == nil {
-					methodArgsJSON = json.RawMessage(jsonBytes)
-				}
-			}
-
-			// Geräteinformationen aus der Datenbank holen
-			if globalDB == nil {
-				runningProcess.LastError = "Datenbankverbindung fehlgeschlagen"
-				logrus.Errorf("Globale Datenbankverbindung ist nil")
-				continue
-			}
-
-			deviceQuery := `SELECT security_mode, security_policy, username, password FROM devices WHERE id = ?`
-			var securityMode, securityPolicy, username, password sql.NullString
-			globalDB.QueryRow(deviceQuery, process.DeviceID).Scan(&securityMode, &securityPolicy, &username, &password)
-
-			// Image Capture ausführen
-			params := ImageCaptureParams{
-				Endpoint:       process.Endpoint,
-				ObjectId:       process.ObjectID,
-				MethodId:       process.MethodID,
-				MethodArgs:     methodArgsJSON,
-				CheckNodeId:    process.CheckNodeID,
-				ImageNodeId:    process.ImageNodeID,
-				AckNodeId:      process.AckNodeID,
-				DeviceId:       strconv.Itoa(process.DeviceID),
-				EnableUpload:   fmt.Sprintf("%t", process.EnableUpload),
-				UploadUrl:      process.UploadURL,
-				SecurityMode:   securityMode.String,
-				SecurityPolicy: securityPolicy.String,
-				Username:       username.String,
-				Password:       password.String,
-				Headers:        process.UploadHeaders,
-			}
-
-			// Image Capture ausführen
-			client, err := createAndConnectOPCUAClient(params)
+			// Image Capture mit der gemeinsamen Funktion ausführen
+			result, err := executeSingleImageCapture(db, process)
 			if err != nil {
 				runningProcess.LastError = err.Error()
-				logrus.Errorf("Fehler beim Erstellen des OPC UA Clients: %v", err)
+				logrus.Errorf("Fehler beim Image Capture: %v", err)
 				continue
-			}
-
-			ctx := context.Background()
-			defer client.Close(ctx)
-
-			// Methode aufrufen
-			if err := callOPCUAMethod(ctx, client, params); err != nil {
-				runningProcess.LastError = err.Error()
-				logrus.Errorf("Fehler beim Methodenaufruf: %v", err)
-				continue
-			}
-
-			// Warten auf Boolean-Wert
-			if err := waitForBooleanTrue(ctx, client, params.CheckNodeId); err != nil {
-				runningProcess.LastError = err.Error()
-				logrus.Errorf("Fehler beim Warten auf Boolean-Wert: %v", err)
-				continue
-			}
-
-			// Bild lesen
-			base64String, err := readImageString(ctx, client, params.ImageNodeId)
-			if err != nil {
-				runningProcess.LastError = err.Error()
-				logrus.Errorf("Fehler beim Lesen des Bildes: %v", err)
-				continue
-			}
-
-			// Ack setzen
-			if err := writeBoolean(ctx, client, params.AckNodeId, true); err != nil {
-				logrus.Errorf("Fehler beim Setzen des Ack-Werts: %v", err)
 			}
 
 			// Erfolgreiche Ausführung
 			runningProcess.LastError = ""
-			runningProcess.LastImage = base64String
-
-			// Datenbank aktualisieren
-			updateProcessExecutionInfo(process.ID, base64String)
+			runningProcess.LastImage = result.Image
 
 		case <-runningProcess.StopChan:
 			return
@@ -822,51 +793,79 @@ func StopAllImageCaptureProcesses(db *sql.DB) {
 }
 
 // scanProcessFromRow scannt einen Prozess aus einer Datenbankzeile
-func scanProcessFromRow(rows *sql.Rows) (ImageCaptureProcess, error) {
+func scanProcessFromRow(db *sql.DB, rows *sql.Rows) (ImageCaptureProcess, error) {
 	var process ImageCaptureProcess
 	var methodArgsStr, uploadHeadersStr sql.NullString
-	var lastExecutionStr sql.NullString
+	var lastExecutionStr, lastImageStr sql.NullString
+	var uploadURLStr, descriptionStr, timestampHeaderNameStr sql.NullString
 
 	err := rows.Scan(
-		&process.ID, &process.Name, &process.DeviceID, &process.DeviceName,
+		&process.ID, &process.Name, &process.DeviceID,
 		&process.Endpoint, &process.ObjectID, &process.MethodID, &methodArgsStr,
 		&process.CheckNodeID, &process.ImageNodeID, &process.AckNodeID,
-		&process.EnableUpload, &process.UploadURL, &uploadHeadersStr,
-		&process.EnableCyclic, &process.CyclicInterval, &process.Description,
-		&process.Status, &lastExecutionStr, &process.LastImage,
+		&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &timestampHeaderNameStr,
+		&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
+		&process.Status, &lastExecutionStr, &lastImageStr,
 		&process.CreatedAt, &process.UpdatedAt,
 	)
 	if err != nil {
 		return process, err
 	}
 
-	return parseProcessData(process, methodArgsStr, uploadHeadersStr, lastExecutionStr)
+	// Device-Namen separat laden
+	process.DeviceName = getDeviceNameByID(db, process.DeviceID)
+
+	return parseProcessData(process, methodArgsStr, uploadHeadersStr, lastExecutionStr, lastImageStr, uploadURLStr, descriptionStr, timestampHeaderNameStr)
 }
 
 // scanProcessFromQueryRow scannt einen Prozess aus einer QueryRow
-func scanProcessFromQueryRow(row *sql.Row) (ImageCaptureProcess, error) {
+func scanProcessFromQueryRow(db *sql.DB, row *sql.Row) (ImageCaptureProcess, error) {
 	var process ImageCaptureProcess
 	var methodArgsStr, uploadHeadersStr sql.NullString
-	var lastExecutionStr sql.NullString
+	var lastExecutionStr, lastImageStr sql.NullString
+	var uploadURLStr, descriptionStr, timestampHeaderNameStr sql.NullString
 
 	err := row.Scan(
-		&process.ID, &process.Name, &process.DeviceID, &process.DeviceName,
+		&process.ID, &process.Name, &process.DeviceID,
 		&process.Endpoint, &process.ObjectID, &process.MethodID, &methodArgsStr,
 		&process.CheckNodeID, &process.ImageNodeID, &process.AckNodeID,
-		&process.EnableUpload, &process.UploadURL, &uploadHeadersStr,
-		&process.EnableCyclic, &process.CyclicInterval, &process.Description,
-		&process.Status, &lastExecutionStr, &process.LastImage,
+		&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &timestampHeaderNameStr,
+		&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
+		&process.Status, &lastExecutionStr, &lastImageStr,
 		&process.CreatedAt, &process.UpdatedAt,
 	)
 	if err != nil {
 		return process, err
 	}
 
-	return parseProcessData(process, methodArgsStr, uploadHeadersStr, lastExecutionStr)
+	// Device-Namen separat laden
+	process.DeviceName = getDeviceNameByID(db, process.DeviceID)
+
+	return parseProcessData(process, methodArgsStr, uploadHeadersStr, lastExecutionStr, lastImageStr, uploadURLStr, descriptionStr, timestampHeaderNameStr)
+}
+
+// getDeviceNameByID holt den Device-Namen anhand der ID
+func getDeviceNameByID(db *sql.DB, deviceID int) string {
+	if db == nil {
+		return "Unbekanntes Gerät"
+	}
+
+	var deviceName sql.NullString
+	query := `SELECT name FROM devices WHERE id = ?`
+	err := db.QueryRow(query, deviceID).Scan(&deviceName)
+	if err != nil {
+		logrus.Errorf("Fehler beim Laden des Device-Namens für ID %d: %v", deviceID, err)
+		return "Unbekanntes Gerät"
+	}
+
+	if deviceName.Valid {
+		return deviceName.String
+	}
+	return "Unbekanntes Gerät"
 }
 
 // parseProcessData parst die JSON-Felder und LastExecution eines Prozesses
-func parseProcessData(process ImageCaptureProcess, methodArgsStr, uploadHeadersStr sql.NullString, lastExecutionStr sql.NullString) (ImageCaptureProcess, error) {
+func parseProcessData(process ImageCaptureProcess, methodArgsStr, uploadHeadersStr sql.NullString, lastExecutionStr sql.NullString, lastImageStr sql.NullString, uploadURLStr sql.NullString, descriptionStr sql.NullString, timestampHeaderNameStr sql.NullString) (ImageCaptureProcess, error) {
 	// MethodArgs parsen
 	if methodArgsStr.Valid && methodArgsStr.String != "" {
 		if err := json.Unmarshal([]byte(methodArgsStr.String), &process.MethodArgs); err != nil {
@@ -894,6 +893,34 @@ func parseProcessData(process ImageCaptureProcess, methodArgsStr, uploadHeadersS
 		} else {
 			logrus.Errorf("Fehler beim Parsen der LastExecution für Prozess %d: %v", process.ID, err)
 		}
+	}
+
+	// LastImage verarbeiten
+	if lastImageStr.Valid {
+		process.LastImage = lastImageStr.String
+	} else {
+		process.LastImage = ""
+	}
+
+	// UploadURL verarbeiten
+	if uploadURLStr.Valid {
+		process.UploadURL = uploadURLStr.String
+	} else {
+		process.UploadURL = ""
+	}
+
+	// Description verarbeiten
+	if descriptionStr.Valid {
+		process.Description = descriptionStr.String
+	} else {
+		process.Description = ""
+	}
+
+	// TimestampHeaderName verarbeiten
+	if timestampHeaderNameStr.Valid {
+		process.TimestampHeaderName = timestampHeaderNameStr.String
+	} else {
+		process.TimestampHeaderName = ""
 	}
 
 	return process, nil
@@ -930,46 +957,4 @@ func updateProcessStatusFromManager(process *ImageCaptureProcess) {
 	}
 }
 
-// getProcessByID holt einen Prozess nach ID aus der Datenbank
-func getProcessByID(c *gin.Context, id int) (ImageCaptureProcess, error) {
-	db, err := getDBConnection(c)
-	if err != nil {
-		return ImageCaptureProcess{}, err
-	}
-
-	query := `
-		SELECT 
-			icp.id, icp.name, icp.device_id, d.name as device_name,
-			icp.endpoint, icp.object_id, icp.method_id, icp.method_args,
-			icp.check_node_id, icp.image_node_id, icp.ack_node_id,
-			icp.enable_upload, icp.upload_url, icp.upload_headers,
-			icp.enable_cyclic, icp.cyclic_interval, icp.description,
-			icp.status, icp.last_execution, icp.last_image,
-			icp.created_at, icp.updated_at
-		FROM image_capture_processes icp
-		LEFT JOIN devices d ON icp.device_id = d.id
-		WHERE icp.id = ?
-	`
-
-	row := db.QueryRow(query, id)
-	return scanProcessFromQueryRow(row)
-}
-
-// updateProcessExecutionInfo aktualisiert die Ausführungsinformationen eines Prozesses
-func updateProcessExecutionInfo(processID int, base64Image string) {
-	if globalDB == nil {
-		logrus.Errorf("globale Datenbankverbindung ist nil beim Aktualisieren der Prozessdaten")
-		return
-	}
-
-	now := time.Now()
-	updateQuery := `
-		UPDATE image_capture_processes SET
-			last_execution = ?, last_image = ?, updated_at = ?
-		WHERE id = ?
-	`
-
-	if _, err := globalDB.Exec(updateQuery, now.Format(time.RFC3339), base64Image, now, processID); err != nil {
-		logrus.Errorf("fehler beim Aktualisieren der Prozessdaten: %v", err)
-	}
-}
+// updateProcessExecutionInfo ist nicht mehr notwendig - wird in executeSingleImageCapture behandelt

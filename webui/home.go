@@ -111,14 +111,27 @@ func brokerStatusWebSocket(c *gin.Context) {
 	// format node-red url
 	nodeRedPort := os.Getenv("NODE_RED_HTTP_PORT")
 	if nodeRedPort == "" {
-		nodeRedUrl = "http://node-red:1880"
+		if os.Getenv("NODE_RED_URL") != "" {
+			nodeRedUrl = os.Getenv("NODE_RED_URL")
+		} else {
+			nodeRedUrl = "http://node-red:1880"
+		}
 	} else {
 		nodeRedUrl = "http://node-red:" + nodeRedPort
+		if os.Getenv("NODE_RED_URL") != "" {
+			nodeRedUrl = os.Getenv("NODE_RED_URL")
+		}
+	}
+
+	if nodeRedUrl == "" {
+		logrus.Warn("Node-RED URL is not set, skipping node red check")
+		stateConnection = false
+		return
 	}
 
 	// Starte eine Goroutine für die Node-RED-Überprüfung
 	go func() {
-		nodeRedTicker := time.NewTicker(10 * time.Second) // Prüfe alle 10 Sekunden
+		nodeRedTicker := time.NewTicker(20 * time.Second) // Prüfe alle 10 Sekunden
 		defer nodeRedTicker.Stop()
 
 		// Einmal zu Beginn die Verbindung prüfen

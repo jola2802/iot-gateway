@@ -104,6 +104,7 @@ const (
 			enable_upload BOOLEAN DEFAULT 0,
 			upload_url TEXT,
 			upload_headers TEXT,
+			timestamp_header_name TEXT,
 			enable_cyclic BOOLEAN DEFAULT 0,
 			cyclic_interval INTEGER DEFAULT 30,
 			description TEXT,

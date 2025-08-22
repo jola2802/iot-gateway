@@ -2,12 +2,181 @@
 let processes = [];
 let devices = [];
 
+// Initialisiere Bilder-Anzeige
+function initializeImagesFiles() {
+    const imagesFilesContainer = document.getElementById('images-files-container');
+    const downloadAllImagesBtn = document.getElementById('download-all-images');
+    if (!imagesFilesContainer) return;
+
+    // Bilder vom Server laden
+    fetch('/api/images')
+        .then(response => response.json())
+        .then(data => {
+            imagesFilesContainer.innerHTML = '';
+
+            // Sortiere Bilder nach Timestamp (neueste zuerst)
+            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            // Erstelle ein responsives Grid für die Bilder
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('row', 'row-cols-1', 'row-cols-md-3', 'row-cols-lg-5', 'g-3');
+
+            // Zeige maximal 25 Bilder an
+            const imagesToShow = data.slice(0, 25);
+            
+            imagesToShow.forEach((image) => {
+                const colDiv = document.createElement('div');
+                colDiv.classList.add('col');
+                
+                const cardDiv = document.createElement('div');
+                cardDiv.classList.add('card', 'h-100');
+                
+                // Bild aus dem Base64-String anzeigen
+                const imgElement = document.createElement('img');
+                imgElement.src = image.image.startsWith('data:image') ? image.image : 'data:image/png;base64,' + image.image;
+                imgElement.alt = 'Bild von ' + image.device;
+                imgElement.classList.add('card-img-top', 'img-thumbnail');
+                imgElement.style.height = '150px';
+                imgElement.style.objectFit = 'cover';
+                
+                // Klickbar machen für Vollbildansicht
+                imgElement.style.cursor = 'pointer';
+                imgElement.addEventListener('click', () => {
+                    previewImage(image.image.replace('data:image/png;base64,', '').replace('data:image/jpeg;base64,', ''), image.timestamp);
+                });
+                
+                // Karteninhalt
+                const cardBody = document.createElement('div');
+                cardBody.classList.add('card-body', 'p-2');
+                
+                // Gerätenamen anzeigen
+                const deviceName = document.createElement('h6');
+                deviceName.classList.add('card-title');
+                deviceName.textContent = image.device;
+                
+                // Timestamp anzeigen
+                const timestamp = document.createElement('small');
+                timestamp.classList.add('text-muted');
+                timestamp.textContent = formatDateTime(image.timestamp);
+                
+                cardBody.appendChild(deviceName);
+                cardBody.appendChild(timestamp);
+                
+                cardDiv.appendChild(imgElement);
+                cardDiv.appendChild(cardBody);
+                colDiv.appendChild(cardDiv);
+                rowDiv.appendChild(colDiv);
+            });
+            
+            imagesFilesContainer.appendChild(rowDiv);
+            
+            if (imagesToShow.length === 0) {
+                imagesFilesContainer.innerHTML = '<p class="text-center text-muted">Keine Bilder verfügbar</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden der Bilder:', error);
+            imagesFilesContainer.innerHTML = '<p class="text-center text-danger">Fehler beim Laden der Bilder</p>';
+        });
+
+    // Download-Button Event Listener
+    if (downloadAllImagesBtn) {
+        downloadAllImagesBtn.addEventListener('click', () => {
+            fetch('/api/images/download')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'all_images.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    console.error('Fehler beim Download:', error);
+                    showAlert('Fehler beim Download der Bilder', 'danger');
+                });
+        });
+    }
+}
+
+
+// Funktion zum Anzeigen eines Bildes im Modal
+function showImageModal(image) {
+    let modal = document.getElementById('image-preview-modal');
+    
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'image-preview-modal';
+        modal.classList.add('modal', 'fade');
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-hidden', 'true');
+        
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Image Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="modal-image" class="img-fluid" alt="Image Preview">
+                        <div class="mt-2">
+                            <p id="modal-device" class="mb-1"></p>
+                            <p id="modal-timestamp" class="text-muted small"></p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a id="modal-download" class="btn btn-primary" download>
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    // Setze die Bildinformationen
+    const modalImage = document.getElementById('modal-image');
+    const modalDevice = document.getElementById('modal-device');
+    const modalTimestamp = document.getElementById('modal-timestamp');
+    const modalDownload = document.getElementById('modal-download');
+    
+    const imageSource = image.image.startsWith('data:image') ? image.image : 'data:image/png;base64,' + image.image;
+    
+    modalImage.src = imageSource;
+    modalDevice.textContent = 'Device ID: ' + image.device;
+    
+    const date = new Date(image.timestamp);
+    modalTimestamp.textContent = 'Captured at: ' + date.toLocaleString('de-DE');
+    
+    modalDownload.href = imageSource;
+    modalDownload.download = `image_${image.device}_${date.toISOString().split('T')[0]}.png`;
+    
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
+
 // Initialisierung beim Laden der Seite
 document.addEventListener('DOMContentLoaded', function() {
     loadDevices();
-    loadProcesses();
+    loadProcesses(); 
     setupEventListeners();
+    initializeImagesFiles();
 });
+
+// // Funktionen auch direkt aufrufen, damit sie sofort ausgeführt werden
+// loadDevices();
+// loadProcesses();
+// setupEventListeners();
 
 // Event Listener einrichten
 function setupEventListeners() {
@@ -63,25 +232,49 @@ function populateDeviceSelect() {
 
 // Prozesse laden
 async function loadProcesses() {
+    // console.log('Loading processes...');
     try {
         const response = await fetch('/api/image-capture-processes');
-        if (!response.ok) throw new Error('Fehler beim Laden der Prozesse');
+        // console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const data = await response.json();
+        // console.log('Received data:', data);
+        
         processes = data.processes || [];
+        // console.log('Processes loaded:', processes.length);
+        
         renderProcessTable();
     } catch (error) {
         console.error('Fehler beim Laden der Prozesse:', error);
-        showAlert('Fehler beim Laden der Prozesse', 'danger');
+        showAlert('Fehler beim Laden der Prozesse: ' + error.message, 'danger');
+        
+        // Fallback: Leere Tabelle anzeigen
+        processes = [];
+        renderProcessTable();
     }
 }
 
 // Prozessliste rendern
 function renderProcessTable() {
+    // console.log('Rendering process table with', processes.length, 'processes');
     const tbody = document.getElementById('processTableBody');
+    
+    if (!tbody) {
+        console.error('Process table body not found!');
+        return;
+    }
+    
     tbody.innerHTML = '';
     
+    // Statistiken berechnen
+    updateProcessStatistics();
+    
     if (processes.length === 0) {
+        // console.log('No processes found, showing empty message');
         tbody.innerHTML = '<tr><td colspan="8" class="text-center">Keine Prozesse gefunden</td></tr>';
         return;
     }
@@ -99,16 +292,16 @@ function renderProcessTable() {
             <td>
                 ${process.enable_cyclic ? 
                     `<span class="badge bg-info">${process.cyclic_interval}s</span>` : 
-                    '<span class="text-muted">Manuell</span>'
+                    '<span class="text-muted">Manual</span>'
                 }
             </td>
             <td>${formatDateTime(process.last_execution)}</td>
             <td>
                 ${process.last_image ? 
-                    `<button class="btn btn-sm btn-outline-primary" onclick="previewImage('${process.last_image}')">
-                        <i class="fas fa-eye"></i> Vorschau
+                    `<button class="btn btn-sm btn-outline-primary" onclick="previewImage('${process.last_image}', '${process.last_execution}')">
+                        <i class="fas fa-eye"></i> Preview
                     </button>` : 
-                    '<span class="text-muted">Kein Bild</span>'
+                    '<span class="text-muted">No image</span>'
                 }
             </td>
             <td>
@@ -148,17 +341,19 @@ function getStatusBadgeClass(status) {
         case 'running': return 'bg-success';
         case 'stopped': return 'bg-secondary';
         case 'error': return 'bg-danger';
-        default: return 'bg-secondary';
+        case 'paused': return 'bg-warning';
+        default: return 'bg-light text-dark';
     }
 }
 
 // Status Text ermitteln
 function getStatusText(status) {
     switch (status) {
-        case 'running': return 'Läuft';
-        case 'stopped': return 'Gestoppt';
-        case 'error': return 'Fehler';
-        default: return 'Unbekannt';
+        case 'running': return 'Running';
+        case 'stopped': return 'Stopped';
+        case 'error': return 'Error';
+        case 'paused': return 'Paused';
+        default: return status || 'Unknown';
     }
 }
 
@@ -181,14 +376,17 @@ function escapeHtml(text) {
 
 // Prozess speichern
 async function saveProcess() {
+    // console.log('Saving process...');
     const formData = getFormData();
+    // console.log('Form data:', formData);
     
     if (!formData.name || !formData.device_id) {
-        showAlert('Bitte füllen Sie alle Pflichtfelder aus', 'warning');
+        showAlert('Please fill in all required fields', 'warning');
         return;
     }
     
     try {
+        // console.log('Sending POST request to /api/image-capture-processes');
         const response = await fetch('/api/image-capture-processes', {
             method: 'POST',
             headers: {
@@ -197,16 +395,20 @@ async function saveProcess() {
             body: JSON.stringify(formData)
         });
         
+        // console.log('Save response status:', response.status);
+        
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Fehler beim Speichern');
+            throw new Error(error.error || 'Error saving process');
         }
         
         const result = await response.json();
-        showAlert('Prozess erfolgreich erstellt', 'success');
+        // console.log('Save result:', result);
+        showAlert('Process created successfully', 'success');
         
         // Neuen Prozess zur lokalen Liste hinzufügen
         if (result.process) {
+            // console.log('Adding new process to list');
             processes.unshift(result.process); // Am Anfang hinzufügen
             renderProcessTable();
         }
@@ -219,9 +421,13 @@ async function saveProcess() {
         // Upload Headers zurücksetzen
         populateUploadHeaders({});
         
+        // Nach dem Speichern nochmal die Prozesse laden
+        // console.log('Reloading processes after save');
+        await loadProcesses();
+        
     } catch (error) {
-        console.error('Fehler beim Speichern:', error);
-        showAlert('Fehler beim Speichern: ' + error.message, 'danger');
+        console.error('Error saving:', error);
+        showAlert('Error saving: ' + error.message, 'danger');
     }
 }
 
@@ -267,19 +473,33 @@ function collectUploadHeaders() {
 
 // Formulardaten sammeln
 function getFormData() {
+    // Method Args aus Textarea parsen
+    let methodArgs = {};
+    const methodArgsText = document.getElementById('methodArgs').value.trim();
+    if (methodArgsText) {
+        try {
+            methodArgs = JSON.parse(methodArgsText);
+        } catch (e) {
+            console.warn('Invalid JSON in method args, using empty object:', e);
+            showAlert('Warning: Invalid JSON in Method Arguments. Using empty arguments instead.', 'warning');
+            methodArgs = {};
+        }
+    }
+
     return {
         name: document.getElementById('processName').value,
         device_id: parseInt(document.getElementById('deviceSelect').value),
         endpoint: document.getElementById('endpoint').value,
         object_id: document.getElementById('objectId').value,
         method_id: document.getElementById('methodId').value,
-        method_args: {},
+        method_args: methodArgs,
         check_node_id: document.getElementById('checkNodeId').value,
         image_node_id: document.getElementById('imageNodeId').value,
         ack_node_id: document.getElementById('ackNodeId').value,
         enable_upload: document.getElementById('enableUpload').checked,
         upload_url: document.getElementById('uploadUrl').value,
         upload_headers: collectUploadHeaders(),
+        timestamp_header_name: document.getElementById('timestampHeaderName').value,
         enable_cyclic: document.getElementById('enableCyclic').checked,
         cyclic_interval: parseInt(document.getElementById('cyclicInterval').value) || 30,
         description: document.getElementById('processDescription').value
@@ -298,12 +518,12 @@ async function startProcess(processId) {
             throw new Error(error.error || 'Fehler beim Starten');
         }
         
-        showAlert('Prozess erfolgreich gestartet', 'success');
+        showAlert('Process started successfully', 'success');
         loadProcesses();
         
     } catch (error) {
-        console.error('Fehler beim Starten:', error);
-        showAlert('Fehler beim Starten: ' + error.message, 'danger');
+        console.error('Error starting:', error);
+        showAlert('Error starting: ' + error.message, 'danger');
     }
 }
 
@@ -316,15 +536,15 @@ async function stopProcess(processId) {
         
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Fehler beim Stoppen');
+            throw new Error(error.error || 'Error stopping');
         }
         
-        showAlert('Prozess erfolgreich gestoppt', 'success');
+        showAlert('Process stopped successfully', 'success');
         loadProcesses();
         
     } catch (error) {
-        console.error('Fehler beim Stoppen:', error);
-        showAlert('Fehler beim Stoppen: ' + error.message, 'danger');
+        console.error('Error stopping:', error);
+        showAlert('Error stopping: ' + error.message, 'danger');
     }
 }
 
@@ -337,10 +557,10 @@ async function executeProcess(processId) {
         
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Fehler bei der Ausführung');
+            throw new Error(error.error || 'Error executing');
         }
         
-        showAlert('Image Capture gestartet', 'success');
+        showAlert('Image Capture executed', 'success');
         
         // Nach kurzer Zeit die Prozesse neu laden, um das neue Bild zu sehen
         setTimeout(() => {
@@ -348,8 +568,8 @@ async function executeProcess(processId) {
         }, 2000);
         
     } catch (error) {
-        console.error('Fehler bei der Ausführung:', error);
-        showAlert('Fehler bei der Ausführung: ' + error.message, 'danger');
+        console.error('Error executing:', error);
+        showAlert('Error executing: ' + error.message, 'danger');
     }
 }
 
@@ -357,7 +577,7 @@ async function executeProcess(processId) {
 async function editProcess(processId) {
     const process = processes.find(p => p.id === processId);
     if (!process) {
-        showAlert('Prozess nicht gefunden', 'danger');
+        showAlert('Process not found', 'danger');
         return;
     }
     
@@ -376,11 +596,21 @@ async function editProcess(processId) {
     document.getElementById('cyclicInterval').value = process.cyclic_interval || 30;
     document.getElementById('processDescription').value = process.description || '';
     
+    // Method Args füllen
+    if (process.method_args && Object.keys(process.method_args).length > 0) {
+        document.getElementById('methodArgs').value = JSON.stringify(process.method_args, null, 2);
+    } else {
+        document.getElementById('methodArgs').value = '';
+    }
+    
+    // Timestamp Header Name füllen
+    document.getElementById('timestampHeaderName').value = process.timestamp_header_name || '';
+    
     // Upload Headers füllen
     populateUploadHeaders(process.upload_headers || {});
     
     // Modal-Titel ändern
-    document.querySelector('#addProcessModal .modal-title').textContent = 'Prozess bearbeiten';
+    document.querySelector('#addProcessModal .modal-title').textContent = 'Edit process';
     
     // Speichern-Button für Update konfigurieren
     const saveButton = document.getElementById('saveProcess');
@@ -439,10 +669,10 @@ async function updateProcess(processId) {
         
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Fehler beim Aktualisieren');
+            throw new Error(error.error || 'Error updating');
         }
         
-        showAlert('Prozess erfolgreich aktualisiert', 'success');
+        showAlert('Process updated successfully', 'success');
         
         // Modal schließen
         const modal = bootstrap.Modal.getInstance(document.getElementById('addProcessModal'));
@@ -451,7 +681,7 @@ async function updateProcess(processId) {
         // Formular zurücksetzen und Button zurücksetzen
         document.getElementById('processForm').reset();
         document.getElementById('saveProcess').onclick = saveProcess;
-        document.querySelector('#addProcessModal .modal-title').textContent = 'Neuer Image Capture Prozess';
+        document.querySelector('#addProcessModal .modal-title').textContent = 'New Image Capture Process';
         
         // Upload Headers zurücksetzen
         populateUploadHeaders({});
@@ -460,14 +690,14 @@ async function updateProcess(processId) {
         loadProcesses();
         
     } catch (error) {
-        console.error('Fehler beim Aktualisieren:', error);
-        showAlert('Fehler beim Aktualisieren: ' + error.message, 'danger');
+        console.error('Error updating:', error);
+        showAlert('Error updating: ' + error.message, 'danger');
     }
 }
 
 // Prozess löschen
 async function deleteProcess(processId) {
-    if (!confirm('Sind Sie sicher, dass Sie diesen Prozess löschen möchten?')) {
+    if (!confirm('Are you sure you want to delete this process?')) {
         return;
     }
     
@@ -478,28 +708,36 @@ async function deleteProcess(processId) {
         
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Fehler beim Löschen');
+            throw new Error(error.error || 'Error deleting');
         }
         
-        showAlert('Prozess erfolgreich gelöscht', 'success');
+        showAlert('Process deleted successfully', 'success');
         loadProcesses();
         
     } catch (error) {
-        console.error('Fehler beim Löschen:', error);
-        showAlert('Fehler beim Löschen: ' + error.message, 'danger');
+        console.error('Error deleting:', error);
+        showAlert('Error deleting: ' + error.message, 'danger');
     }
 }
 
 // Bildvorschau anzeigen
-function previewImage(base64Image) {
+function previewImage(base64Image, timestamp) {
     if (!base64Image) {
-        showAlert('Kein Bild verfügbar', 'warning');
+        showAlert('No image available', 'warning');
         return;
     }
     
     const imageSrc = `data:image/jpeg;base64,${base64Image}`;
     document.getElementById('previewImage').src = imageSrc;
     document.getElementById('downloadImage').href = imageSrc;
+    
+    // Timestamp anzeigen
+    const timestampElement = document.getElementById('imageTimestamp');
+    if (timestamp && timestamp !== 'null') {
+        timestampElement.textContent = `Captured at: ${formatDateTime(timestamp)}`;
+    } else {
+        timestampElement.textContent = 'Timestamp not available';
+    }
     
     const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
     modal.show();
@@ -531,13 +769,43 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
+// Prozess-Statistiken aktualisieren
+function updateProcessStatistics() {
+    const stats = {
+        running: 0,
+        stopped: 0,
+        error: 0,
+        total: processes.length
+    };
+    
+    processes.forEach(process => {
+        switch (process.status) {
+            case 'running':
+                stats.running++;
+                break;
+            case 'stopped':
+                stats.stopped++;
+                break;
+            case 'error':
+                stats.error++;
+                break;
+        }
+    });
+    
+    // Statistiken in der UI aktualisieren
+    document.getElementById('runningCount').textContent = stats.running;
+    document.getElementById('stoppedCount').textContent = stats.stopped;
+    document.getElementById('errorCount').textContent = stats.error;
+    document.getElementById('totalCount').textContent = stats.total;
+}
+
 // Node-RED Endpoint-Informationen anzeigen
 function showEndpointInfo(processId, processName) {
     // Modal-Inhalt mit Endpoint-Informationen füllen
     document.getElementById('endpointProcessName').textContent = processName;
-    document.getElementById('executeEndpoint').textContent = `POST /api/image-capture-processes/${processId}/execute`;
-    document.getElementById('startEndpoint').textContent = `POST /api/image-capture-processes/${processId}/start`;
-    document.getElementById('stopEndpoint').textContent = `POST /api/image-capture-processes/${processId}/stop`;
+    document.getElementById('executeEndpoint').textContent = `POST /api/image-capture-processes/${processId}/trigger`;
+    document.getElementById('startEndpoint').textContent = `POST /api/image-capture-processes/${processId}/start-external`;
+    document.getElementById('stopEndpoint').textContent = `POST /api/image-capture-processes/${processId}/stop-external`;
     document.getElementById('statusEndpoint').textContent = `GET /api/image-capture-processes/${processId}`;
     
     // Modal anzeigen
@@ -545,7 +813,7 @@ function showEndpointInfo(processId, processName) {
     modal.show();
 }
 
-// Automatisches Neuladen der Prozesse alle 30 Sekunden
+// Automatisches Neuladen der Prozesse und Bilder alle 5 Sekunden
 setInterval(() => {
     loadProcesses();
-}, 30000);
+}, 5000);

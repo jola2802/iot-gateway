@@ -3,7 +3,6 @@ package webui
 import (
 	"context"
 	"crypto/tls"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -152,12 +151,13 @@ func browseNodes(c *gin.Context) {
 }
 
 func removeNonVariableNodes(nodeList []NodeDef) []NodeDef {
+	var filteredNodes []NodeDef
 	for _, node := range nodeList {
-		if node.NodeClass != ua.NodeClassVariable {
-			nodeList = append(nodeList, node)
+		if node.NodeClass == ua.NodeClassVariable {
+			filteredNodes = append(filteredNodes, node)
 		}
 	}
-	return nodeList
+	return filteredNodes
 }
 
 // captureImage ist ein Endpunkt, der einen Bildaufnahmeprozess über OPC UA auslöst
@@ -253,22 +253,23 @@ func captureImage(c *gin.Context) {
 
 // Struktur für die Parameter
 type ImageCaptureParams struct {
-	Endpoint       string            `json:"endpoint"`
-	ObjectId       string            `json:"objectId"`
-	MethodId       string            `json:"methodId"`
-	MethodArgs     json.RawMessage   `json:"methodArgs"`
-	CheckNodeId    string            `json:"checkNodeId"`
-	ImageNodeId    string            `json:"imageNodeId"`
-	AckNodeId      string            `json:"ackNodeId"`
-	BasePath       string            `json:"basePath"`
-	DeviceId       string            `json:"deviceId"`
-	EnableUpload   string            `json:"enableUpload"`
-	UploadUrl      string            `json:"uploadUrl"`
-	SecurityMode   string            `json:"securityMode"`
-	SecurityPolicy string            `json:"securityPolicy"`
-	Username       string            `json:"username"`
-	Password       string            `json:"password"`
-	Headers        map[string]string `json:"headers"`
+	Endpoint            string            `json:"endpoint"`
+	ObjectId            string            `json:"objectId"`
+	MethodId            string            `json:"methodId"`
+	MethodArgs          json.RawMessage   `json:"methodArgs"`
+	CheckNodeId         string            `json:"checkNodeId"`
+	ImageNodeId         string            `json:"imageNodeId"`
+	AckNodeId           string            `json:"ackNodeId"`
+	BasePath            string            `json:"basePath"`
+	DeviceId            string            `json:"deviceId"`
+	EnableUpload        string            `json:"enableUpload"`
+	UploadUrl           string            `json:"uploadUrl"`
+	SecurityMode        string            `json:"securityMode"`
+	SecurityPolicy      string            `json:"securityPolicy"`
+	Username            string            `json:"username"`
+	Password            string            `json:"password"`
+	Headers             map[string]string `json:"headers"`
+	TimestampHeaderName string            `json:"timestampHeaderName"`
 }
 
 // parseAndValidateParams liest und validiert die Parameter aus der Anfrage
@@ -305,6 +306,9 @@ func parseAndValidateParams(c *gin.Context) (ImageCaptureParams, error) {
 	}
 	if params.SecurityPolicy == "" {
 		params.SecurityPolicy = "NONE"
+	}
+	if params.TimestampHeaderName == "" {
+		params.TimestampHeaderName = "Timestamp"
 	}
 
 	// wenn deviceid leer dann schaue ob in tabelle vorhanden
@@ -605,74 +609,25 @@ func writeBoolean(ctx context.Context, client *opcua.Client, nodeIDString string
 func handleUploads(c *gin.Context, params ImageCaptureParams, base64String string) (bool, error) {
 	uploadErfolgt := false
 
-	// Lokaler Upload in die Datenbank
-	db, err := getDBConnection(c)
-	if err != nil {
-		logrus.Errorf("Fehler beim Verbinden mit der Datenbank: %v", err)
-		return false, err
-	}
-
-	// Bild in die Datenbank speichern
-	query := "INSERT INTO images (device, image, timestamp) VALUES (?, ?, ?)"
-	if _, err := db.Exec(query, params.DeviceId, base64String, time.Now()); err != nil {
-		logrus.Errorf("Fehler beim Speichern des Bildes in der Datenbank: %v", err)
-		return false, err
-	}
-	uploadErfolgt = true
-
-	// Maximale Anzahl von Bildern in der Datenbank begrenzen (max. 100)
-	if err := limitDatabaseImages(db); err != nil {
-		logrus.Errorf("Fehler beim Begrenzen der Bildanzahl: %v", err)
-		// Wir setzen fort, auch wenn die Begrenzung fehlschlägt
-	}
-
 	// Wenn eine externe Upload-URL angegeben ist, auch dorthin hochladen
 	if params.UploadUrl != "" {
 		// Externer Upload per HTTP
-		externalUploadSuccess := uploadToExternalDatabase(base64String, params.UploadUrl, params.Headers, params.DeviceId)
+		externalUploadSuccess := uploadToExternalDatabase(base64String, params.UploadUrl, params.Headers, params.DeviceId, params.TimestampHeaderName)
 		uploadErfolgt = uploadErfolgt || externalUploadSuccess
 	}
 
 	return uploadErfolgt, nil
 }
 
-// limitDatabaseImages begrenzt die Anzahl der Bilder in der Datenbank auf maximal num_images_db
-func limitDatabaseImages(db *sql.DB) error {
-	rows, err := db.Query("SELECT COUNT(*) FROM images")
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	var count int
-	for rows.Next() {
-		if err = rows.Scan(&count); err != nil {
-			return err
-		}
-	}
-
-	// Wenn mehr als num_images_db Bilder, lösche die ältesten
-	if count > num_images_db {
-		deleteQuery := "DELETE FROM images WHERE id IN (SELECT id FROM images ORDER BY timestamp ASC LIMIT ?)"
-		if _, err := db.Exec(deleteQuery, count-num_images_db); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // uploadToExternalDatabase lädt ein Bild per HTTP zu einer externen Datenbank hoch
-func uploadToExternalDatabase(base64String, uploadUrl string, headers map[string]string, deviceId string) bool {
+func uploadToExternalDatabase(base64String, uploadUrl string, headers map[string]string, deviceId string, timestampHeaderName string) bool {
 	// Standardheader setzen, falls keine angegeben sind
 	if headers == nil {
 		headers = make(map[string]string)
 	}
 
 	// Standardwert für Content-Type setzen, falls nicht angegeben
-	if _, ok := headers["Content-Type"]; !ok {
-		// headers["Content-Type"] = "application/octet-stream"
-	}
+	// (momentan nicht verwendet)
 
 	// HTTP-Client mit angepassten Einstellungen erstellen
 	transport := &http.Transport{
@@ -698,6 +653,13 @@ func uploadToExternalDatabase(base64String, uploadUrl string, headers map[string
 	// Header hinzufügen
 	for key, value := range headers {
 		req.Header.Set(key, value)
+	}
+
+	// Timestamp-Header hinzufügen falls konfiguriert und nicht bereits vorhanden
+	if timestampHeaderName != "" {
+		if _, ok := headers[timestampHeaderName]; !ok {
+			req.Header.Set(timestampHeaderName, time.Now().Format("2006-01-02 15:04:05"))
+		}
 	}
 
 	// Geräte-ID als zusätzlichen Header hinzufügen, falls nicht bereits vorhanden

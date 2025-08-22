@@ -88,6 +88,33 @@ const (
 			timestamp TEXT NOT NULL
 		);
 	`
+
+	createImageCaptureProcessesTable = `
+		CREATE TABLE IF NOT EXISTS image_capture_processes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name VARCHAR(100) NOT NULL,
+			device_id INTEGER NOT NULL,
+			endpoint TEXT NOT NULL,
+			object_id TEXT NOT NULL,
+			method_id TEXT NOT NULL,
+			method_args TEXT,
+			check_node_id TEXT NOT NULL,
+			image_node_id TEXT NOT NULL,
+			ack_node_id TEXT NOT NULL,
+			enable_upload BOOLEAN DEFAULT 0,
+			upload_url TEXT,
+			upload_headers TEXT,
+			enable_cyclic BOOLEAN DEFAULT 0,
+			cyclic_interval INTEGER DEFAULT 30,
+			description TEXT,
+			status TEXT DEFAULT 'stopped',
+			last_execution TEXT,
+			last_image TEXT,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			FOREIGN KEY (device_id) REFERENCES devices(id)
+		);
+	`
 )
 
 // InitDB initialisiert die SQLite-Datenbank mit einem übergebenen Pfad
@@ -116,6 +143,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		createS7DatapointsTable,
 		createOPCUADatanodesTable,
 		createImagesTable,
+		createImageCaptureProcessesTable,
 	}
 
 	// Tabellen erstellen

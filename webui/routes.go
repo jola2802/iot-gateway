@@ -76,6 +76,21 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/api/images", getImages)
 		authorized.GET("/api/images/download", downloadImagesAsZip)
 
+		// Image Capture Process Routes
+		authorized.GET("/api/image-capture-processes", getImageCaptureProcesses)
+		authorized.GET("/api/image-capture-processes/:id", getImageCaptureProcess)
+		authorized.POST("/api/image-capture-processes", addImageCaptureProcess)
+		authorized.PUT("/api/image-capture-processes/:id", updateImageCaptureProcess)
+		authorized.DELETE("/api/image-capture-processes/:id", deleteImageCaptureProcess)
+		authorized.POST("/api/image-capture-processes/:id/start", startImageCaptureProcess)
+		authorized.POST("/api/image-capture-processes/:id/stop", stopImageCaptureProcess)
+		authorized.POST("/api/image-capture-processes/:id/execute", executeImageCaptureProcess)
+
+		// Public API Routes für externe Trigger (Node-RED)
+		r.POST("/api/image-capture-processes/:id/trigger", executeImageCaptureProcess)
+		r.POST("/api/image-capture-processes/:id/start-external", startImageCaptureProcess)
+		r.POST("/api/image-capture-processes/:id/stop-external", stopImageCaptureProcess)
+
 		// Profile Routes
 		authorized.GET("/api/profile", getProfile)
 		authorized.PUT("/api/profile", updateProfile)
@@ -93,6 +108,7 @@ func setupRoutes(r *gin.Engine) {
 		authorized.GET("/devices", showDevicesPage)
 		authorized.GET("/historical-data", showHistoricalDataPage)
 		authorized.GET("/data-forwarding", showRoutingPage)
+		authorized.GET("/image-capture", showImageCapturePage)
 		authorized.GET("/broker", showBrokerPage)
 		authorized.GET("/profile", showProfilePage)
 		authorized.GET("/settings", showSettingsPage)

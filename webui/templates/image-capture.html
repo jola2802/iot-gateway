@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html data-bs-theme="light" lang="de">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Image Capture Prozessverwaltung - IPDM</title>
+    <link rel="icon" type="image/vnd.icon" href="assets/img/6090919.ico">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&amp;display=swap">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css">
+    <link rel="stylesheet" href="assets/fonts/line-awesome.min.css">
+    <link rel="stylesheet" href="assets/fonts/simple-line-icons.min.css">
+    <link rel="stylesheet" href="assets/fonts/typicons.min.css">
+    <link rel="stylesheet" href="assets/css/Google-Style-Login-.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.0.1/dist/css/tom-select.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/css/theme.bootstrap_4.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+    <link rel="stylesheet" href="assets/css/iframe-1.css">
+    <link rel="stylesheet" href="assets/css/iframe-youtube-mloureiro1973.css">
+    <link rel="stylesheet" href="assets/css/iframe.css">
+    <link rel="stylesheet" href="assets/css/Login-Form-Basic-icons.css">
+    <link rel="stylesheet" href="assets/css/Ludens---1-Index-Table-with-Search--Sort-Filters-v20.css">
+    <link rel="stylesheet" href="assets/css/Ludens---TomSelect-Form.css">
+    <link rel="stylesheet" href="assets/css/Ludens-basic-login.css">
+</head>
+
+<body id="page-top">
+    <div id="wrapper">
+        <nav class="navbar align-items-start sidebar sidebar-dark accordion bg-gradient-primary p-0 navbar-dark" style="background: var(--bs-secondary-text-emphasis);font-size: 18px;">
+            <div class="container-fluid d-flex flex-column p-0"><a class="navbar-brand d-flex justify-content-center align-items-center sidebar-brand m-0" href="#">
+                    <picture><img src="assets/img/IDPM-Logo.png" style="height: 60px;width: 60px;"></picture>
+                </a>
+                <hr class="sidebar-divider my-0">
+                <ul class="navbar-nav text-light" id="accordionSidebar">
+                    <li class="nav-item"><a class="nav-link text-center" href="/home"><i class="fas fa-tachometer-alt" style="font-size: 20px;"></i><span style="font-size: 16px;">Dashboard</span></a></li>
+                    <li class="nav-item"><a class="nav-link text-center" href="/devices"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" class="bi bi-cpu" style="font-size: 20px;">
+                        <path d="M5 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2A2.5 2.5 0 0 1 14 4.5h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14a2.5 2.5 0 0 1-2.5 2.5v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14A2.5 2.5 0 0 1 2 11.5H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2A2.5 2.5 0 0 1 4.5 2V.5A.5.5 0 0 1 5 0m-.5 3A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3zM5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5zM6.5 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5z"></path>
+                    </svg><span style="margin-left: 2px;font-size: 16px;">&nbsp;Devices</span></a></li>   
+                    <li class="nav-item"><a class="nav-link text-center" href="/data-forwarding"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icon-tabler-message-forward" style="font-size: 20px;">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z"></path>
+                        <path d="M13 8l3 3l-3 3"></path>
+                        <path d="M16 11h-8"></path>
+                    </svg><span style="margin-left: 2px;font-size: 16px;">&nbsp;Data Forwarding</span></a></li>     
+                    <li class="nav-item"><a class="nav-link text-center active" href="/image-capture"><i class="fas fa-camera" style="font-size: 20px;"></i><span style="margin-left: 2px;font-size: 16px;">&nbsp;Image Capture</span></a></li>
+                    <li class="nav-item"><a class="nav-link text-center" href="/historical-data"><svg class="bi bi-database-fill" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" style="font-size: 20px;">
+                        <path d="M3.904 1.777C4.978 1.289 6.427 1 8 1s3.022.289 4.096.777C13.125 2.245 14 2.993 14 4s-.875 1.755-1.904 2.223C11.022 6.711 9.573 7 8 7s-3.022-.289-4.096-.777C2.875 5.755 2 5.007 2 4s.875-1.755 1.904-2.223Z"></path>
+                        <path d="M2 6.161V7c0 1.007.875 1.755 1.904 2.223C4.978 9.71 6.427 10 8 10s3.022-.289 4.096-.777C13.125 8.755 14 8.007 14 7v-.839c-.457.432-1.004.751-1.49.972C11.278 7.693 9.682 8 8 8s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"></path>
+                        <path d="M2 9.161V10c0 1.007.875 1.755 1.904 2.223C4.978 12.711 6.427 13 8 13s3.022-.289 4.096-.777C13.125 11.755 14 11.007 14 10v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"></path>
+                        <path d="M2 12.161V13c0 1.007.875 1.755 1.904 2.223C4.978 15.711 6.427 16 8 16s3.022-.289 4.096-.777C13.125 14.755 14 14.007 14 13v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"></path>
+                    </svg><span style="margin-left: 2px;font-size: 16px;"> Historical Data</span></a></li>
+                    
+                    <li class="nav-item"><a class="nav-link text-center" href="/broker"><i class="typcn typcn-arrow-maximise-outline" style="font-size: 20px;"></i><span style="margin-left: 2px;font-size: 16px;">MQTT-Broker</span></a></li>
+                    <li class="nav-item"><a class="nav-link text-center" href="/profile"><i class="fas fa-user" style="font-size: 20px;"></i><span style="margin-left: 2px;font-size: 16px;">Profile</span></a></li>
+                    <li class="nav-item"><a class="nav-link text-center" href="/settings"><i class="icon-settings" style="font-size: 20px;"></i><span style="font-size: 16px;">&nbsp;Settings</span></a></li>
+                    <li class="nav-item"><a class="nav-link text-center" href="/logout"><i class="far fa-user-circle" style="font-size: 20px;"></i><span style="margin-left: 1px;font-size: 16px;">Logout</span></a></li>
+                </ul>
+                <div class="text-center d-none d-md-inline"><button class="btn rounded-circle border-0" id="sidebarToggle" type="button"></button></div>
+            </div>
+        </nav>
+        <div class="d-flex flex-column" id="content-wrapper">
+            <div id="content" style="border-color: var(--bs-secondary);">
+                <nav class="navbar navbar-expand bg-body-tertiary shadow mb-4 topbar" style="border-color: var(--bs-secondary);background: var(--bs-secondary);">
+                    <div class="container-fluid"><button class="btn btn-link d-md-none rounded-circle me-3" id="sidebarToggleTop" type="button"><i class="fas fa-bars"></i></button>
+                        <ul class="navbar-nav flex-nowrap ms-auto">
+                            <li class="nav-item"><a class="nav-link border rounded border-3 border-secondary shadow-sm d-xxl-flex align-items-xxl-center" href="/logout"><strong><span style="color: rgb(0, 0, 0);">Logout</span></strong></a></li>
+                        </ul>
+                    </div>
+                </nav>
+                <div class="container-fluid">
+                    <div class="d-sm-flex justify-content-between align-items-center pb-2">
+                        <h2>Image Capture Prozessverwaltung</h2>
+                        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addProcessModal">
+                            <i class="fas fa-plus"></i> Neuer Prozess
+                        </button>
+                    </div>
+                    <hr>
+                    
+                    <!-- Prozessliste -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="text-primary fw-bold m-0">Aktive Image Capture Prozesse</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="processTable">
+                                                                         <thead>
+                                         <tr>
+                                             <th>Name</th>
+                                             <th>Gerät</th>
+                                             <th>Status</th>
+                                             <th>Zyklus</th>
+                                             <th>Letzte Ausführung</th>
+                                             <th>Letztes Bild</th>
+                                             <th>Endpoint</th>
+                                             <th>Aktionen</th>
+                                         </tr>
+                                     </thead>
+                                    <tbody id="processTableBody">
+                                        <!-- Wird durch JavaScript gefüllt -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bildvorschau Modal -->
+                    <div class="modal fade" id="imagePreviewModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Bildvorschau</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <img id="previewImage" src="" alt="Bildvorschau" class="img-fluid" style="max-height: 500px;">
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                                    <a id="downloadImage" href="" class="btn btn-primary" download="image.jpg">Herunterladen</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Node-RED Endpoint Info Modal -->
+                    <div class="modal fade" id="endpointInfoModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Node-RED API Endpoints</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <h6>Prozess: <span id="endpointProcessName" class="fw-bold"></span></h6>
+                                            <hr>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <h6><i class="fas fa-camera me-2"></i>Einmalige Ausführung</h6>
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <code id="executeEndpoint" class="d-block mb-2"></code>
+                                                    <small class="text-muted">Startet eine einmalige Image Capture Ausführung</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-play me-2 text-success"></i>Prozess starten</h6>
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <code id="startEndpoint" class="d-block mb-2"></code>
+                                                    <small class="text-muted">Startet den zyklischen Prozess</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-stop me-2 text-warning"></i>Prozess stoppen</h6>
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <code id="stopEndpoint" class="d-block mb-2"></code>
+                                                    <small class="text-muted">Stoppt den laufenden Prozess</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <h6><i class="fas fa-info-circle me-2"></i>Prozess-Status abrufen</h6>
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <code id="statusEndpoint" class="d-block mb-2"></code>
+                                                    <small class="text-muted">Ruft den aktuellen Status und Informationen des Prozesses ab</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-lightbulb me-2"></i>
+                                        <strong>Tipp für Node-RED:</strong> Verwenden Sie den "http request" Node mit der POST-Methode für die entsprechenden Endpoints.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Neuer Prozess Modal -->
+                    <div class="modal fade" id="addProcessModal" tabindex="-1">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Neuer Image Capture Prozess</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="processForm">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Grundkonfiguration</h6>
+                                                <div class="mb-3">
+                                                    <label for="processName" class="form-label">Prozessname *</label>
+                                                    <input type="text" class="form-control" id="processName" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="deviceSelect" class="form-label">Gerät *</label>
+                                                    <select class="form-control" id="deviceSelect" required>
+                                                        <option value="">Gerät auswählen...</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="endpoint" class="form-label">OPC UA Endpoint</label>
+                                                    <input type="text" class="form-control" id="endpoint" placeholder="opc.tcp://192.168.0.84:48010">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>OPC UA Konfiguration</h6>
+                                                <div class="mb-3">
+                                                    <label for="objectId" class="form-label">Object ID</label>
+                                                    <input type="text" class="form-control" id="objectId" placeholder="ns=3;s=Demo.Method">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="methodId" class="form-label">Method ID</label>
+                                                    <input type="text" class="form-control" id="methodId" placeholder="ns=3;s=Demo.Method.DoSomethingAfter10s">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="checkNodeId" class="form-label">Check Node ID</label>
+                                                    <input type="text" class="form-control" id="checkNodeId" placeholder="ns=3;s=Demo.Dynamic.Scalar.Boolean">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="imageNodeId" class="form-label">Image Node ID</label>
+                                                    <input type="text" class="form-control" id="imageNodeId" placeholder="ns=3;s=Demo.Dynamic.Scalar.ImageGIF">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="ackNodeId" class="form-label">Ack Node ID</label>
+                                                    <input type="text" class="form-control" id="ackNodeId" placeholder="ns=3;s=Demo.Dynamic.Scalar.Boolean">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                                                                         <div class="col-md-6">
+                                                 <h6>Upload Konfiguration</h6>
+                                                 <div class="mb-3">
+                                                     <div class="form-check">
+                                                         <input class="form-check-input" type="checkbox" id="enableUpload">
+                                                         <label class="form-check-label" for="enableUpload">
+                                                             Upload aktivieren
+                                                         </label>
+                                                     </div>
+                                                 </div>
+                                                 <div class="mb-3">
+                                                     <label for="uploadUrl" class="form-label">Upload URL</label>
+                                                     <input type="url" class="form-control" id="uploadUrl" placeholder="https://example.com/upload">
+                                                 </div>
+                                                 <div class="mb-3">
+                                                     <label for="uploadHeaders" class="form-label">Upload Headers</label>
+                                                     <div id="uploadHeadersContainer">
+                                                         <div class="header-row mb-2">
+                                                             <div class="row">
+                                                                 <div class="col-5">
+                                                                     <input type="text" class="form-control header-key" placeholder="Header Name">
+                                                                 </div>
+                                                                 <div class="col-5">
+                                                                     <input type="text" class="form-control header-value" placeholder="Header Value">
+                                                                 </div>
+                                                                 <div class="col-2">
+                                                                     <button type="button" class="btn btn-sm btn-danger remove-header">
+                                                                         <i class="fas fa-trash"></i>
+                                                                     </button>
+                                                                 </div>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                     <button type="button" class="btn btn-sm btn-secondary" id="addHeader">
+                                                         <i class="fas fa-plus"></i> Header hinzufügen
+                                                     </button>
+                                                 </div>
+                                             </div>
+                                             <div class="col-md-6">
+                                                 <h6>Prozess Konfiguration</h6>
+                                                 <div class="mb-3">
+                                                     <div class="form-check">
+                                                         <input class="form-check-input" type="checkbox" id="enableCyclic">
+                                                         <label class="form-check-label" for="enableCyclic">
+                                                             Zyklische Ausführung aktivieren
+                                                         </label>
+                                                     </div>
+                                                 </div>
+                                                 <div class="mb-3">
+                                                     <label for="cyclicInterval" class="form-label">Zyklus-Intervall (Sekunden)</label>
+                                                     <input type="number" class="form-control" id="cyclicInterval" value="30" min="1" max="3600">
+                                                     <small class="form-text text-muted">Minimal 1 Sekunde, maximal 1 Stunde</small>
+                                                 </div>
+                                                 <div class="mb-3">
+                                                     <label for="processDescription" class="form-label">Beschreibung</label>
+                                                     <textarea class="form-control" id="processDescription" rows="3" placeholder="Optionale Beschreibung des Prozesses"></textarea>
+                                                 </div>
+                                             </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                    <button type="button" class="btn btn-primary" id="saveProcess">Speichern</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="bg-white sticky-footer">
+                <div class="container my-auto">
+                    <div class="text-center my-auto copyright"><span>Copyright © IPDM 2024</span></div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <script src="assets/js/utils/jquery.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="assets/js/theme.js"></script>
+    <script src="assets/js/image-capture.js"></script>
+</body>
+
+</html>

@@ -38,5 +38,15 @@ func main() {
 	go logic.StartAllDrivers(db, server)
 	defer logic.StopAllDrivers()
 
+	// Image Capture Prozesse initialisieren
+	webui.InitImageCaptureProcesses(db)
+	logrus.Info("MAIN: Image Capture Prozesse initialisiert.")
+
+	// Cleanup-Funktion für graceful shutdown
+	defer func() {
+		webui.StopAllImageCaptureProcesses(db)
+		logrus.Info("MAIN: Image Capture Prozesse gestoppt.")
+	}()
+
 	select {}
 }

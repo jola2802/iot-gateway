@@ -2,85 +2,94 @@
 let processes = [];
 let devices = [];
 
-// Initialisiere Bilder-Anzeige
-function initializeImagesFiles() {
+// Lade Bilder vom Server und aktualisiere die Anzeige
+async function loadImagesFiles() {
     const imagesFilesContainer = document.getElementById('images-files-container');
-    const downloadAllImagesBtn = document.getElementById('download-all-images');
     if (!imagesFilesContainer) return;
 
-    // Bilder vom Server laden
-    fetch('/api/images')
-        .then(response => response.json())
-        .then(data => {
-            imagesFilesContainer.innerHTML = '';
+    try {
+        const response = await fetch('/api/images');
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Bilder');
+        }
+        
+        const data = await response.json();
+        
+        // Sortiere Bilder nach Timestamp (neueste zuerst)
+        data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            // Sortiere Bilder nach Timestamp (neueste zuerst)
-            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        // Erstelle ein responsives Grid für die Bilder
+        const rowDiv = document.createElement('div');
+        rowDiv.classList.add('row', 'row-cols-1', 'row-cols-md-3', 'row-cols-lg-5', 'g-3');
 
-            // Erstelle ein responsives Grid für die Bilder
-            const rowDiv = document.createElement('div');
-            rowDiv.classList.add('row', 'row-cols-1', 'row-cols-md-3', 'row-cols-lg-5', 'g-3');
-
-            // Zeige maximal 25 Bilder an
-            const imagesToShow = data.slice(0, 25);
+        // Zeige maximal 25 Bilder an
+        const imagesToShow = data.slice(0, 25);
+        
+        imagesToShow.forEach((image) => {
+            const colDiv = document.createElement('div');
+            colDiv.classList.add('col');
             
-            imagesToShow.forEach((image) => {
-                const colDiv = document.createElement('div');
-                colDiv.classList.add('col');
-                
-                const cardDiv = document.createElement('div');
-                cardDiv.classList.add('card', 'h-100');
-                
-                // Bild aus dem Base64-String anzeigen
-                const imgElement = document.createElement('img');
-                imgElement.src = image.image.startsWith('data:image') ? image.image : 'data:image/png;base64,' + image.image;
-                imgElement.alt = 'Bild von ' + image.device;
-                imgElement.classList.add('card-img-top', 'img-thumbnail');
-                imgElement.style.height = '150px';
-                imgElement.style.objectFit = 'cover';
-                
-                // Klickbar machen für Vollbildansicht
-                imgElement.style.cursor = 'pointer';
-                imgElement.addEventListener('click', () => {
-                    previewImage(image.image.replace('data:image/png;base64,', '').replace('data:image/jpeg;base64,', ''), image.timestamp);
-                });
-                
-                // Karteninhalt
-                const cardBody = document.createElement('div');
-                cardBody.classList.add('card-body', 'p-2');
-                
-                // Gerätenamen anzeigen
-                const deviceName = document.createElement('h6');
-                deviceName.classList.add('card-title');
-                deviceName.textContent = image.device;
-                
-                // Timestamp anzeigen
-                const timestamp = document.createElement('small');
-                timestamp.classList.add('text-muted');
-                timestamp.textContent = formatDateTime(image.timestamp);
-                
-                cardBody.appendChild(deviceName);
-                cardBody.appendChild(timestamp);
-                
-                cardDiv.appendChild(imgElement);
-                cardDiv.appendChild(cardBody);
-                colDiv.appendChild(cardDiv);
-                rowDiv.appendChild(colDiv);
+            const cardDiv = document.createElement('div');
+            cardDiv.classList.add('card', 'h-100');
+            
+            // Bild aus dem Base64-String anzeigen
+            const imgElement = document.createElement('img');
+            imgElement.src = image.image.startsWith('data:image') ? image.image : 'data:image/png;base64,' + image.image;
+            imgElement.alt = 'Bild von ' + image.device;
+            imgElement.classList.add('card-img-top', 'img-thumbnail');
+            imgElement.style.height = '150px';
+            imgElement.style.objectFit = 'cover';
+            
+            // Klickbar machen für Vollbildansicht
+            imgElement.style.cursor = 'pointer';
+            imgElement.addEventListener('click', () => {
+                previewImage(image.image.replace('data:image/png;base64,', '').replace('data:image/jpeg;base64,', ''), image.timestamp);
             });
             
-            imagesFilesContainer.appendChild(rowDiv);
+            // Karteninhalt
+            const cardBody = document.createElement('div');
+            cardBody.classList.add('card-body', 'p-2');
             
-            if (imagesToShow.length === 0) {
-                imagesFilesContainer.innerHTML = '<p class="text-center text-muted">Keine Bilder verfügbar</p>';
-            }
-        })
-        .catch(error => {
-            console.error('Fehler beim Laden der Bilder:', error);
-            imagesFilesContainer.innerHTML = '<p class="text-center text-danger">Fehler beim Laden der Bilder</p>';
+            // Prozess-ID + Gerätenamen anzeigen
+            const deviceName = document.createElement('h6');
+            deviceName.classList.add('card-title');
+            deviceName.textContent = `${image.device_name} (Process ID: ${image.process_id}) (${image.id})`;
+            
+            // Timestamp anzeigen
+            const timestamp = document.createElement('small');
+            timestamp.classList.add('text-muted');
+            timestamp.textContent = formatDateTime(image.timestamp);
+            
+            cardBody.appendChild(deviceName);
+            cardBody.appendChild(timestamp);
+            
+            cardDiv.appendChild(imgElement);
+            cardDiv.appendChild(cardBody);
+            colDiv.appendChild(cardDiv);
+            rowDiv.appendChild(colDiv);
         });
+        
+        // Container leeren und neue Bilder einfügen
+        imagesFilesContainer.innerHTML = '';
+        imagesFilesContainer.appendChild(rowDiv);
+        
+        if (imagesToShow.length === 0) {
+            imagesFilesContainer.innerHTML = '<p class="text-center text-muted">Keine Bilder verfügbar</p>';
+        }
+        
+    } catch (error) {
+        console.error('Fehler beim Laden der Bilder:', error);
+        imagesFilesContainer.innerHTML = '<p class="text-center text-danger">Fehler beim Laden der Bilder</p>';
+    }
+}
 
-    // Download-Button Event Listener
-    if (downloadAllImagesBtn) {
+// Initialisiere Bilder-Anzeige beim ersten Laden
+function initializeImagesFiles() {
+    const downloadAllImagesBtn = document.getElementById('download-all-images');
+    
+    // Download-Button Event Listener nur einmal einrichten
+    if (downloadAllImagesBtn && !downloadAllImagesBtn.hasAttribute('data-initialized')) {
+        downloadAllImagesBtn.setAttribute('data-initialized', 'true');
         downloadAllImagesBtn.addEventListener('click', () => {
             fetch('/api/images/download')
                 .then(response => response.blob())
@@ -101,6 +110,9 @@ function initializeImagesFiles() {
                 });
         });
     }
+    
+    // Erste Ladung der Bilder
+    loadImagesFiles();
 }
 
 
@@ -275,13 +287,14 @@ function renderProcessTable() {
     
     if (processes.length === 0) {
         // console.log('No processes found, showing empty message');
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">Keine Prozesse gefunden</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">No processes found</td></tr>';
         return;
     }
     
     processes.forEach(process => {
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td>${escapeHtml(process.id)}</td>
             <td>${escapeHtml(process.name)}</td>
             <td>${escapeHtml(process.device_name || 'Unbekannt')}</td>
             <td>
@@ -302,6 +315,13 @@ function renderProcessTable() {
                         <i class="fas fa-eye"></i> Preview
                     </button>` : 
                     '<span class="text-muted">No image</span>'
+                }
+            </td>
+            <td>
+                ${getUploadStatusBadge(process.last_upload_status, process.last_upload_error)}
+                ${process.enable_upload ? 
+                    `<br><small class="text-muted">Success: ${process.upload_success_count} | Failed: ${process.upload_failure_count}</small>` : 
+                    '<br><small class="text-muted">Upload disabled</small>'
                 }
             </td>
             <td>
@@ -354,6 +374,21 @@ function getStatusText(status) {
         case 'error': return 'Error';
         case 'paused': return 'Paused';
         default: return status || 'Unknown';
+    }
+}
+
+// Upload Status Badge erstellen
+function getUploadStatusBadge(status, error) {
+    switch (status) {
+        case 'success':
+            return '<span class="badge bg-success">Upload Success</span>';
+        case 'failed':
+            return `<span class="badge bg-danger" title="${escapeHtml(error || 'Upload failed')}">Upload Failed</span>`;
+        case 'skipped':
+            return '<span class="badge bg-warning">Upload Skipped</span>';
+        case 'not_attempted':
+        default:
+            return '<span class="badge bg-secondary">No Upload</span>';
     }
 }
 
@@ -813,7 +848,9 @@ function showEndpointInfo(processId, processName) {
     modal.show();
 }
 
-// Automatisches Neuladen der Prozesse und Bilder alle 5 Sekunden
-setInterval(() => {
-    loadProcesses();
-}, 5000);
+// Automatisches Neuladen der Prozesse und Bilder alle 10 Sekunden
+setInterval(async () => {
+    await loadProcesses();
+    await new Promise(resolve => setTimeout(resolve, 500)); // Warte 0.5 Sekunde
+    await loadImagesFiles();
+}, 7000);

@@ -16,8 +16,9 @@ import (
 
 // ImageRequest repräsentiert den JSON-Payload, der vom Client gesendet wird.
 type ImageRequest struct {
-	Image  string `json:"image"`
-	Device string `json:"device"`
+	Image     string `json:"image"`
+	Device    string `json:"device"`
+	ProcessID string `json:"process_id"`
 }
 
 func saveImage(c *gin.Context) {
@@ -40,16 +41,16 @@ func saveImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID: " + err.Error()})
 		return
 	}
-	saveImageToDB(db, req.Image, time.Now(), deviceID)
+	saveImageToDB(db, req.Image, time.Now(), deviceID, req.ProcessID)
 
 	// Sende eine Erfolgsmeldung zurück.
 	c.JSON(http.StatusOK, gin.H{"message": "Image saved"})
 }
 
-func saveImageToDB(db *sql.DB, image string, timestamp time.Time, deviceID int) {
+func saveImageToDB(db *sql.DB, image string, timestamp time.Time, deviceID int, processID string) {
 	// Speichere das Bild (als Blob) und den Timestamp in der Datenbank.
-	query := "INSERT INTO images (device, image, timestamp) VALUES (?, ?, ?)"
-	if _, err := db.Exec(query, deviceID, image, timestamp); err != nil {
+	query := "INSERT INTO images (device, image, timestamp, process_id) VALUES (?, ?, ?, ?)"
+	if _, err := db.Exec(query, deviceID, image, timestamp, processID); err != nil {
 		return
 	}
 
@@ -79,10 +80,12 @@ func saveImageToDB(db *sql.DB, image string, timestamp time.Time, deviceID int) 
 }
 
 type Image struct {
-	ID        int    `json:"id"`
-	Device    string `json:"device"`
-	Image     string `json:"image"`
-	Timestamp string `json:"timestamp"`
+	ID         int    `json:"id"`
+	Device     string `json:"device"`
+	DeviceName string `json:"device_name"`
+	ProcessID  string `json:"process_id"`
+	Image      string `json:"image"`
+	Timestamp  string `json:"timestamp"`
 }
 
 func getImages(c *gin.Context) {
@@ -104,10 +107,11 @@ func getImages(c *gin.Context) {
 
 	for rows.Next() {
 		var img Image
-		if err := rows.Scan(&img.ID, &img.Device, &img.Image, &img.Timestamp); err != nil {
+		if err := rows.Scan(&img.ID, &img.Device, &img.ProcessID, &img.Image, &img.Timestamp); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan image"})
 			return
 		}
+		img.DeviceName = getDeviceName(img.Device, db)
 		images = append(images, img)
 	}
 

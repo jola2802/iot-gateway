@@ -44,6 +44,10 @@ type ImageCaptureProcess struct {
 	Status              string                 `json:"status"`
 	LastExecution       *time.Time             `json:"last_execution"`
 	LastImage           string                 `json:"last_image"`
+	LastUploadStatus    string                 `json:"last_upload_status"`
+	LastUploadError     string                 `json:"last_upload_error"`
+	UploadSuccessCount  int                    `json:"upload_success_count"`
+	UploadFailureCount  int                    `json:"upload_failure_count"`
 	CreatedAt           string                 `json:"created_at"`
 	UpdatedAt           string                 `json:"updated_at"`
 }
@@ -82,6 +86,7 @@ func InitImageCaptureProcesses(db *sql.DB) {
 			enable_upload, upload_url, upload_headers, timestamp_header_name,
 			enable_cyclic, cyclic_interval, description,
 			status, last_execution, last_image,
+			last_upload_status, last_upload_error, upload_success_count, upload_failure_count,
 			created_at, updated_at
 		FROM image_capture_processes
 		WHERE status = 'running'
@@ -107,6 +112,7 @@ func InitImageCaptureProcesses(db *sql.DB) {
 			&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &timestampHeaderNameStr,
 			&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
 			&process.Status, &lastExecutionStr, &lastImageStr,
+			&process.LastUploadStatus, &process.LastUploadError, &process.UploadSuccessCount, &process.UploadFailureCount,
 			&process.CreatedAt, &process.UpdatedAt,
 		)
 		if err != nil {
@@ -147,6 +153,7 @@ func getImageCaptureProcesses(c *gin.Context) {
 			enable_upload, upload_url, upload_headers, timestamp_header_name,
 			enable_cyclic, cyclic_interval, description,
 			status, last_execution, last_image,
+			last_upload_status, last_upload_error, upload_success_count, upload_failure_count,
 			created_at, updated_at
 		FROM image_capture_processes
 	`
@@ -269,15 +276,19 @@ func addImageCaptureProcess(c *gin.Context) {
 		INSERT INTO image_capture_processes (
 			name, device_id, endpoint, object_id, method_id, method_args,
 			check_node_id, image_node_id, ack_node_id, enable_upload, upload_url, upload_headers, timestamp_header_name,
-			enable_cyclic, cyclic_interval, description, status, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			enable_cyclic, cyclic_interval, description, status, 
+			last_upload_status, last_upload_error, upload_success_count, upload_failure_count,
+			created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	logrus.Infof("Führe INSERT-Query aus...")
 	result, err := db.Exec(query,
 		process.Name, process.DeviceID, process.Endpoint, process.ObjectID, process.MethodID, string(methodArgsJSON),
 		process.CheckNodeID, process.ImageNodeID, process.AckNodeID, process.EnableUpload, process.UploadURL, string(uploadHeadersJSON), process.TimestampHeaderName,
-		process.EnableCyclic, process.CyclicInterval, process.Description, "stopped", now, now,
+		process.EnableCyclic, process.CyclicInterval, process.Description, "stopped",
+		"not_attempted", "", 0, 0,
+		now.Format(time.RFC3339), now.Format(time.RFC3339),
 	)
 	if err != nil {
 		logrus.Errorf("Fehler beim INSERT: %v", err)
@@ -331,15 +342,15 @@ func updateImageCaptureProcess(c *gin.Context) {
 	query := `
 		UPDATE image_capture_processes SET
 			name = ?, device_id = ?, endpoint = ?, object_id = ?, method_id = ?, method_args = ?,
-			check_node_id = ?, image_node_id = ?, ack_node_id = ?, enable_upload = ?, upload_url = ?, upload_headers = ?,
+			check_node_id = ?, image_node_id = ?, ack_node_id = ?, enable_upload = ?, upload_url = ?, upload_headers = ?, timestamp_header_name = ?,
 			enable_cyclic = ?, cyclic_interval = ?, description = ?, updated_at = ?
 		WHERE id = ?
 	`
 
 	_, err = db.Exec(query,
 		process.Name, process.DeviceID, process.Endpoint, process.ObjectID, process.MethodID, string(methodArgsJSON),
-		process.CheckNodeID, process.ImageNodeID, process.AckNodeID, process.EnableUpload, process.UploadURL, string(uploadHeadersJSON),
-		process.EnableCyclic, process.CyclicInterval, process.Description, now, id,
+		process.CheckNodeID, process.ImageNodeID, process.AckNodeID, process.EnableUpload, process.UploadURL, string(uploadHeadersJSON), process.TimestampHeaderName,
+		process.EnableCyclic, process.CyclicInterval, process.Description, now.Format(time.RFC3339), id,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Prozesses"})
@@ -661,24 +672,42 @@ func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess) (*Image
 	}
 
 	// Upload verarbeiten (wenn aktiviert)
+	uploadStatus := "not_attempted"
+	uploadError := ""
+
 	if process.EnableUpload && process.UploadURL != "" {
 		success := uploadToExternalDatabase(base64String, process.UploadURL, process.UploadHeaders, strconv.Itoa(process.DeviceID), process.TimestampHeaderName)
-		if !success {
-			logrus.Errorf("Fehler beim externen Upload")
+		if success {
+			uploadStatus = "success"
+			process.UploadSuccessCount++
+		} else {
+			uploadStatus = "failed"
+			uploadError = "Upload fehlgeschlagen"
+			process.UploadFailureCount++
 		}
+	} else if process.EnableUpload {
+		uploadStatus = "skipped"
+		uploadError = "Upload URL nicht konfiguriert"
 	}
 
 	// Datenbank aktualisieren
 	now := time.Now()
 	updateQuery := `
 		UPDATE image_capture_processes SET
-			last_execution = ?, last_image = ?, updated_at = ?
+			last_execution = ?, last_image = ?, 
+			last_upload_status = ?, last_upload_error = ?,
+			upload_success_count = ?, upload_failure_count = ?,
+			updated_at = ?
 		WHERE id = ?
 	`
-	db.Exec(updateQuery, now.Format(time.RFC3339), base64String, now.Format(time.RFC3339), process.ID)
+	db.Exec(updateQuery,
+		now.Format(time.RFC3339), base64String,
+		uploadStatus, uploadError,
+		process.UploadSuccessCount, process.UploadFailureCount,
+		now.Format(time.RFC3339), process.ID)
 
 	// Bild in die Datenbank speichern
-	saveImageToDB(db, base64String, now, process.DeviceID)
+	saveImageToDB(db, base64String, now, process.DeviceID, strconv.Itoa(process.ID))
 
 	return &ImageCaptureResult{
 		Image: base64String,
@@ -806,6 +835,7 @@ func scanProcessFromRow(db *sql.DB, rows *sql.Rows) (ImageCaptureProcess, error)
 		&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &timestampHeaderNameStr,
 		&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
 		&process.Status, &lastExecutionStr, &lastImageStr,
+		&process.LastUploadStatus, &process.LastUploadError, &process.UploadSuccessCount, &process.UploadFailureCount,
 		&process.CreatedAt, &process.UpdatedAt,
 	)
 	if err != nil {
@@ -832,6 +862,7 @@ func scanProcessFromQueryRow(db *sql.DB, row *sql.Row) (ImageCaptureProcess, err
 		&process.EnableUpload, &uploadURLStr, &uploadHeadersStr, &timestampHeaderNameStr,
 		&process.EnableCyclic, &process.CyclicInterval, &descriptionStr,
 		&process.Status, &lastExecutionStr, &lastImageStr,
+		&process.LastUploadStatus, &process.LastUploadError, &process.UploadSuccessCount, &process.UploadFailureCount,
 		&process.CreatedAt, &process.UpdatedAt,
 	)
 	if err != nil {

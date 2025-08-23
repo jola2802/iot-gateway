@@ -84,6 +84,7 @@ const (
 		CREATE TABLE IF NOT EXISTS images (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			device TEXT NOT NULL,
+			process_id TEXT NOT NULL,
 			image TEXT NOT NULL,
 			timestamp TEXT NOT NULL
 		);
@@ -111,6 +112,10 @@ const (
 			status TEXT DEFAULT 'stopped',
 			last_execution TEXT,
 			last_image TEXT,
+			last_upload_status TEXT DEFAULT 'not_attempted',
+			last_upload_error TEXT,
+			upload_success_count INTEGER DEFAULT 0,
+			upload_failure_count INTEGER DEFAULT 0,
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL,
 			FOREIGN KEY (device_id) REFERENCES devices(id)

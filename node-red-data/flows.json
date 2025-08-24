@@ -11,7 +11,7 @@
         "id": "e129ee69a298a464",
         "type": "tab",
         "label": "Image-Capture",
-        "disabled": true,
+        "disabled": false,
         "info": "",
         "env": []
     },
@@ -19,7 +19,7 @@
         "id": "e7b0b0bc76ad7903",
         "type": "tab",
         "label": "Image-Upload",
-        "disabled": true,
+        "disabled": false,
         "info": "",
         "env": []
     },
@@ -795,11 +795,8 @@
         },
         "nodes": [
             "cb83d0b9bbc23ce4",
-            "22f3e072ed258a2f",
             "0dc25daa4866e6e4",
-            "b43ada02cf576d59",
             "cf032448930f65c9",
-            "0591e789fb15a11d",
             "333bf1e03b67b2ee"
         ],
         "x": 74,
@@ -808,22 +805,22 @@
         "h": 282
     },
     {
-        "id": "4fa0c14be559bdb6",
+        "id": "78a780cf4c2e18e4",
         "type": "group",
-        "z": "e7b0b0bc76ad7903",
-        "name": "publish data to existing device",
+        "z": "e129ee69a298a464",
+        "name": "old!",
         "style": {
             "label": true
         },
         "nodes": [
-            "981c7a177fa98054",
-            "6d52b6f1c958ee82",
-            "5bfc5c4ac52ffcec"
+            "471967c8ff8469b0",
+            "6f27e5ca18fd6d52",
+            "9ec21dc807194186"
         ],
-        "x": 154,
-        "y": 379,
-        "w": 512,
-        "h": 182
+        "x": 14,
+        "y": 99,
+        "w": 672,
+        "h": 82
     },
     {
         "id": "d1d25278780d0bb3",
@@ -897,35 +894,6 @@
         "url": "${INFLUXDB_URL}",
         "timeout": 10,
         "rejectUnauthorized": false
-    },
-    {
-        "id": "5007a50a62dcb950",
-        "type": "s7 endpoint",
-        "transport": "iso-on-tcp",
-        "address": "192.168.0.84",
-        "port": "1102",
-        "rack": "0",
-        "slot": "2",
-        "localtsaphi": "01",
-        "localtsaplo": "00",
-        "remotetsaphi": "01",
-        "remotetsaplo": "00",
-        "connmode": "rack-slot",
-        "adapter": "",
-        "busaddr": 2,
-        "cycletime": "600",
-        "timeout": 2000,
-        "name": "",
-        "vartable": [
-            {
-                "addr": "I0.0",
-                "name": "Input_Bool_1"
-            },
-            {
-                "addr": "QI20",
-                "name": "Output_Num_1"
-            }
-        ]
     },
     {
         "id": "e814f02eb2484f60",
@@ -1610,6 +1578,8 @@
         "id": "471967c8ff8469b0",
         "type": "subflow:a83312e9e2e175ac",
         "z": "e129ee69a298a464",
+        "d": true,
+        "g": "78a780cf4c2e18e4",
         "name": "Img-Cap-Process-1",
         "env": [
             {
@@ -1658,6 +1628,7 @@
         "id": "6f27e5ca18fd6d52",
         "type": "inject",
         "z": "e129ee69a298a464",
+        "g": "78a780cf4c2e18e4",
         "name": "Trigger",
         "props": [],
         "repeat": "",
@@ -1677,6 +1648,7 @@
         "id": "9ec21dc807194186",
         "type": "image",
         "z": "e129ee69a298a464",
+        "g": "78a780cf4c2e18e4",
         "name": "",
         "width": 160,
         "data": "payload.image",
@@ -1725,6 +1697,126 @@
         ]
     },
     {
+        "id": "def0d5afca557a25",
+        "type": "http request",
+        "z": "e129ee69a298a464",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://iot-gateway:8088/api/image-capture-processes/1/trigger",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 370,
+        "y": 320,
+        "wires": [
+            [
+                "28638fc0bb27d4a8",
+                "f18c679a98337600"
+            ]
+        ]
+    },
+    {
+        "id": "fa6f3b5f2b886fa5",
+        "type": "inject",
+        "z": "e129ee69a298a464",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 320,
+        "wires": [
+            [
+                "def0d5afca557a25"
+            ]
+        ]
+    },
+    {
+        "id": "28638fc0bb27d4a8",
+        "type": "debug",
+        "z": "e129ee69a298a464",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 640,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "a2aecb780faf4789",
+        "type": "image",
+        "z": "e129ee69a298a464",
+        "name": "",
+        "width": 160,
+        "data": "payload",
+        "dataType": "msg",
+        "thumbnail": false,
+        "active": true,
+        "pass": false,
+        "outputs": 0,
+        "x": 820,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "4c1695438a7d1f21",
+        "type": "debug",
+        "z": "e129ee69a298a464",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "f18c679a98337600",
+        "type": "json",
+        "z": "e129ee69a298a464",
+        "name": "",
+        "property": "payload.image",
+        "action": "",
+        "pretty": false,
+        "x": 330,
+        "y": 480,
+        "wires": [
+            [
+                "4c1695438a7d1f21",
+                "a2aecb780faf4789"
+            ]
+        ]
+    },
+    {
         "id": "cb83d0b9bbc23ce4",
         "type": "http in",
         "z": "e7b0b0bc76ad7903",
@@ -1738,8 +1830,8 @@
         "y": 120,
         "wires": [
             [
-                "b43ada02cf576d59",
-                "333bf1e03b67b2ee"
+                "333bf1e03b67b2ee",
+                "0dc25daa4866e6e4"
             ]
         ]
     },
@@ -1756,129 +1848,14 @@
         "wires": []
     },
     {
-        "id": "b43ada02cf576d59",
-        "type": "function",
-        "z": "e7b0b0bc76ad7903",
-        "g": "699ee5c1c3dc383e",
-        "name": "toBase64",
-        "func": "msg.payload = msg.payload.toString(\"base64\")\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 300,
-        "y": 180,
-        "wires": [
-            [
-                "22f3e072ed258a2f"
-            ]
-        ]
-    },
-    {
         "id": "cf032448930f65c9",
         "type": "comment",
         "z": "e7b0b0bc76ad7903",
         "g": "699ee5c1c3dc383e",
-        "name": "Test Upload for debugging",
+        "name": "Test Upload",
         "info": "",
-        "x": 530,
+        "x": 490,
         "y": 120,
-        "wires": []
-    },
-    {
-        "id": "22f3e072ed258a2f",
-        "type": "image",
-        "z": "e7b0b0bc76ad7903",
-        "g": "699ee5c1c3dc383e",
-        "name": "",
-        "width": 160,
-        "data": "payload",
-        "dataType": "msg",
-        "thumbnail": false,
-        "active": true,
-        "pass": true,
-        "outputs": 1,
-        "x": 400,
-        "y": 240,
-        "wires": [
-            [
-                "0dc25daa4866e6e4",
-                "0591e789fb15a11d"
-            ]
-        ]
-    },
-    {
-        "id": "981c7a177fa98054",
-        "type": "s7 in",
-        "z": "e7b0b0bc76ad7903",
-        "g": "4fa0c14be559bdb6",
-        "endpoint": "5007a50a62dcb950",
-        "mode": "single",
-        "variable": "Output_Num_1",
-        "diff": false,
-        "name": "",
-        "x": 260,
-        "y": 520,
-        "wires": [
-            [
-                "6d52b6f1c958ee82",
-                "5bfc5c4ac52ffcec"
-            ]
-        ]
-    },
-    {
-        "id": "6d52b6f1c958ee82",
-        "type": "mqtt out",
-        "z": "e7b0b0bc76ad7903",
-        "g": "4fa0c14be559bdb6",
-        "name": "",
-        "topic": "data/s7/14/[223] Q20",
-        "qos": "2",
-        "retain": "false",
-        "respTopic": "",
-        "contentType": "",
-        "userProps": "",
-        "correl": "",
-        "expiry": "",
-        "broker": "0b7c7515b1c6aa53",
-        "x": 540,
-        "y": 520,
-        "wires": []
-    },
-    {
-        "id": "5bfc5c4ac52ffcec",
-        "type": "debug",
-        "z": "e7b0b0bc76ad7903",
-        "g": "4fa0c14be559bdb6",
-        "name": "debug 1",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 470,
-        "y": 420,
-        "wires": []
-    },
-    {
-        "id": "0591e789fb15a11d",
-        "type": "debug",
-        "z": "e7b0b0bc76ad7903",
-        "g": "699ee5c1c3dc383e",
-        "name": "debug 2",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 550,
-        "y": 200,
         "wires": []
     },
     {

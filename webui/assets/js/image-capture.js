@@ -23,7 +23,7 @@ async function loadImagesFiles() {
         rowDiv.classList.add('row', 'row-cols-1', 'row-cols-md-3', 'row-cols-lg-5', 'g-3');
 
         // Zeige maximal 25 Bilder an
-        const imagesToShow = data.slice(0, 25);
+        const imagesToShow = data.slice(0, 50);
         
         imagesToShow.forEach((image) => {
             const colDiv = document.createElement('div');

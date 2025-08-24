@@ -759,6 +759,70 @@
         }
     },
     {
+        "id": "41184f092bb6b065",
+        "type": "subflow",
+        "name": "Img-Cap-new",
+        "info": "",
+        "category": "IDPM-Data Forwarding",
+        "in": [
+            {
+                "x": 80,
+                "y": 80,
+                "wires": [
+                    {
+                        "id": "cde49993d7949b9b"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 430,
+                "y": 60,
+                "wires": [
+                    {
+                        "id": "cde49993d7949b9b",
+                        "port": 0
+                    }
+                ]
+            },
+            {
+                "x": 450,
+                "y": 120,
+                "wires": [
+                    {
+                        "id": "cde49993d7949b9b",
+                        "port": 1
+                    }
+                ]
+            }
+        ],
+        "env": [
+            {
+                "name": "PORT",
+                "type": "num",
+                "value": "8088"
+            },
+            {
+                "name": "ID",
+                "type": "num",
+                "value": "1"
+            }
+        ],
+        "meta": {
+            "module": "Img-Cap-new"
+        },
+        "color": "#C0C0C0",
+        "inputLabels": [
+            "trigger"
+        ],
+        "outputLabels": [
+            "Full message",
+            "Image-String only"
+        ],
+        "icon": "font-awesome/fa-camera"
+    },
+    {
         "id": "0e108f67fce9da41",
         "type": "group",
         "z": "dac356dc77e3d814",
@@ -825,7 +889,6 @@
     {
         "id": "d1d25278780d0bb3",
         "type": "global-config",
-        "name": "global-config",
         "env": [
             {
                 "name": "influx-token",
@@ -1538,6 +1601,30 @@
         ]
     },
     {
+        "id": "cde49993d7949b9b",
+        "type": "function",
+        "z": "41184f092bb6b065",
+        "name": "function 1",
+        "func": "const url = `http://iot-gateway:${env.get('PORT')}/api/image-capture-processes/${env.get('ID')}/trigger`;\n\nconst options = {\n    method: 'POST'\n};\n\nconst req = http.request(url, options, (res) => {\n    let buffer = '';\n\n    res.on('data', (chunk) => {\n        buffer += chunk.toString('utf8');\n    });\n\n    res.on('end', () => {\n        node.send([null, { payload: buffer }]);\n    });\n});\n\nreq.on('error', (e) => {\n    node.send([{ payload: e.message }, null]);\n});\n\nreq.write(JSON.stringify(msg.payload));\nreq.end();\n\nreturn null; // Wichtig, da der Code asynchron ist",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "http",
+                "module": "http"
+            }
+        ],
+        "x": 200,
+        "y": 80,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
         "id": "ae2a9d9015479641",
         "type": "subflow:ef4290a715908540",
         "z": "4071c101bbc3e907",
@@ -1697,31 +1784,6 @@
         ]
     },
     {
-        "id": "def0d5afca557a25",
-        "type": "http request",
-        "z": "e129ee69a298a464",
-        "name": "",
-        "method": "POST",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "http://iot-gateway:8088/api/image-capture-processes/1/trigger",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 370,
-        "y": 320,
-        "wires": [
-            [
-                "28638fc0bb27d4a8",
-                "f18c679a98337600"
-            ]
-        ]
-    },
-    {
         "id": "fa6f3b5f2b886fa5",
         "type": "inject",
         "z": "e129ee69a298a464",
@@ -1746,7 +1808,7 @@
         "y": 320,
         "wires": [
             [
-                "def0d5afca557a25"
+                "410fdab868a4fa58"
             ]
         ]
     },
@@ -1792,7 +1854,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 590,
@@ -1800,16 +1863,16 @@
         "wires": []
     },
     {
-        "id": "f18c679a98337600",
-        "type": "json",
+        "id": "410fdab868a4fa58",
+        "type": "subflow:41184f092bb6b065",
         "z": "e129ee69a298a464",
-        "name": "",
-        "property": "payload.image",
-        "action": "",
-        "pretty": false,
-        "x": 330,
-        "y": 480,
+        "name": "Img-Cap-new",
+        "x": 380,
+        "y": 400,
         "wires": [
+            [
+                "28638fc0bb27d4a8"
+            ],
             [
                 "4c1695438a7d1f21",
                 "a2aecb780faf4789"

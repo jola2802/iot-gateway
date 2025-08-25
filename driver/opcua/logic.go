@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/awcullen/opcua/client"
 	"github.com/go-ping/ping"
-	"github.com/gopcua/opcua"
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
@@ -76,11 +76,11 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 		// Trotzdem weiter versuchen mit der Standard-Konfiguration
 	}
 
-	var clientOpts []opcua.Option
+	var clientOpts []client.Option
 
 	// Erstelle Context außerhalb der Schleife
 	ctx := context.Background()
-	var client *opcua.Client
+	var ch *client.Client
 
 	lastStatus := ""
 
@@ -92,8 +92,8 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 	for {
 		select {
 		case <-stopChan:
-			if client != nil {
-				client.Close(ctx)
+			if ch != nil {
+				ch.Close(ctx)
 			}
 			updateDeviceStatus(server, "opc-ua", device.ID, "0 (stopped)", db, &lastStatus)
 			return nil
@@ -111,29 +111,8 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 				}
 			}
 
-			client, err = opcua.NewClient(device.Address, clientOpts...)
+			ch, err = client.Dial(ctx, device.Address, clientOpts...)
 			if err != nil {
-				logrus.Errorf("OPC-UA: Error creating client for device %v: %v", device.Name, err)
-				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
-				select {
-				case <-stopChan:
-					return fmt.Errorf("client creation aborted for device %v", device.Name)
-				case <-time.After(retryInterval):
-					continue
-				}
-			}
-
-			err = client.Connect(ctx)
-			if err != nil {
-				// Schließe den fehlgeschlagenen Client
-				if client != nil {
-					client.Close(ctx)
-					client = nil
-				}
-
-				logrus.Errorf("OPC-UA: Error connecting to device %v: %v. Trying again in %v...", device.Name, err, retryInterval)
-				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
-
 				// Prüfe, ob ein Stop-Request empfangen wurde
 				select {
 				case <-stopChan:
@@ -144,22 +123,22 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 			}
 
 			// Device zu OPC-UA Device Map hinzufügen
-			addOpcuaClient(device.ID, client)
+			addOpcuaClient(device.ID, ch)
 
 			// Wenn wir hierher kommen, war die Verbindung erfolgreich
 			updateDeviceStatus(server, "opc-ua", device.ID, "2 (initializing)", db, &lastStatus)
 
 			// Daten vom OPC-UA-Client sammeln und veröffentlichen
-			err = collectAndPublishData(device, client, stopChan, server, db, &lastStatus)
+			err = collectAndPublishData(device, ch, stopChan, server, db, &lastStatus)
 
 			// Bei Fehler wird der Client geschlossen und ein neuer Verbindungsversuch gestartet
 			if err != nil {
 				logrus.Errorf("OPC-UA: Error collecting data from device %v: %v", device.Name, err)
 				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
 
-				if client != nil {
-					client.Close(ctx)
-					client = nil
+				if ch != nil {
+					ch.Close(ctx)
+					ch = nil
 				}
 
 				// Prüfe erneut für Stop-Request
@@ -197,7 +176,7 @@ func updateDeviceStatus(server *MQTT.Server, deviceType, deviceID, newStatus str
 }
 
 // collectAndPublishData collects and publishes data from an OPC-UA client to an MQTT broker.
-func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan chan struct{}, server *MQTT.Server, db *sql.DB, lastStatus *string) error {
+func collectAndPublishData(device DeviceConfig, ch *client.Client, stopChan chan struct{}, server *MQTT.Server, db *sql.DB, lastStatus *string) error {
 	dataNodes := device.DataNode
 
 	sleeptime := time.Duration(device.AcquisitionTime) * time.Millisecond
@@ -210,7 +189,7 @@ func collectAndPublishData(device DeviceConfig, client *opcua.Client, stopChan c
 			// Startzeit ermitteln
 			cycleStart := time.Now()
 
-			data, err := readData(client, dataNodes)
+			data, err := readData(ch, dataNodes)
 			if err != nil {
 				logrus.Errorf("OPC-UA: Error reading data from %v: %s", device.Name, err)
 				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, lastStatus)

@@ -1,10 +1,10 @@
 package opcua
 
-import "github.com/gopcua/opcua"
+import "github.com/awcullen/opcua/client"
 
 // opcua-connector.go types
 
-var opcuaClients = make(map[string]*opcua.Client) // Map to store OPC-UA clients by device name
+var opcuaClients = make(map[string]*client.Client) // Map to store OPC-UA clients by device name
 
 // logic.go types
 

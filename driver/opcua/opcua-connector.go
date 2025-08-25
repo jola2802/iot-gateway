@@ -4,35 +4,31 @@ import (
 	"context"
 	"errors"
 
-	"github.com/gopcua/opcua"
-	"github.com/gopcua/opcua/ua"
+	"github.com/awcullen/opcua/client"
+	"github.com/awcullen/opcua/ua"
 	"github.com/sirupsen/logrus"
 )
 
-func readData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
-	if client == nil {
+func readData(ch *client.Client, nodes []DataNode) ([]*ua.DataValue, error) {
+	if ch == nil {
 		return nil, errors.New("OPC-UA: client not connected")
 	}
 
 	readRequest := &ua.ReadRequest{
-		NodesToRead:        make([]*ua.ReadValueID, len(nodes)),
+		NodesToRead:        make([]ua.ReadValueID, len(nodes)),
 		TimestampsToReturn: ua.TimestampsToReturnBoth,
 	}
 
 	for i, dn := range nodes {
-		parsedNodeID, err := ua.ParseNodeID(dn.Node)
-		if err != nil {
-			logrus.Errorf("OPC-UA: failed to parse node ID '%s': %v", dn.Node, err)
-			return nil, errors.New("failed to parse node ID")
-		}
-		readRequest.NodesToRead[i] = &ua.ReadValueID{
+		parsedNodeID := ua.ParseNodeID(dn.Node)
+		readRequest.NodesToRead[i] = ua.ReadValueID{
 			NodeID:      parsedNodeID,
 			AttributeID: ua.AttributeIDValue,
 		}
 	}
 
 	ctx := context.Background()
-	readResponse, err := client.Read(ctx, readRequest)
+	readResponse, err := ch.Read(ctx, readRequest)
 	if err != nil {
 		// logrus.Errorf("OPC-UA: reading data failed: %v", err)
 		return nil, errors.New("reading data failed")
@@ -42,11 +38,11 @@ func readData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 	var successfulResults []*ua.DataValue
 
 	for i, result := range readResponse.Results {
-		if result.Status != ua.StatusOK {
-			logrus.Errorf("OPC-UA: reading node '%s' failed with status: %v", nodes[i], result.Status)
+		if !result.StatusCode.IsGood() {
+			logrus.Errorf("OPC-UA: reading node '%s' failed with status: %v", nodes[i], result.StatusCode)
 			continue
 		}
-		successfulResults = append(successfulResults, result)
+		successfulResults = append(successfulResults, &result)
 	}
 
 	return successfulResults, nil
@@ -54,37 +50,33 @@ func readData(client *opcua.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 
 // ---------------------- UNUSED --------------------------
 // UpdateDataNode aktualisiert einen OPC-UA-Datenpunkt
-func UpdateDataNode(client *opcua.Client, nodeID string, value interface{}) error {
-	if client == nil {
+func UpdateDataNode(ch *client.Client, nodeID string, value interface{}) error {
+	if ch == nil {
 		return errors.New("client not connected")
 	}
 
-	parsedNodeID, err := ua.ParseNodeID(nodeID)
-	if err != nil {
-		logrus.Errorf("failed to parse node ID '%s': %v", nodeID, err)
-		return errors.New("failed to parse node ID")
-	}
+	parsedNodeID := ua.ParseNodeID(nodeID)
 
 	writeRequest := &ua.WriteRequest{
-		NodesToWrite: []*ua.WriteValue{
+		NodesToWrite: []ua.WriteValue{
 			{
 				NodeID:      parsedNodeID,
 				AttributeID: ua.AttributeIDValue,
-				Value: &ua.DataValue{
-					Value: ua.MustVariant(value),
+				Value: ua.DataValue{
+					Value: value,
 				},
 			},
 		},
 	}
 
 	ctx := context.Background()
-	writeResponse, err := client.Write(ctx, writeRequest)
+	writeResponse, err := ch.Write(ctx, writeRequest)
 	if err != nil {
 		logrus.Errorf("write failed: %v", err)
 		return errors.New("write failed")
 	}
 
-	if writeResponse.Results[0] != ua.StatusOK {
+	if !writeResponse.Results[0].IsGood() {
 		logrus.Errorf("write failed with status: %v", writeResponse.Results[0])
 		return errors.New("write failed with status")
 	}
@@ -94,14 +86,11 @@ func UpdateDataNode(client *opcua.Client, nodeID string, value interface{}) erro
 }
 
 // GetNodeName ruft den Namen einer Node basierend auf der NodeID ab
-func GetNodeName(client *opcua.Client, nodeID string) (string, error) {
-	parsedNodeID, err := ua.ParseNodeID(nodeID)
-	if err != nil {
-		logrus.Errorf("OPC-UA: failed to parse node ID: %v", err)
-		return "", errors.New("failed to parse node ID")
-	}
+func GetNodeName(ch *client.Client, nodeID string) (string, error) {
+	parsedNodeID := ua.ParseNodeID(nodeID)
+
 	req := &ua.ReadRequest{
-		NodesToRead: []*ua.ReadValueID{
+		NodesToRead: []ua.ReadValueID{
 			{
 				NodeID:      parsedNodeID,
 				AttributeID: ua.AttributeIDDisplayName,
@@ -110,18 +99,18 @@ func GetNodeName(client *opcua.Client, nodeID string) (string, error) {
 	}
 
 	ctx := context.Background()
-	resp, err := client.Read(ctx, req)
+	resp, err := ch.Read(ctx, req)
 	if err != nil {
 		logrus.Errorf("OPC-UA: failed to read node name: %v", err)
 		return "", errors.New("failed to read node name")
 	}
 
-	if resp.Results[0].Status != ua.StatusOK {
-		logrus.Errorf("OPC-UA: failed to read node name with status: %v", resp.Results[0].Status)
+	if !resp.Results[0].StatusCode.IsGood() {
+		logrus.Errorf("OPC-UA: failed to read node name with status: %v", resp.Results[0].StatusCode)
 		return "", errors.New("failed to read node name with status")
 	}
 
-	switch v := resp.Results[0].Value.Value().(type) {
+	switch v := resp.Results[0].Value.(type) {
 	case ua.LocalizedText:
 		return v.Text, nil
 	case *ua.LocalizedText:

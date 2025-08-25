@@ -1,7 +1,7 @@
 package opcua
 
 import (
-	"github.com/gopcua/opcua/ua"
+	"github.com/awcullen/opcua/ua"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,8 +13,8 @@ func convData(data []*ua.DataValue, nodes []DataNode) (map[string]interface{}, e
 			logrus.Warnf("OPC-UA: No value for node %s, skipping conversion.", nodes[i].ID)
 			continue
 		}
-		// result[nodes[i].ID] = value.Value.Value()
-		result["["+nodes[i].ID+"] "+nodes[i].Name] = value.Value.Value()
+		// result[nodes[i].ID] = value.Value
+		result["["+nodes[i].ID+"] "+nodes[i].Name] = value.Value
 	}
 	return result, nil
 }

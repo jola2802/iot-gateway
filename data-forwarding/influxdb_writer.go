@@ -103,7 +103,7 @@ func initializeClient() error {
 
 	client = influxdb2.NewClient(influxConfig.URL, influxConfig.Token)
 	writeAPI = client.WriteAPI(influxConfig.Org, influxConfig.Bucket)
-	logrus.Infof("InfluxDB-Client initialisiert mit URL: %s", influxConfig.URL)
+	// logrus.Infof("InfluxDB-Client initialisiert mit URL: %s", influxConfig.URL)
 	return nil
 }
 

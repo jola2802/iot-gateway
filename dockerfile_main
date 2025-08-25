@@ -41,6 +41,9 @@ COPY --from=builder /app/webui/assets /app/webui/assets
 COPY --from=builder /app/server.crt /app/server.crt
 COPY --from=builder /app/server.key /app/server.key
 
+# Copy OPC-UA certificates if they exist (optional - will be generated at runtime if missing)
+RUN mkdir -p /app/certificate-opcua
+
 # Copy the iot_gateway.db
 COPY --from=builder /app/iot_gateway.db /app/iot_gateway.db
 

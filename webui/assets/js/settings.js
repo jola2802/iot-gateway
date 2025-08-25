@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Logs beim Laden der Seite abrufen
     fetchLogs();
 
-    // Automatische Aktualisierung der Logs alle 5 Sekunden
-    setInterval(fetchLogs, 5000);
+    // Automatische Aktualisierung der Logs alle 30 Sekunden
+    setInterval(fetchLogs, 30000);
 });
 
 /**

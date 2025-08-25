@@ -153,18 +153,10 @@ func generateCert() (*tls.Certificate, error) {
 		logrus.Infof("OPC-UA: Certificate will include Application URI: %s", gatewayURI)
 	}
 
-	// Zusätzlich lokale Identifikatoren
-	localIdentifiers := []string{
-		"urn:gateway:client",
-		"localhost",
-	}
-
-	for _, identifier := range localIdentifiers {
-		if ip := net.ParseIP(identifier); ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, identifier)
-		}
+	// Füge universelle und lokale Identifikatoren hinzu
+	err = addCertificateIdentifiers(&template)
+	if err != nil {
+		logrus.Warnf("OPC-UA: Could not add all certificate identifiers: %v", err)
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, priv.Public(), priv)
@@ -923,4 +915,127 @@ func CheckCertificateStatus() map[string]interface{} {
 	}
 
 	return status
+}
+
+// addCertificateIdentifiers fügt universelle und lokale Identifikatoren zum Zertifikat hinzu
+func addCertificateIdentifiers(template *x509.Certificate) error {
+	logrus.Infof("OPC-UA: Adding certificate identifiers...")
+
+	// Universelle DNS Names (funktionieren auf jedem System)
+	universalDNS := []string{
+		"localhost",
+		"*.local",       // mDNS/Bonjour
+		"gateway.local", // Spezifischer Gateway Name
+		"iot-gateway",   // Allgemeiner Gateway Name
+		"opcua-client",  // OPC-UA Client Identifier
+	}
+
+	// Universelle IPs
+	universalIPs := []string{
+		"127.0.0.1", // IPv4 Loopback
+		"::1",       // IPv6 Loopback
+	}
+
+	// Universelle URIs
+	additionalURIs := []string{
+		"urn:gateway:client",
+		"urn:opcua:client",
+		"urn:localhost:opcua",
+	}
+
+	// Füge universelle DNS Namen hinzu
+	for _, dns := range universalDNS {
+		template.DNSNames = append(template.DNSNames, dns)
+		logrus.Infof("OPC-UA: Added DNS name: %s", dns)
+	}
+
+	// Füge universelle IPs hinzu
+	for _, ipStr := range universalIPs {
+		if ip := net.ParseIP(ipStr); ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+			logrus.Infof("OPC-UA: Added IP address: %s", ip.String())
+		}
+	}
+
+	// Füge zusätzliche URIs hinzu
+	for _, uriStr := range additionalURIs {
+		if uri, err := url.Parse(uriStr); err == nil {
+			template.URIs = append(template.URIs, uri)
+			logrus.Infof("OPC-UA: Added URI: %s", uri.String())
+		}
+	}
+
+	// Versuche lokale Netzwerk-Informationen zu ermitteln
+	err := addLocalNetworkIdentifiers(template)
+	if err != nil {
+		logrus.Warnf("OPC-UA: Could not add local network identifiers: %v", err)
+	}
+
+	// Versuche Hostname zu ermitteln
+	if hostname, err := os.Hostname(); err == nil {
+		template.DNSNames = append(template.DNSNames, hostname)
+		template.DNSNames = append(template.DNSNames, strings.ToLower(hostname))
+		logrus.Infof("OPC-UA: Added hostname: %s", hostname)
+	}
+
+	logrus.Infof("OPC-UA: Certificate will be valid for %d DNS names, %d IP addresses, %d URIs",
+		len(template.DNSNames), len(template.IPAddresses), len(template.URIs))
+
+	return nil
+}
+
+// addLocalNetworkIdentifiers fügt lokale Netzwerk-IP-Adressen hinzu
+func addLocalNetworkIdentifiers(template *x509.Certificate) error {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return fmt.Errorf("could not get network interfaces: %v", err)
+	}
+
+	for _, iface := range interfaces {
+		// Überspringe inaktive Interfaces
+		if iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			logrus.Warnf("OPC-UA: Could not get addresses for interface %s: %v", iface.Name, err)
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+
+			// Füge nur nicht-link-lokale IPv4 und globale IPv6 Adressen hinzu
+			if ip.To4() != nil || (ip.To16() != nil && !ip.IsLinkLocalUnicast()) {
+				template.IPAddresses = append(template.IPAddresses, ip)
+				logrus.Infof("OPC-UA: Added local IP from interface %s: %s", iface.Name, ip.String())
+			}
+		}
+	}
+
+	return nil
+}
+
+// CreatePortableOPCUACertificates erstellt Zertifikate die auf verschiedenen Systemen funktionieren
+func CreatePortableOPCUACertificates() error {
+	logrus.Infof("=== Creating Portable OPC-UA Certificates ===")
+
+	// Lösche bestehende Zertifikate um Neugenerierung zu erzwingen
+	if err := os.RemoveAll("certificate-opcua"); err != nil {
+		logrus.Warnf("Could not remove certificate directory: %v", err)
+	}
+
+	// Erstelle neue portable Zertifikate
+	return CreateOPCUACertificates()
 }

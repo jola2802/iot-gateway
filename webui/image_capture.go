@@ -245,8 +245,6 @@ func addImageCaptureProcess(c *gin.Context) {
 		return
 	}
 
-	logrus.Infof("Neuer Prozess: %s (Device ID: %d)", process.Name, process.DeviceID)
-
 	// Validierung
 	if process.Name == "" {
 		logrus.Errorf("Validierungsfehler: Name ist leer")
@@ -268,8 +266,17 @@ func addImageCaptureProcess(c *gin.Context) {
 	}
 
 	// MethodArgs und UploadHeaders in JSON konvertieren
-	methodArgsJSON, _ := json.Marshal(process.MethodArgs)
-	uploadHeadersJSON, _ := json.Marshal(process.UploadHeaders)
+	methodArgsJSON, err := json.Marshal(process.MethodArgs)
+	if err != nil {
+		logrus.Errorf("Fehler beim Marshal der MethodArgs: %v", err)
+		methodArgsJSON = []byte("{}")
+	}
+
+	uploadHeadersJSON, err := json.Marshal(process.UploadHeaders)
+	if err != nil {
+		logrus.Errorf("Fehler beim Marshal der UploadHeaders: %v", err)
+		uploadHeadersJSON = []byte("{}")
+	}
 
 	now := time.Now()
 	query := `
@@ -651,7 +658,7 @@ func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess) (*Image
 	defer client.Close(ctx)
 
 	// Methode aufrufen
-	if err := callOPCUAMethod(ctx, client, params); err != nil {
+	if err := callOPCUAMethod(ctx, params); err != nil {
 		return nil, fmt.Errorf("Fehler beim Methodenaufruf: %v", err)
 	}
 

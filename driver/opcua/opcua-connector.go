@@ -3,27 +3,29 @@ package opcua
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/awcullen/opcua/client"
-	"github.com/awcullen/opcua/ua"
+	awcullenua "github.com/awcullen/opcua/ua"
 	"github.com/sirupsen/logrus"
 )
 
-func readData(ch *client.Client, nodes []DataNode) ([]*ua.DataValue, error) {
+func readData(ch *client.Client, nodes []DataNode) ([]*awcullenua.DataValue, error) {
 	if ch == nil {
 		return nil, errors.New("OPC-UA: client not connected")
 	}
 
-	readRequest := &ua.ReadRequest{
-		NodesToRead:        make([]ua.ReadValueID, len(nodes)),
-		TimestampsToReturn: ua.TimestampsToReturnBoth,
+	readRequest := &awcullenua.ReadRequest{
+		NodesToRead:        make([]awcullenua.ReadValueID, len(nodes)),
+		TimestampsToReturn: awcullenua.TimestampsToReturnBoth,
 	}
 
 	for i, dn := range nodes {
-		parsedNodeID := ua.ParseNodeID(dn.Node)
-		readRequest.NodesToRead[i] = ua.ReadValueID{
+		parsedNodeID := awcullenua.ParseNodeID(dn.Node)
+		readRequest.NodesToRead[i] = awcullenua.ReadValueID{
 			NodeID:      parsedNodeID,
-			AttributeID: ua.AttributeIDValue,
+			AttributeID: awcullenua.AttributeIDValue,
 		}
 	}
 
@@ -35,7 +37,7 @@ func readData(ch *client.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 	}
 	// var errorMessages []string
 
-	var successfulResults []*ua.DataValue
+	var successfulResults []*awcullenua.DataValue
 
 	for i, result := range readResponse.Results {
 		if !result.StatusCode.IsGood() {
@@ -48,6 +50,26 @@ func readData(ch *client.Client, nodes []DataNode) ([]*ua.DataValue, error) {
 	return successfulResults, nil
 }
 
+// readDataWithRetry liest Daten mit Retry-Mechanismus für bessere Verbindungsqualität
+func readDataWithRetry(ch *client.Client, nodes []DataNode, maxRetries int) ([]*awcullenua.DataValue, error) {
+	var lastErr error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		data, err := readData(ch, nodes)
+		if err == nil {
+			return data, nil
+		}
+
+		lastErr = err
+		if attempt < maxRetries-1 {
+			logrus.Warnf("OPC-UA: Read attempt %d/%d failed: %v. Retrying...", attempt+1, maxRetries, err)
+			time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond) // Exponential backoff
+		}
+	}
+
+	return nil, fmt.Errorf("failed after %d attempts: %v", maxRetries, lastErr)
+}
+
 // ---------------------- UNUSED --------------------------
 // UpdateDataNode aktualisiert einen OPC-UA-Datenpunkt
 func UpdateDataNode(ch *client.Client, nodeID string, value interface{}) error {
@@ -55,14 +77,14 @@ func UpdateDataNode(ch *client.Client, nodeID string, value interface{}) error {
 		return errors.New("client not connected")
 	}
 
-	parsedNodeID := ua.ParseNodeID(nodeID)
+	parsedNodeID := awcullenua.ParseNodeID(nodeID)
 
-	writeRequest := &ua.WriteRequest{
-		NodesToWrite: []ua.WriteValue{
+	writeRequest := &awcullenua.WriteRequest{
+		NodesToWrite: []awcullenua.WriteValue{
 			{
 				NodeID:      parsedNodeID,
-				AttributeID: ua.AttributeIDValue,
-				Value: ua.DataValue{
+				AttributeID: awcullenua.AttributeIDValue,
+				Value: awcullenua.DataValue{
 					Value: value,
 				},
 			},
@@ -87,13 +109,13 @@ func UpdateDataNode(ch *client.Client, nodeID string, value interface{}) error {
 
 // GetNodeName ruft den Namen einer Node basierend auf der NodeID ab
 func GetNodeName(ch *client.Client, nodeID string) (string, error) {
-	parsedNodeID := ua.ParseNodeID(nodeID)
+	parsedNodeID := awcullenua.ParseNodeID(nodeID)
 
-	req := &ua.ReadRequest{
-		NodesToRead: []ua.ReadValueID{
+	req := &awcullenua.ReadRequest{
+		NodesToRead: []awcullenua.ReadValueID{
 			{
 				NodeID:      parsedNodeID,
-				AttributeID: ua.AttributeIDDisplayName,
+				AttributeID: awcullenua.AttributeIDDisplayName,
 			},
 		},
 	}
@@ -111,9 +133,9 @@ func GetNodeName(ch *client.Client, nodeID string) (string, error) {
 	}
 
 	switch v := resp.Results[0].Value.(type) {
-	case ua.LocalizedText:
+	case awcullenua.LocalizedText:
 		return v.Text, nil
-	case *ua.LocalizedText:
+	case *awcullenua.LocalizedText:
 		return v.Text, nil
 	case string:
 		return v, nil

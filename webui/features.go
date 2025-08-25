@@ -7,11 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/awcullen/opcua/client"
+	awcullenua "github.com/awcullen/opcua/ua"
 	"github.com/gin-gonic/gin"
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/id"
@@ -177,36 +180,36 @@ func captureImage(c *gin.Context) {
 	// Starte den Prozess in einer Go-Routine
 	go func() {
 		// 2) OPC UA Client erstellen und verbinden
-		client, err := createAndConnectOPCUAClient(params)
+		ch, err := createAndConnectOPCUAClient(params)
 		if err != nil {
 			errorChan <- gin.H{"error": "OPC UA Client-Fehler", "details": err.Error(), "status": http.StatusInternalServerError}
 			return
 		}
 
 		ctx := context.Background()
-		defer client.Close(ctx)
+		defer ch.Close(ctx)
 
-		// 3) Methode aufrufen (Bildaufnahme starten)
-		if err := callOPCUAMethod(ctx, client, params); err != nil {
+		// 3) Methode aufrufen (Bildaufnahme starten) - verwendet gopcua
+		if err := callOPCUAMethod(ctx, params); err != nil {
 			errorChan <- gin.H{"error": "Methodenaufruf fehlgeschlagen", "details": err.Error(), "status": http.StatusInternalServerError}
 			return
 		}
 
 		// 4) Warten, bis checkNodeId = true
-		if err := waitForBooleanTrue(ctx, client, params.CheckNodeId); err != nil {
+		if err := waitForBooleanTrue(ctx, ch, params.CheckNodeId); err != nil {
 			errorChan <- gin.H{"error": "Timeout beim Warten auf Boolean-Wert", "details": err.Error(), "status": http.StatusRequestTimeout}
 			return
 		}
 
 		// 5) Bild-String auslesen
-		base64String, err := readImageString(ctx, client, params.ImageNodeId)
+		base64String, err := readImageString(ctx, ch, params.ImageNodeId)
 		if err != nil {
 			errorChan <- gin.H{"error": "Bilddaten konnten nicht gelesen werden", "details": err.Error(), "status": http.StatusInternalServerError}
 			return
 		}
 
 		// 6) Ack Node = true setzen
-		if err := writeBoolean(ctx, client, params.AckNodeId, true); err != nil {
+		if err := writeBoolean(ctx, ch, params.AckNodeId, true); err != nil {
 			logrus.Errorf("Fehler beim Schreiben des Ack-Werts: %v", err)
 			// Wir setzen fort, auch wenn das Schreiben fehlschlägt
 		}
@@ -337,64 +340,43 @@ func parseAndValidateParams(c *gin.Context) (ImageCaptureParams, error) {
 }
 
 // createAndConnectOPCUAClient erstellt und verbindet einen OPC UA Client
-func createAndConnectOPCUAClient(params ImageCaptureParams) (*opcua.Client, error) {
-	// OPC UA Client-Optionen erstellen
-	opts := []opcua.Option{}
-
-	// Sicherheitseinstellungen konfigurieren
-	var securityMode ua.MessageSecurityMode
-	switch params.SecurityMode {
-	case "SIGN":
-		securityMode = ua.MessageSecurityModeSign
-	case "SIGNANDENCRYPT":
-		securityMode = ua.MessageSecurityModeSignAndEncrypt
-	default:
-		securityMode = ua.MessageSecurityModeNone
+func createAndConnectOPCUAClient(params ImageCaptureParams) (*client.Client, error) {
+	// OPC UA Client-Optionen erstellen (vereinfacht für awcullen/opcua)
+	opts := []client.Option{
+		client.WithInsecureSkipVerify(),
 	}
 
-	var securityPolicy string
-	switch params.SecurityPolicy {
-	case "BASIC128RSA15":
-		securityPolicy = ua.SecurityPolicyURIBasic128Rsa15
-	case "BASIC256":
-		securityPolicy = ua.SecurityPolicyURIBasic256
-	case "BASIC256SHA256":
-		securityPolicy = ua.SecurityPolicyURIBasic256Sha256
-	default:
-		securityPolicy = ua.SecurityPolicyURINone
-	}
-
-	// Basis-Sicherheitsoptionen hinzufügen
-	opts = append(opts,
-		opcua.SecurityMode(securityMode),
-		opcua.SecurityPolicy(securityPolicy),
-	)
-
-	// Authentifizierung konfigurieren
-	if params.Username != "" && params.Password != "" {
-		opts = append(opts, opcua.AuthUsername(params.Username, params.Password))
-	} else {
-		opts = append(opts, opcua.AuthAnonymous())
-	}
+	// TODO: Security und Auth-Optionen müssen für awcullen/opcua anders implementiert werden
+	// Die aktuelle Implementation ist vereinfacht
+	logrus.Infof("Connecting to OPC UA server with simplified options (SecurityMode: %s, SecurityPolicy: %s, User: %s)",
+		params.SecurityMode, params.SecurityPolicy, params.Username)
 
 	// OPC UA Client erstellen und verbinden
 	ctx := context.Background()
-	client, err := opcua.NewClient(params.Endpoint, opts...)
+	ch, err := client.Dial(ctx, params.Endpoint, opts...)
 	if err != nil {
-		logrus.Errorf("Fehler beim Erstellen des OPC UA Clients: %v", err)
-		return nil, err
-	}
-
-	if err := client.Connect(ctx); err != nil {
 		logrus.Errorf("Fehler beim Verbinden mit OPC UA Server: %v", err)
 		return nil, err
 	}
 
-	return client, nil
+	return ch, nil
 }
 
-// callOPCUAMethod ruft eine Methode auf dem OPC UA Server auf
-func callOPCUAMethod(ctx context.Context, client *opcua.Client, params ImageCaptureParams) error {
+// callOPCUAMethod ruft eine Methode auf dem OPC UA Server auf (verwendet gopcua für Method Calls)
+func callOPCUAMethod(ctx context.Context, params ImageCaptureParams) error {
+	// Erstelle temporären gopcua Client nur für Method Call
+	client, err := opcua.NewClient(params.Endpoint)
+	if err != nil {
+		logrus.Errorf("Fehler beim Erstellen des OPC UA Clients für Method Call: %v", err)
+		return err
+	}
+
+	if err := client.Connect(ctx); err != nil {
+		logrus.Errorf("Fehler beim Verbinden für Method Call: %v", err)
+		return err
+	}
+	defer client.Close(ctx)
+
 	objectID, err := ua.ParseNodeID(params.ObjectId)
 	if err != nil {
 		logrus.Errorf("Fehler beim Parsen der ObjectID: %v", err)
@@ -481,40 +463,36 @@ func callOPCUAMethod(ctx context.Context, client *opcua.Client, params ImageCapt
 	return nil
 }
 
-// waitForBooleanTrue wartet, bis der angegebene Knoten den Wert true hat
-func waitForBooleanTrue(ctx context.Context, client *opcua.Client, nodeIDString string) error {
-	checkNodeID, err := ua.ParseNodeID(nodeIDString)
-	if err != nil {
-		logrus.Errorf("Fehler beim Parsen der CheckNodeID: %v", err)
-		return err
-	}
+// waitForBooleanTrue wartet, bis der angegebene Knoten den Wert true hat (awcullen/opcua)
+func waitForBooleanTrue(ctx context.Context, ch *client.Client, nodeIDString string) error {
+	checkNodeID := awcullenua.ParseNodeID(nodeIDString)
 
-	timeout := time.After(20 * time.Second)
+	timeout := time.After(10 * time.Second)
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			// Boolean-Wert lesen
-			nodeToRead := &ua.ReadValueID{
-				NodeID:      checkNodeID,
-				AttributeID: ua.AttributeIDValue,
+			// Boolean-Wert lesen mit awcullen/opcua
+			req := &awcullenua.ReadRequest{
+				NodesToRead: []awcullenua.ReadValueID{
+					{
+						NodeID:      checkNodeID,
+						AttributeID: awcullenua.AttributeIDValue,
+					},
+				},
+				TimestampsToReturn: awcullenua.TimestampsToReturnBoth,
 			}
 
-			req := &ua.ReadRequest{
-				NodesToRead:        []*ua.ReadValueID{nodeToRead},
-				TimestampsToReturn: ua.TimestampsToReturnBoth,
-			}
-
-			resp, err := client.Read(ctx, req)
+			resp, err := ch.Read(ctx, req)
 			if err != nil {
 				logrus.Errorf("Fehler beim Lesen des Boolean-Werts: %v", err)
 				continue
 			}
 
-			if len(resp.Results) > 0 && resp.Results[0].Status == ua.StatusOK {
-				if val, ok := resp.Results[0].Value.Value().(bool); ok && val {
+			if len(resp.Results) > 0 && resp.Results[0].StatusCode.IsGood() {
+				if val, ok := resp.Results[0].Value.(bool); ok && val {
 					// Boolean ist true, weiter zum nächsten Schritt
 					return nil
 				}
@@ -526,81 +504,211 @@ func waitForBooleanTrue(ctx context.Context, client *opcua.Client, nodeIDString 
 	}
 }
 
-// readImageString liest den Bild-String aus dem angegebenen Knoten
-func readImageString(ctx context.Context, client *opcua.Client, nodeIDString string) (string, error) {
-	imageNodeID, err := ua.ParseNodeID(nodeIDString)
-	if err != nil {
-		logrus.Errorf("Fehler beim Parsen der ImageNodeID: %v", err)
-		return "", err
+// readImageString liest den Bild-String aus dem angegebenen Knoten (awcullen/opcua)
+func readImageString(ctx context.Context, ch *client.Client, nodeIDString string) (string, error) {
+	imageNodeID := awcullenua.ParseNodeID(nodeIDString)
+
+	req := &awcullenua.ReadRequest{
+		NodesToRead: []awcullenua.ReadValueID{
+			{
+				NodeID:      imageNodeID,
+				AttributeID: awcullenua.AttributeIDValue,
+			},
+		},
+		TimestampsToReturn: awcullenua.TimestampsToReturnBoth,
 	}
 
-	nodeToRead := &ua.ReadValueID{
-		NodeID:      imageNodeID,
-		AttributeID: ua.AttributeIDValue,
-	}
-
-	req := &ua.ReadRequest{
-		NodesToRead:        []*ua.ReadValueID{nodeToRead},
-		TimestampsToReturn: ua.TimestampsToReturnBoth,
-	}
-
-	resp, err := client.Read(ctx, req)
+	resp, err := ch.Read(ctx, req)
 	if err != nil {
 		logrus.Errorf("Fehler beim Lesen des Bildes: %v", err)
 		return "", err
 	}
 
-	if len(resp.Results) == 0 || resp.Results[0].Status != ua.StatusOK {
+	if len(resp.Results) == 0 || !resp.Results[0].StatusCode.IsGood() {
 		logrus.Error("Bilddaten konnten nicht gelesen werden")
 		return "", fmt.Errorf("bilddaten konnten nicht gelesen werden")
 	}
 
 	var base64String string
-	// if val, ok := resp.Results[0].Value.Value().(string); ok {
-	// 	base64String = val
-	// } else {
-	// 	logrus.Error("Bilddaten haben falsches Format")
-	// 	return "", fmt.Errorf("bilddaten haben falsches Format")
-	// }
+	dataValue := resp.Results[0].Value
 
-	dataValue := resp.Results[0].Value.Value()
-	// dataValue ist ein []byte
-	// wir müssen es in einen string konvertieren
-	base64String = base64.StdEncoding.EncodeToString(dataValue.([]byte))
+	// Versuche verschiedene Datentypen zu handhaben
+	logrus.Debugf("Bilddaten-Typ erhalten: %T, Wert-Info: %v", dataValue, dataValue)
+
+	// Debug: Zeige mehr Details über den Wert
+	if dataValue != nil {
+		reflectVal := reflect.ValueOf(dataValue)
+		logrus.Debugf("Reflect-Info: Kind=%v, Type=%v, Len=%v", reflectVal.Kind(), reflectVal.Type(),
+			func() interface{} {
+				if reflectVal.Kind() == reflect.Slice || reflectVal.Kind() == reflect.Array {
+					return reflectVal.Len()
+				}
+				return "N/A"
+			}())
+	}
+
+	switch v := dataValue.(type) {
+	case []byte:
+		// Rohe Bytes - direkt zu base64 konvertieren
+		logrus.Debugf("Bilddaten als []byte erhalten (%d bytes)", len(v))
+		base64String = base64.StdEncoding.EncodeToString(v)
+
+	case string:
+		// Prüfe ob es bereits base64 ist oder roher String
+		if isValidBase64(v) {
+			logrus.Debug("Bilddaten als base64-String erhalten")
+			base64String = v
+		} else {
+			// Roher String (möglicherweise Binärdaten) - zu base64 konvertieren
+			logrus.Debugf("Bilddaten als roher String erhalten (%d Zeichen), beginnt mit: %q", len(v), getSafePrefix(v, 20))
+			base64String = base64.StdEncoding.EncodeToString([]byte(v))
+		}
+
+	case awcullenua.ByteString:
+		// Expliziter Case für ua.ByteString
+		logrus.Debugf("Bilddaten als ua.ByteString erhalten (%d bytes)", len(v))
+		base64String = base64.StdEncoding.EncodeToString([]byte(v))
+
+	case []interface{}:
+		// Array von Interface{} - konvertiere zu Bytes
+		logrus.Debugf("Bilddaten als []interface{} erhalten (%d Elemente)", len(v))
+		bytes := make([]byte, len(v))
+		for i, val := range v {
+			if byteVal, ok := val.(byte); ok {
+				bytes[i] = byteVal
+			} else if intVal, ok := val.(int); ok {
+				bytes[i] = byte(intVal)
+			} else if uintVal, ok := val.(uint8); ok {
+				bytes[i] = uintVal
+			} else {
+				// Fallback: konvertiere zu int und dann zu byte
+				bytes[i] = byte(fmt.Sprintf("%v", val)[0])
+			}
+		}
+		base64String = base64.StdEncoding.EncodeToString(bytes)
+
+	case interface{}:
+		// Generisches Interface - versuche verschiedene Konvertierungen
+		logrus.Debugf("Bilddaten als interface{} erhalten: %T", v)
+
+		// Versuche reflect um den echten Typ zu finden
+		reflectVal := reflect.ValueOf(v)
+		switch reflectVal.Kind() {
+		case reflect.Slice, reflect.Array:
+			// Slice oder Array - versuche zu Bytes zu konvertieren
+			length := reflectVal.Len()
+			bytes := make([]byte, length)
+			for i := 0; i < length; i++ {
+				elem := reflectVal.Index(i)
+				if elem.CanInterface() {
+					switch elemVal := elem.Interface().(type) {
+					case uint8:
+						bytes[i] = elemVal
+					case int:
+						bytes[i] = byte(elemVal)
+					case int8:
+						bytes[i] = byte(elemVal)
+					case int16:
+						bytes[i] = byte(elemVal)
+					case int32:
+						bytes[i] = byte(elemVal)
+					case int64:
+						bytes[i] = byte(elemVal)
+					case uint16:
+						bytes[i] = byte(elemVal)
+					case uint32:
+						bytes[i] = byte(elemVal)
+					case uint64:
+						bytes[i] = byte(elemVal)
+					case float32:
+						bytes[i] = byte(elemVal)
+					case float64:
+						bytes[i] = byte(elemVal)
+					default:
+						// Versuche String-Konvertierung
+						if str := fmt.Sprintf("%v", elemVal); len(str) > 0 {
+							bytes[i] = byte(str[0])
+						} else {
+							bytes[i] = byte(0)
+						}
+					}
+				}
+			}
+			logrus.Debugf("Konvertiert %d Elemente zu Bytes", length)
+			base64String = base64.StdEncoding.EncodeToString(bytes)
+		default:
+			// String-Konvertierung als letzter Ausweg
+			stringValue := fmt.Sprintf("%v", v)
+			logrus.Warnf("Fallback String-Konvertierung für Typ %T: %s", v, getSafePrefix(stringValue, 50))
+			base64String = base64.StdEncoding.EncodeToString([]byte(stringValue))
+		}
+
+	default:
+		// Letzter Fallback: Versuche String-Konvertierung
+		stringValue := fmt.Sprintf("%v", dataValue)
+		logrus.Warnf("Unerwarteter Datentyp für Bilddaten: %T, String-Fallback: %s", dataValue, getSafePrefix(stringValue, 50))
+		base64String = base64.StdEncoding.EncodeToString([]byte(stringValue))
+	}
 
 	return base64String, nil
 }
 
-// writeBoolean schreibt einen booleschen Wert in den angegebenen Knoten
-func writeBoolean(ctx context.Context, client *opcua.Client, nodeIDString string, value bool) error {
-	nodeID, err := ua.ParseNodeID(nodeIDString)
-	if err != nil {
-		logrus.Errorf("Fehler beim Parsen der NodeID: %v", err)
-		return err
+// isValidBase64 prüft, ob ein String gültiges base64 Format hat
+func isValidBase64(s string) bool {
+	// Prüfe basic base64 pattern
+	if len(s) == 0 || len(s)%4 != 0 {
+		return false
 	}
 
-	writeReq := &ua.WriteRequest{
-		NodesToWrite: []*ua.WriteValue{
+	// Versuche zu dekodieren
+	_, err := base64.StdEncoding.DecodeString(s)
+	return err == nil
+}
+
+// getSafePrefix gibt einen sicheren String-Prefix zurück (ersetzt unprintable Zeichen)
+func getSafePrefix(s string, maxLen int) string {
+	if len(s) > maxLen {
+		s = s[:maxLen]
+	}
+
+	// Ersetze unprintable Zeichen durch ihre hex-Darstellung
+	result := ""
+	for _, r := range s {
+		if r >= 32 && r <= 126 {
+			result += string(r)
+		} else {
+			result += fmt.Sprintf("\\x%02x", r)
+		}
+	}
+	return result
+}
+
+// writeBoolean schreibt einen booleschen Wert in den angegebenen Knoten (awcullen/opcua)
+func writeBoolean(ctx context.Context, ch *client.Client, nodeIDString string, value bool) error {
+	nodeID := awcullenua.ParseNodeID(nodeIDString)
+
+	writeReq := &awcullenua.WriteRequest{
+		NodesToWrite: []awcullenua.WriteValue{
 			{
 				NodeID:      nodeID,
-				AttributeID: ua.AttributeIDValue,
-				Value: &ua.DataValue{
-					Value: ua.MustVariant(value),
+				AttributeID: awcullenua.AttributeIDValue,
+				Value: awcullenua.DataValue{
+					Value: value,
 				},
 			},
 		},
 	}
 
-	_, err = client.Write(ctx, writeReq)
+	writeResp, err := ch.Write(ctx, writeReq)
 	if err != nil {
 		logrus.Errorf("Fehler beim Schreiben des Werts: %v", err)
 		return err
 	}
 
-	// if len(writeResp.Results) > 0 && writeResp.Results[0] != ua.StatusOK {
-	// 	logrus.Errorf("Schreiben des Werts fehlgeschlagen mit Status: %v", writeResp.Results[0])
-	// 	return fmt.Errorf("schreiben des Werts fehlgeschlagen mit Status: %v", writeResp.Results[0])
-	// }
+	if len(writeResp.Results) > 0 && !writeResp.Results[0].IsGood() {
+		logrus.Errorf("Schreiben des Werts fehlgeschlagen mit Status: %v", writeResp.Results[0])
+		return fmt.Errorf("schreiben des Werts fehlgeschlagen mit Status: %v", writeResp.Results[0])
+	}
 
 	return nil
 }

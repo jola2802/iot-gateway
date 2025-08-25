@@ -15,58 +15,6 @@ import (
 
 // Run runs the OPC-UA client and MQTT publisher.
 func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
-	// // Validiere Gateway-Identität
-	// ValidateGatewayIdentity()
-
-	// // Debug: Zeige Authentifizierungsinformationen
-	// DebugIdentityToken(device)
-
-	// // DNS-Problem Diagnose
-	// DiagnoseDNSProblem(device.Address)
-
-	// // Validieren und korrigieren der OPC-UA Adresse
-	// validatedAddress, err := ValidateAndFixOPCUAAddress(device.Address)
-	// if err != nil {
-	// 	logrus.Errorf("OPC-UA: Address validation failed for device %s: %v", device.Name, err)
-	// 	return err
-	// }
-
-	// // Verwende die validierte Adresse
-	// if validatedAddress != device.Address {
-	// 	logrus.Infof("OPC-UA: Using validated address for device %s: %s", device.Name, validatedAddress)
-	// 	device.Address = validatedAddress
-	// }
-
-	// // Schritt 1: Versuche Endpoint Discovery
-	// logrus.Infof("OPC-UA: Starting endpoint discovery for device %s", device.Name)
-	// bestEndpoint, discoveryErr := FindBestEndpoint(device.Address, device.SecurityMode, device.SecurityPolicy)
-
-	// var finalEndpoint string
-
-	// if discoveryErr != nil {
-	// 	logrus.Warnf("OPC-UA: Endpoint discovery failed for device %s: %v", device.Name, discoveryErr)
-
-	// 	// Schritt 2: Fallback zu manueller Endpoint-Konstruktion
-	// 	logrus.Infof("OPC-UA: Trying manual endpoint construction as fallback")
-	// 	candidateEndpoints := TryManualEndpointConstruction(device.Address)
-
-	// 	// Schritt 3: Teste alle Kandidaten
-	// 	workingEndpoint, err := TryMultipleEndpoints(device, candidateEndpoints)
-	// 	if err != nil {
-	// 		logrus.Errorf("OPC-UA: No working endpoint found for device %s: %v", device.Name, err)
-	// 		logrus.Infof("OPC-UA: Using original address as last resort: %s", device.Address)
-	// 		finalEndpoint = device.Address
-	// 	} else {
-	// 		finalEndpoint = workingEndpoint
-	// 	}
-	// } else {
-	// 	logrus.Infof("OPC-UA: Using discovered endpoint for device %s: %s", device.Name, bestEndpoint)
-	// 	finalEndpoint = bestEndpoint
-	// }
-
-	// Verwende den gefundenen Endpoint
-	// device.Address = finalEndpoint
-	// logrus.Infof("OPC-UA: Final endpoint for device %s: %s", device.Name, finalEndpoint)
 
 	// Teste verschiedene Authentifizierungsmethoden
 	logrus.Infof("OPC-UA: Testing authentication methods for device %s", device.Name)
@@ -77,17 +25,25 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 	}
 
 	var clientOpts []client.Option
+	var ch *client.Client
+	var connectionEstablished bool = false
 
 	// Erstelle Context außerhalb der Schleife
 	ctx := context.Background()
-	var ch *client.Client
-
 	lastStatus := ""
 
 	// Starten mit Initializing
 	updateDeviceStatus(server, "opc-ua", device.ID, "2 (initializing)", db, &lastStatus)
 
-	// Retry-Logik: Versuche alle 5 Sekunden, die Verbindung aufzubauen
+	// Client-Optionen einmalig erstellen
+	clientOpts, err = clientOptsFromFlags(device, db)
+	if err != nil {
+		logrus.Errorf("OPC-UA: Error creating client options for device %v: %v", device.Name, err)
+		updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, &lastStatus)
+		return fmt.Errorf("configuration failed for device %v: %v", device.Name, err)
+	}
+
+	// Connection und Retry-Logik
 	retryInterval := 5 * time.Second
 	for {
 		select {
@@ -98,53 +54,47 @@ func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.S
 			updateDeviceStatus(server, "opc-ua", device.ID, "0 (stopped)", db, &lastStatus)
 			return nil
 		default:
-			// Erstelle bei jedem Versuch einen neuen Client
-			clientOpts, err = clientOptsFromFlags(device, db)
-			if err != nil {
-				logrus.Errorf("OPC-UA: Error creating client options for device %v: %v", device.Name, err)
-				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, &lastStatus)
-				select {
-				case <-stopChan:
-					return fmt.Errorf("configuration aborted for device %v", device.Name)
-				case <-time.After(retryInterval):
-					continue
+			// Versuche Verbindung aufzubauen, falls noch nicht vorhanden
+			if !connectionEstablished {
+				logrus.Infof("OPC-UA: Establishing connection to device %v at %s", device.Name, device.Address)
+				ch, err = client.Dial(ctx, device.Address, clientOpts...)
+				if err != nil {
+					logrus.Errorf("OPC-UA: Failed to connect to device %v: %v. Retrying in %v...", device.Name, err, retryInterval)
+					updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
+
+					select {
+					case <-stopChan:
+						return fmt.Errorf("connection aborted for device %v", device.Name)
+					case <-time.After(retryInterval):
+						continue
+					}
 				}
+
+				// Verbindung erfolgreich
+				connectionEstablished = true
+				addOpcuaClient(device.ID, ch)
+				logrus.Infof("OPC-UA: Successfully connected to device %v", device.Name)
+				updateDeviceStatus(server, "opc-ua", device.ID, "2 (initializing)", db, &lastStatus)
 			}
 
-			ch, err = client.Dial(ctx, device.Address, clientOpts...)
+			// Daten sammeln und veröffentlichen mit persistenter Verbindung
+			err = collectAndPublishDataPersistent(device, ch, stopChan, server, db, &lastStatus, &connectionEstablished)
+
+			// Bei Verbindungsverlust: Markiere Verbindung als getrennt und versuche erneut
 			if err != nil {
-				// Prüfe, ob ein Stop-Request empfangen wurde
-				select {
-				case <-stopChan:
-					return fmt.Errorf("connection aborted for device %v", device.Name)
-				case <-time.After(retryInterval):
-					continue
-				}
-			}
-
-			// Device zu OPC-UA Device Map hinzufügen
-			addOpcuaClient(device.ID, ch)
-
-			// Wenn wir hierher kommen, war die Verbindung erfolgreich
-			updateDeviceStatus(server, "opc-ua", device.ID, "2 (initializing)", db, &lastStatus)
-
-			// Daten vom OPC-UA-Client sammeln und veröffentlichen
-			err = collectAndPublishData(device, ch, stopChan, server, db, &lastStatus)
-
-			// Bei Fehler wird der Client geschlossen und ein neuer Verbindungsversuch gestartet
-			if err != nil {
-				logrus.Errorf("OPC-UA: Error collecting data from device %v: %v", device.Name, err)
+				logrus.Warnf("OPC-UA: Connection issue with device %v: %v", device.Name, err)
 				updateDeviceStatus(server, "opc-ua", device.ID, "6 (connection lost)", db, &lastStatus)
 
 				if ch != nil {
 					ch.Close(ctx)
 					ch = nil
 				}
+				connectionEstablished = false
 
-				// Prüfe erneut für Stop-Request
+				// Warte vor erneutem Verbindungsversuch
 				select {
 				case <-stopChan:
-					return fmt.Errorf("data collection aborted for device %v", device.Name)
+					return fmt.Errorf("connection aborted for device %v", device.Name)
 				case <-time.After(retryInterval):
 					continue
 				}
@@ -173,6 +123,65 @@ func updateDeviceStatus(server *MQTT.Server, deviceType, deviceID, newStatus str
 		*lastStatus = newStatus
 		logrus.Debugf("%s: Device %s status changed to %s", deviceType, deviceID, newStatus)
 	}
+}
+
+// collectAndPublishDataPersistent sammelt und veröffentlicht Daten mit persistenter Verbindung
+func collectAndPublishDataPersistent(device DeviceConfig, ch *client.Client, stopChan chan struct{}, server *MQTT.Server, db *sql.DB, lastStatus *string, connectionEstablished *bool) error {
+	dataNodes := device.DataNode
+	sleeptime := time.Duration(device.AcquisitionTime) * time.Millisecond
+
+	// Mehrere Zyklen mit derselben Verbindung ausführen
+	maxCyclesPerConnection := 100 // Nach 100 Zyklen kurz prüfen
+	cycleCount := 0
+
+	for cycleCount < maxCyclesPerConnection {
+		select {
+		case <-stopChan:
+			return nil
+		default:
+			cycleStart := time.Now()
+
+			// Lese Daten mit Fehlerbehandlung
+			data, err := readDataWithRetry(ch, dataNodes, 3) // 3 Retry-Versuche
+			if err != nil {
+				logrus.Errorf("OPC-UA: Persistent connection failed for device %v: %v", device.Name, err)
+				*connectionEstablished = false
+				return err
+			}
+
+			convData, err := convData(data, dataNodes)
+			if err != nil {
+				logrus.Errorf("OPC-UA: Error converting data from %v: %s", device.Name, err)
+				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, lastStatus)
+				return err
+			}
+
+			if err = pubData(convData, device.Name, device.ID, server); err != nil {
+				logrus.Errorf("OPC-UA: Error publishing data from %v: %s", device.Name, err)
+				updateDeviceStatus(server, "opc-ua", device.ID, "3 (error)", db, lastStatus)
+				return err
+			}
+
+			// Status aktualisieren
+			if len(convData) > 0 {
+				updateDeviceStatus(server, "opc-ua", device.ID, "1 (running)", db, lastStatus)
+			} else {
+				updateDeviceStatus(server, "opc-ua", device.ID, "4 (no datapoints)", db, lastStatus)
+			}
+
+			// Cycle-Timing
+			cycleDuration := time.Since(cycleStart)
+			remainingTime := sleeptime - cycleDuration
+			if remainingTime > 0 {
+				time.Sleep(remainingTime)
+			}
+
+			cycleCount++
+		}
+	}
+
+	// Nach maxCyclesPerConnection Zyklen zurückkehren für Connection-Health-Check
+	return nil
 }
 
 // collectAndPublishData collects and publishes data from an OPC-UA client to an MQTT broker.

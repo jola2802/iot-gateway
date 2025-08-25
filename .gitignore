@@ -6,6 +6,6 @@ node-red-data copy
 .vscode
 *.tar
 *.exe
-*.pem
 *.log
 sh-files
+regenerate_certificates.go

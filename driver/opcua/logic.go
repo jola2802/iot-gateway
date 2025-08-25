@@ -15,62 +15,62 @@ import (
 
 // Run runs the OPC-UA client and MQTT publisher.
 func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
-	// Validiere Gateway-Identität
-	ValidateGatewayIdentity()
+	// // Validiere Gateway-Identität
+	// ValidateGatewayIdentity()
 
-	// Debug: Zeige Authentifizierungsinformationen
-	DebugIdentityToken(device)
+	// // Debug: Zeige Authentifizierungsinformationen
+	// DebugIdentityToken(device)
 
-	// DNS-Problem Diagnose
-	DiagnoseDNSProblem(device.Address)
+	// // DNS-Problem Diagnose
+	// DiagnoseDNSProblem(device.Address)
 
-	// Validieren und korrigieren der OPC-UA Adresse
-	validatedAddress, err := ValidateAndFixOPCUAAddress(device.Address)
-	if err != nil {
-		logrus.Errorf("OPC-UA: Address validation failed for device %s: %v", device.Name, err)
-		return err
-	}
+	// // Validieren und korrigieren der OPC-UA Adresse
+	// validatedAddress, err := ValidateAndFixOPCUAAddress(device.Address)
+	// if err != nil {
+	// 	logrus.Errorf("OPC-UA: Address validation failed for device %s: %v", device.Name, err)
+	// 	return err
+	// }
 
-	// Verwende die validierte Adresse
-	if validatedAddress != device.Address {
-		logrus.Infof("OPC-UA: Using validated address for device %s: %s", device.Name, validatedAddress)
-		device.Address = validatedAddress
-	}
+	// // Verwende die validierte Adresse
+	// if validatedAddress != device.Address {
+	// 	logrus.Infof("OPC-UA: Using validated address for device %s: %s", device.Name, validatedAddress)
+	// 	device.Address = validatedAddress
+	// }
 
-	// Schritt 1: Versuche Endpoint Discovery
-	logrus.Infof("OPC-UA: Starting endpoint discovery for device %s", device.Name)
-	bestEndpoint, discoveryErr := FindBestEndpoint(device.Address, device.SecurityMode, device.SecurityPolicy)
+	// // Schritt 1: Versuche Endpoint Discovery
+	// logrus.Infof("OPC-UA: Starting endpoint discovery for device %s", device.Name)
+	// bestEndpoint, discoveryErr := FindBestEndpoint(device.Address, device.SecurityMode, device.SecurityPolicy)
 
-	var finalEndpoint string
+	// var finalEndpoint string
 
-	if discoveryErr != nil {
-		logrus.Warnf("OPC-UA: Endpoint discovery failed for device %s: %v", device.Name, discoveryErr)
+	// if discoveryErr != nil {
+	// 	logrus.Warnf("OPC-UA: Endpoint discovery failed for device %s: %v", device.Name, discoveryErr)
 
-		// Schritt 2: Fallback zu manueller Endpoint-Konstruktion
-		logrus.Infof("OPC-UA: Trying manual endpoint construction as fallback")
-		candidateEndpoints := TryManualEndpointConstruction(device.Address)
+	// 	// Schritt 2: Fallback zu manueller Endpoint-Konstruktion
+	// 	logrus.Infof("OPC-UA: Trying manual endpoint construction as fallback")
+	// 	candidateEndpoints := TryManualEndpointConstruction(device.Address)
 
-		// Schritt 3: Teste alle Kandidaten
-		workingEndpoint, err := TryMultipleEndpoints(device, candidateEndpoints)
-		if err != nil {
-			logrus.Errorf("OPC-UA: No working endpoint found for device %s: %v", device.Name, err)
-			logrus.Infof("OPC-UA: Using original address as last resort: %s", device.Address)
-			finalEndpoint = device.Address
-		} else {
-			finalEndpoint = workingEndpoint
-		}
-	} else {
-		logrus.Infof("OPC-UA: Using discovered endpoint for device %s: %s", device.Name, bestEndpoint)
-		finalEndpoint = bestEndpoint
-	}
+	// 	// Schritt 3: Teste alle Kandidaten
+	// 	workingEndpoint, err := TryMultipleEndpoints(device, candidateEndpoints)
+	// 	if err != nil {
+	// 		logrus.Errorf("OPC-UA: No working endpoint found for device %s: %v", device.Name, err)
+	// 		logrus.Infof("OPC-UA: Using original address as last resort: %s", device.Address)
+	// 		finalEndpoint = device.Address
+	// 	} else {
+	// 		finalEndpoint = workingEndpoint
+	// 	}
+	// } else {
+	// 	logrus.Infof("OPC-UA: Using discovered endpoint for device %s: %s", device.Name, bestEndpoint)
+	// 	finalEndpoint = bestEndpoint
+	// }
 
 	// Verwende den gefundenen Endpoint
-	device.Address = finalEndpoint
-	logrus.Infof("OPC-UA: Final endpoint for device %s: %s", device.Name, finalEndpoint)
+	// device.Address = finalEndpoint
+	// logrus.Infof("OPC-UA: Final endpoint for device %s: %s", device.Name, finalEndpoint)
 
 	// Teste verschiedene Authentifizierungsmethoden
 	logrus.Infof("OPC-UA: Testing authentication methods for device %s", device.Name)
-	err = TryDifferentAuthMethods(device, device.Address)
+	err := TryDifferentAuthMethods(device, device.Address)
 	if err != nil {
 		logrus.Errorf("OPC-UA: All authentication methods failed for device %s: %v", device.Name, err)
 		// Trotzdem weiter versuchen mit der Standard-Konfiguration

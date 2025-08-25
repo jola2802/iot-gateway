@@ -654,7 +654,7 @@ func RegenerateCertificateWithCorrectURI() error {
 // TryManualEndpointConstruction versucht, den Endpoint manuell zu konstruieren
 // Dies ist ein Fallback, wenn Endpoint Discovery fehlschlägt
 func TryManualEndpointConstruction(originalAddress string) []string {
-	logrus.Infof("=== Manual Endpoint Construction for: %s ===", originalAddress)
+	// logrus.Infof("=== Manual Endpoint Construction for: %s ===", originalAddress)
 
 	var endpoints []string
 
@@ -738,7 +738,7 @@ func TryMultipleEndpoints(device DeviceConfig, candidateEndpoints []string) (str
 
 // CreateOPCUACertificates erstellt neue OPC-UA Zertifikate mit der korrekten Gateway URI
 func CreateOPCUACertificates() error {
-	logrus.Infof("=== Creating OPC-UA Certificates ===")
+	// logrus.Infof("=== Creating OPC-UA Certificates ===")
 
 	// Definiere Pfade
 	certPath := "certificate-opcua/idpm_cert.pem"
@@ -758,7 +758,7 @@ func CreateOPCUACertificates() error {
 	}
 
 	// Generiere neue Zertifikate
-	logrus.Infof("OPC-UA: Generating new certificate and private key...")
+	// logrus.Infof("OPC-UA: Generating new certificate and private key...")
 	c, err := generateCert()
 	if err != nil {
 		return fmt.Errorf("failed to generate certificate: %v", err)
@@ -775,7 +775,7 @@ func CreateOPCUACertificates() error {
 	if err := os.WriteFile(certPath, certPEM, 0644); err != nil {
 		return fmt.Errorf("failed to save certificate: %v", err)
 	}
-	logrus.Infof("OPC-UA: Certificate saved to %s", certPath)
+	// logrus.Infof("OPC-UA: Certificate saved to %s", certPath)
 
 	// Speichere den privaten Schlüssel im PEM-Format
 	keyPEM := pem.EncodeToMemory(&pem.Block{
@@ -785,14 +785,14 @@ func CreateOPCUACertificates() error {
 	if err := os.WriteFile(keyPath, keyPEM, 0644); err != nil {
 		return fmt.Errorf("failed to save private key: %v", err)
 	}
-	logrus.Infof("OPC-UA: Private key saved to %s", keyPath)
+	// logrus.Infof("OPC-UA: Private key saved to %s", keyPath)
 
 	// Validiere das erstellte Zertifikat
 	if err := validateCreatedCertificate(certPath); err != nil {
 		return fmt.Errorf("certificate validation failed: %v", err)
 	}
 
-	logrus.Infof("✅ OPC-UA certificates created successfully!")
+	// logrus.Infof("✅ OPC-UA certificates created successfully!")
 	logrus.Infof("Gateway Application URI: %s", GetGatewayApplicationURI())
 
 	return nil
@@ -819,8 +819,8 @@ func validateCreatedCertificate(certPath string) error {
 	}
 
 	// Validiere Subject
-	actualSubject := cert.Subject.String()
-	logrus.Infof("Certificate Subject: %s", actualSubject)
+	// actualSubject := cert.Subject.String()
+	// logrus.Infof("Certificate Subject: %s", actualSubject)
 
 	// Validiere Application URI
 	gatewayURI := GetGatewayApplicationURI()
@@ -828,7 +828,7 @@ func validateCreatedCertificate(certPath string) error {
 	for _, uri := range cert.URIs {
 		if uri.String() == gatewayURI {
 			foundURI = true
-			logrus.Infof("✅ Gateway Application URI found in certificate: %s", uri.String())
+			// logrus.Infof("✅ Gateway Application URI found in certificate: %s", uri.String())
 			break
 		}
 	}
@@ -846,7 +846,7 @@ func validateCreatedCertificate(certPath string) error {
 		return fmt.Errorf("certificate has expired (NotAfter: %v)", cert.NotAfter)
 	}
 
-	logrus.Infof("✅ Certificate is valid from %v to %v", cert.NotBefore, cert.NotAfter)
+	// logrus.Infof("✅ Certificate is valid from %v to %v", cert.NotBefore, cert.NotAfter)
 
 	return nil
 }

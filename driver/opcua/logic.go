@@ -15,8 +15,26 @@ import (
 
 // Run runs the OPC-UA client and MQTT publisher.
 func Run(device DeviceConfig, db *sql.DB, stopChan chan struct{}, server *MQTT.Server) error {
+	// Debug: Zeige Authentifizierungsinformationen
+	DebugIdentityToken(device)
+
+	// DNS-Problem Diagnose
+	DiagnoseDNSProblem(device.Address)
+
+	// Validieren und korrigieren der OPC-UA Adresse
+	validatedAddress, err := ValidateAndFixOPCUAAddress(device.Address)
+	if err != nil {
+		logrus.Errorf("OPC-UA: Address validation failed for device %s: %v", device.Name, err)
+		return err
+	}
+
+	// Verwende die validierte Adresse
+	if validatedAddress != device.Address {
+		logrus.Infof("OPC-UA: Using validated address for device %s: %s", device.Name, validatedAddress)
+		device.Address = validatedAddress
+	}
+
 	var clientOpts []opcua.Option
-	var err error
 
 	// Erstelle Context außerhalb der Schleife
 	ctx := context.Background()

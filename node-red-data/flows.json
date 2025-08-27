@@ -3,7 +3,7 @@
         "id": "4071c101bbc3e907",
         "type": "tab",
         "label": "Data Forwarding",
-        "disabled": true,
+        "disabled": false,
         "info": "",
         "env": []
     },
@@ -1693,7 +1693,7 @@
         "env": [
             {
                 "name": "URL",
-                "value": "http://192.168.0.84:4999//data/readingsarray",
+                "value": "http://192.168.0.84:4999/data/readingsarray",
                 "type": "str"
             }
         ],
@@ -1705,13 +1705,9 @@
         "id": "2ec19ab9400b415f",
         "type": "subflow:f5c5556a9e4eb0ae",
         "z": "4071c101bbc3e907",
+        "d": true,
         "name": "",
         "env": [
-            {
-                "name": "DEVICE_ID",
-                "value": "2",
-                "type": "num"
-            },
             {
                 "name": "TIMER",
                 "value": "10",
@@ -1720,11 +1716,6 @@
             {
                 "name": "FILENAME",
                 "value": "test1",
-                "type": "str"
-            },
-            {
-                "name": "FORMAT",
-                "value": "json",
                 "type": "str"
             }
         ],

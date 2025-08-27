@@ -9,3 +9,12 @@ node-red-data copy
 *.log
 sh-files
 regenerate_certificates.go
+node-red-data/.npm
+node-red-data/lib
+node-red-data/node_modules
+node-red-data/shared
+node-red-data/images
+*.backup
+*.config.*.json
+*.sessions.json
+package-lock.json

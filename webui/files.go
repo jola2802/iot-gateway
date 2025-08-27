@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"iot-gateway/logic"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 // ImageRequest repräsentiert den JSON-Payload, der vom Client gesendet wird.
@@ -50,13 +52,15 @@ func saveImage(c *gin.Context) {
 func saveImageToDB(db *sql.DB, image string, timestamp time.Time, deviceID int, processID string) {
 	// Speichere das Bild (als Blob) und den Timestamp in der Datenbank.
 	query := "INSERT INTO images (device, image, timestamp, process_id) VALUES (?, ?, ?, ?)"
-	if _, err := db.Exec(query, deviceID, image, timestamp, processID); err != nil {
+	if _, err := logic.SafeDBExec(db, query, deviceID, image, timestamp, processID); err != nil {
+		logrus.Errorf("Fehler beim Speichern des Bildes in images-Tabelle: %v", err)
 		return
 	}
 
 	// max 1000 Bilder in der Datenbank speichern
-	rows, err := db.Query("SELECT COUNT(*) FROM images")
+	rows, err := logic.SafeDBQuery(db, "SELECT COUNT(*) FROM images")
 	if err != nil {
+		logrus.Errorf("Fehler beim Zählen der Bilder: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -65,17 +69,30 @@ func saveImageToDB(db *sql.DB, image string, timestamp time.Time, deviceID int, 
 	for rows.Next() {
 		err = rows.Scan(&count)
 		if err != nil {
+			logrus.Errorf("Fehler beim Lesen der Bild-Anzahl: %v", err)
 			return
 		}
 	}
 
 	// Lösche das älteste Bild, wenn die Anzahl der Bilder NUM_IMAGES_DB überschreitet
-	maxImages, err := strconv.Atoi(os.Getenv("NUM_IMAGES_DB"))
-	if err != nil {
-		return
+	maxImagesStr := os.Getenv("NUM_IMAGES_DB")
+	if maxImagesStr == "" {
+		maxImagesStr = "1000" // Standard-Wert
 	}
+
+	maxImages, err := strconv.Atoi(maxImagesStr)
+	if err != nil {
+		logrus.Errorf("Fehler beim Parsen von NUM_IMAGES_DB: %v", err)
+		maxImages = 1000 // Fallback
+	}
+
 	if count >= maxImages {
-		db.Exec("DELETE FROM images WHERE id = (SELECT id FROM images ORDER BY timestamp ASC LIMIT 1)")
+		_, err := logic.SafeDBExec(db, "DELETE FROM images WHERE id = (SELECT id FROM images ORDER BY timestamp ASC LIMIT 1)")
+		if err != nil {
+			logrus.Errorf("Fehler beim Löschen alter Bilder: %v", err)
+		} else {
+			logrus.Infof("Altes Bild gelöscht, aktuelle Anzahl: %d", count)
+		}
 	}
 }
 

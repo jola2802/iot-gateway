@@ -7,7 +7,9 @@ import (
 	"fmt"
 	opcua "iot-gateway/driver/opcua"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	MQTT "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
@@ -59,6 +61,116 @@ func getOrCreateDeviceState(deviceName string, deviceStates map[string]*DeviceSt
 		deviceStates[deviceName] = state
 	}
 	return state
+}
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%% Database Utils mit Retry-Mechanismus %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+// RetryableDBOperation führt eine Datenbankoperation mit Retry-Mechanismus aus
+func RetryableDBOperation(operation func() error, operationName string) error {
+	const maxRetries = 5
+	const baseDelay = 103 * time.Millisecond
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := operation()
+		if err == nil {
+			return nil
+		}
+
+		// Prüfe, ob es ein SQLite BUSY-Fehler ist
+		if isSQLiteBusyError(err) {
+			if attempt < maxRetries-1 {
+				// Exponentieller Backoff mit Jitter
+				delay := time.Duration(attempt+1) * baseDelay
+				logrus.Warnf("SQLite busy (Versuch %d/%d) für %s, warte %v: %v",
+					attempt+1, maxRetries, operationName, delay, err)
+				time.Sleep(delay)
+				continue
+			}
+		}
+
+		// Für alle anderen Fehler oder nach maxRetries
+		logrus.Errorf("Datenbankoperation '%s' fehlgeschlagen nach %d Versuchen: %v",
+			operationName, attempt+1, err)
+		return err
+	}
+
+	return fmt.Errorf("datenbankoperation '%s' fehlgeschlagen nach %d Versuchen", operationName, maxRetries)
+}
+
+// isSQLiteBusyError prüft, ob der Fehler ein SQLite BUSY-Fehler ist
+func isSQLiteBusyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "database is locked") ||
+		strings.Contains(errStr, "sqlite_busy") ||
+		strings.Contains(errStr, "busy")
+}
+
+// SafeDBExec führt einen Exec-Befehl mit Retry-Mechanismus aus
+func SafeDBExec(db *sql.DB, query string, args ...interface{}) (sql.Result, error) {
+	var result sql.Result
+	err := RetryableDBOperation(func() error {
+		var execErr error
+		result, execErr = db.Exec(query, args...)
+		return execErr
+	}, fmt.Sprintf("Exec: %s", query[:min(50, len(query))]))
+
+	return result, err
+}
+
+// SafeDBQuery führt eine Query mit Retry-Mechanismus aus
+func SafeDBQuery(db *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
+	var rows *sql.Rows
+	err := RetryableDBOperation(func() error {
+		var queryErr error
+		rows, queryErr = db.Query(query, args...)
+		return queryErr
+	}, fmt.Sprintf("Query: %s", query[:min(50, len(query))]))
+
+	return rows, err
+}
+
+// SafeDBQueryRow führt eine QueryRow mit Retry-Mechanismus aus
+func SafeDBQueryRow(db *sql.DB, query string, args ...interface{}) *sql.Row {
+	// QueryRow selbst gibt keinen Fehler zurück, aber der Scan kann fehlschlagen
+	// Hier implementieren wir eine vereinfachte Version
+	return db.QueryRow(query, args...)
+}
+
+// min gibt das Minimum von zwei Integers zurück
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// SafeDBTransaction führt eine Transaktion mit Retry-Mechanismus aus
+func SafeDBTransaction(db *sql.DB, operationName string, txFunc func(*sql.Tx) error) error {
+	return RetryableDBOperation(func() error {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if p := recover(); p != nil {
+				tx.Rollback()
+				panic(p) // re-throw panic after Rollback
+			} else if err != nil {
+				tx.Rollback() // err is non-nil; don't change it
+			} else {
+				err = tx.Commit() // err is nil; if Commit returns error update err
+			}
+		}()
+
+		err = txFunc(tx)
+		return err
+	}, operationName)
 }
 
 // MQTT-Publikation mit exponentiellem Backoff

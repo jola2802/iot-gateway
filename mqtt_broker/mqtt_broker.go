@@ -68,7 +68,12 @@ func startBrokerInstance(db *sql.DB) *MQTT.Server {
 	}
 
 	// Authentifizierungsdaten aus der Datenbank laden.
-	authData, err := loadAuthDataFromDB(db)
+	var authData []byte
+	err := logic.RetryableDBOperation(func() error {
+		var loadErr error
+		authData, loadErr = loadAuthDataFromDB(db)
+		return loadErr
+	}, "MQTT Auth Data Loading")
 	if err != nil {
 		logrus.Fatal("Failed to load auth data from the database: ", err)
 	}
@@ -210,20 +215,20 @@ func getTLSConfig(tlsRequired bool, tlsConfig *tls.Config) *tls.Config {
 
 // loadAuthDataFromDB lädt Authentifizierungsdaten aus der SQLite-Datenbank
 func loadAuthDataFromDB(db *sql.DB) ([]byte, error) {
-	// Hole alle Benutzerinformationen
-	rows, err := db.Query("SELECT username, password, allow FROM auth")
+	// Schritt 1: Hole alle Benutzerinformationen (geschlossene Query)
+	authRows, err := logic.SafeDBQuery(db, "SELECT username, password, allow FROM auth")
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer authRows.Close()
 
 	var auth []map[string]interface{}
-	var acl []map[string]interface{}
+	var usernames []string
 
-	for rows.Next() {
+	for authRows.Next() {
 		var username, password string
 		var allow bool
-		if err := rows.Scan(&username, &password, &allow); err != nil {
+		if err := authRows.Scan(&username, &password, &allow); err != nil {
 			return nil, err
 		}
 
@@ -234,22 +239,30 @@ func loadAuthDataFromDB(db *sql.DB) ([]byte, error) {
 			"allow":    allow,
 		})
 
-		// Jetzt Zugriffsrechte (ACL) für diesen Benutzer holen
-		aclRows, err := db.Query("SELECT topic, permission FROM acl WHERE username = ?", username)
+		usernames = append(usernames, username)
+	}
+	authRows.Close() // Explizit schließen vor nächster Query
+
+	// Schritt 2: Hole alle ACL-Daten in einer separaten Query
+	var acl []map[string]interface{}
+
+	for _, username := range usernames {
+		aclRows, err := logic.SafeDBQuery(db, "SELECT topic, permission FROM acl WHERE username = ?", username)
 		if err != nil {
 			return nil, err
 		}
-		defer aclRows.Close()
 
 		filters := make(map[string]int)
 		for aclRows.Next() {
 			var topic string
 			var permission int
 			if err := aclRows.Scan(&topic, &permission); err != nil {
+				aclRows.Close()
 				return nil, err
 			}
 			filters[topic] = permission
 		}
+		aclRows.Close() // Explizit schließen
 
 		// ACL-Daten sammeln
 		acl = append(acl, map[string]interface{}{

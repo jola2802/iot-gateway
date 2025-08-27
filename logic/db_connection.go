@@ -140,6 +140,31 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	// SQLite-spezifische Konfiguration für bessere Concurrency
+	db.SetMaxOpenConns(10)   // Mehr Verbindungen für verschachtelte Queries
+	db.SetMaxIdleConns(2)    // Zwei Idle-Verbindungen für bessere Performance
+	db.SetConnMaxLifetime(0) // Verbindungen niemals schließen
+
+	// WAL-Mode aktivieren für bessere Concurrency
+	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		return nil, err
+	}
+
+	// Busy-Timeout setzen (30 Sekunden)
+	if _, err := db.Exec("PRAGMA busy_timeout=30000"); err != nil {
+		return nil, err
+	}
+
+	// Synchronous-Mode für bessere Performance
+	if _, err := db.Exec("PRAGMA synchronous=NORMAL"); err != nil {
+		return nil, err
+	}
+
+	// Cache-Größe erhöhen
+	if _, err := db.Exec("PRAGMA cache_size=10000"); err != nil {
+		return nil, err
+	}
+
 	// SQL-Tabellen in einer Liste speichern
 	tables := []string{
 		createAuthTable,

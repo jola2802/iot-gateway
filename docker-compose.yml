@@ -46,6 +46,7 @@ services:
       - TZ=Europe/Berlin
     volumes:
       - ${DATA_PATH}:/data/shared/
+      - ./node-red-data:/data
     networks:
       - gateway-network
     restart: unless-stopped

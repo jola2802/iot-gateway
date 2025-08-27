@@ -464,7 +464,7 @@ func buildOutput(aggregated *map[string]*AggregatedData, deviceStatus map[string
 // gracefulShutdown schließt die WebSocket-Verbindung ordnungsgemäß
 func gracefulShutdown(conn *websocket.Conn) {
 	if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
-		logrus.Errorf("Error closing WebSocket: %v", err)
+		logrus.Infof("Error closing WebSocket: %v", err)
 	}
 	conn.Close()
 }

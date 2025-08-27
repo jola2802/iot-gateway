@@ -199,7 +199,7 @@ func brokerStatusWebSocket(c *gin.Context) {
 		}
 
 		if err := conn.WriteJSON(status); err != nil {
-			logrus.Errorf("Error sending broker status: %v", err)
+			logrus.Infof("Error sending broker status: %v", err)
 			return
 		}
 	}

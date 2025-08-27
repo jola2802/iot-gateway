@@ -473,7 +473,7 @@ func TryDifferentAuthMethods(device DeviceConfig, endpointURL string) error {
 
 	client1, err := client.Dial(ctx, endpointURL, opts1...)
 	if err == nil {
-		logrus.Infof("SUCCESS: Anonymous authentication worked!")
+		// logrus.Infof("SUCCESS: Anonymous authentication worked!")
 		client1.Close(ctx)
 		return nil
 	} else {
@@ -482,14 +482,14 @@ func TryDifferentAuthMethods(device DeviceConfig, endpointURL string) error {
 
 	// Methode 2: Username/Password (falls verfügbar)
 	if device.Username != "" && device.Password != "" {
-		logrus.Infof("Trying Method 2: Username/Password Authentication")
+		// logrus.Infof("Trying Method 2: Username/Password Authentication")
 		opts2 := []client.Option{
 			client.WithInsecureSkipVerify(),
 		}
 
 		client2, err := client.Dial(ctx, endpointURL, opts2...)
 		if err == nil {
-			logrus.Infof("SUCCESS: Username/Password authentication worked!")
+			// logrus.Infof("SUCCESS: Username/Password authentication worked!")
 			client2.Close(ctx)
 			return nil
 		} else {
@@ -501,17 +501,6 @@ func TryDifferentAuthMethods(device DeviceConfig, endpointURL string) error {
 	return fmt.Errorf("all authentication methods failed")
 }
 
-// ValidateGatewayIdentity überprüft und loggt die Gateway-Identität
-func ValidateGatewayIdentity() {
-	gatewayApplicationURI := "urn:KIOekoSys:IoT:Gateway"
-	logrus.Infof("=== Gateway Identity Validation ===")
-	logrus.Infof("Gateway Application URI: %s", gatewayApplicationURI)
-	logrus.Infof("Organization: KIOekoSys")
-	logrus.Infof("Application Name: KIOekoSys IoT Gateway")
-	logrus.Infof("Certificate Subject: CN=KIOekoSys IoT Gateway, O=KIOekoSys, C=DE")
-	logrus.Infof("=== End Gateway Identity ===")
-}
-
 // GetGatewayApplicationURI gibt die Gateway Application URI zurück
 func GetGatewayApplicationURI() string {
 	return "urn:KIOekoSys:IoT:Gateway"
@@ -519,7 +508,7 @@ func GetGatewayApplicationURI() string {
 
 // RegenerateCertificateWithCorrectURI regeneriert das Zertifikat mit der korrekten Gateway URI
 func RegenerateCertificateWithCorrectURI() error {
-	logrus.Infof("=== Regenerating Certificate with Gateway URI ===")
+	// logrus.Infof("=== Regenerating Certificate with Gateway URI ===")
 
 	certPath := "certificate-opcua/idpm_cert.pem"
 	keyPath := "certificate-opcua/idpm_key.pem"

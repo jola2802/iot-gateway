@@ -48,7 +48,7 @@ func main() {
 	defer db.Close()
 
 	// Initialisiere OPC-UA Zertifikate (proaktiv erstellen)
-	initializeOPCUACertificates()
+	// initializeOPCUACertificates()
 
 	// Start MQTT-Broker
 	server := mqtt_broker.StartBroker(db)

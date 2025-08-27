@@ -496,7 +496,7 @@ module.exports = {
     /** The working directory to handle relative file paths from within the File nodes
      * defaults to the working directory of the Node-RED process.
      */
-    //fileWorkingDirectory: "",
+    fileWorkingDirectory: "/data/shared",
 
     /** Allow the Function node to load additional npm modules directly */
     functionExternalModules: true,

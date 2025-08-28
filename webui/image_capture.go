@@ -750,8 +750,8 @@ func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess) (*Image
 
 // callNodeRedImageCaptureAPI führt einen HTTP POST Request zur Node-RED Image Capture API aus
 func callNodeRedImageCaptureAPI(payload map[string]interface{}) (*NodeRedImageCaptureResponse, error) {
-	// Node-RED läuft standardmäßig auf Port 1880 im Docker-Container
-	nodeRedURL := "http://localhost:1880/api/img-capture" // TODO: Docker-Container
+	// Node-RED läuft standardmäßig auf Port 1880 über NGINX-Proxy
+	nodeRedURL := "http://gateway-nginx:1880/api/img-capture"
 
 	// JSON Payload erstellen
 	jsonData, err := json.Marshal(payload)

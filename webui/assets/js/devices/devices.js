@@ -416,8 +416,16 @@ document.addEventListener('click', async function(event) {
                 // Warte bis die Daten geladen sind
                 await initializeEditDeviceModal(deviceId);
                 
+                // Prüfe ob bereits eine Modal-Instanz existiert
+                let modal = bootstrap.Modal.getInstance(modalElement);
+                if (!modal) {
+                    modal = new bootstrap.Modal(modalElement, {
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                }
+                
                 // Erst dann das Modal öffnen
-                const modal = new bootstrap.Modal(modalElement);
                 modal.show();
             } catch (error) {
                 console.error('Fehler beim Laden der Gerätedaten:', error);
@@ -446,10 +454,23 @@ function resetEditModal() {
         form.reset();
     }
     
+    // Leere die Datenpunkt-Tabelle
+    const datapointsTableBody = document.querySelector('#ipi-table tbody');
+    if (datapointsTableBody) {
+        datapointsTableBody.innerHTML = '';
+    }
+    
     // Entferne alle Event-Listener vom Browse-Button
     const browseButton = document.getElementById('browse-nodes-btn');
     if (browseButton) {
         const newButton = browseButton.cloneNode(true);
         browseButton.parentNode.replaceChild(newButton, browseButton);
+    }
+    
+    // Entferne Event-Listener vom Save-Button
+    const saveButton = document.getElementById('btn-edit-device');
+    if (saveButton) {
+        const newSaveButton = saveButton.cloneNode(true);
+        saveButton.parentNode.replaceChild(newSaveButton, saveButton);
     }
 }

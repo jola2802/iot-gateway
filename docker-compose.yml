@@ -22,6 +22,8 @@ services:
       - MQTT_LISTENER_PUBLIC_WS_ADDRESS=${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
       - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
       - TZ=Europe/Berlin
+    depends_on:
+      - nginx
     networks:
       - gateway-network
     restart: unless-stopped
@@ -74,18 +76,18 @@ services:
   nginx:
     image: nginx:1.25-alpine
     container_name: gateway-nginx
-    depends_on:
-      - iot-gateway
     ports:
       - "${MQTT_LISTENER_LOCAL_TCP_ADDRESS}:${MQTT_LISTENER_LOCAL_TCP_ADDRESS}"
       - "${MQTT_LISTENER_LOCAL_WS_ADDRESS}:${MQTT_LISTENER_LOCAL_WS_ADDRESS}"
       - "${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}:${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}"
       - "${MQTT_LISTENER_PUBLIC_WS_ADDRESS}:${MQTT_LISTENER_PUBLIC_WS_ADDRESS}"
       - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
+      - "1880:1880"  # Node-RED Proxy für interne Container-Kommunikation
     volumes:
       - ${NGINX_TLS_CERT}:/etc/nginx/certs/server.crt
       - ${NGINX_TLS_KEY}:/etc/nginx/certs/server.key
       - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+
     environment:
       - MQTT_LISTENER_LOCAL_TCP_ADDRESS=${MQTT_LISTENER_LOCAL_TCP_ADDRESS}
       - MQTT_LISTENER_LOCAL_WS_ADDRESS=${MQTT_LISTENER_LOCAL_WS_ADDRESS}

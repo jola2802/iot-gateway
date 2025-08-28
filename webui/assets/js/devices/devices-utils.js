@@ -479,6 +479,11 @@ async function initializeEditDeviceModal(device_id) {
                 initializeNodeBrowser();
             }
 
+            // Füge Save-Button Event-Listener hinzu
+            if (typeof attachSaveButtonListener === 'function') {
+                attachSaveButtonListener();
+            }
+
             resolve();
         } catch (error) {
             console.error(`Error in initializeEditDeviceModal: ${error.message}`);

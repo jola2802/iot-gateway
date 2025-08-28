@@ -89,13 +89,31 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
     }
 });
 
-document.getElementById('btn-edit-device').onclick = async () => {
-    saveEditDevice(); // 5 Sekunden warten
-    // window.location.reload();
-};
+// Event-Listener für Save-Button wird dynamisch hinzugefügt
+function attachSaveButtonListener() {
+    const saveButton = document.getElementById('btn-edit-device');
+    if (saveButton) {
+        // Entferne alte Event-Listener
+        const newButton = saveButton.cloneNode(true);
+        saveButton.parentNode.replaceChild(newButton, saveButton);
+        
+        // Füge neuen Event-Listener hinzu
+        newButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+                await saveEditDevice();
+            } catch (error) {
+                console.error('Fehler beim Speichern:', error);
+            }
+        });
+    }
+}
 
-function saveEditDevice() {
-    try {
+async function saveEditDevice() {
+    return new Promise(async (resolve, reject) => {
+        try {
         // Erfassung der Eingabewerte
         const deviceData = {
             // deviceId: document.getElementById('device-name-1').dataset.deviceId, // Nehme die ID aus einem Attribut, falls vorhanden
@@ -129,36 +147,66 @@ function saveEditDevice() {
                     datatype: isOpcUa ? '' : datatypeInput ? datatypeInput.value.trim() : cells[2]?.textContent.trim() || '',
                     address: addressInput ? addressInput.value.trim() : cells[3]?.textContent.trim() || '',
                 };
+            }).filter(dp => {
+                // Filtere leere oder ungültige Datenpunkte heraus
+                // Für OPC-UA: Name und Address müssen gefüllt sein
+                // Für S7: Name, Address und Datatype müssen gefüllt sein
+                const isOpcUa = document.getElementById('select-device-type-1').value === 'opc-ua';
+                const hasValidName = dp.name && dp.name.trim() !== '' && dp.name !== 'Enter Name';
+                const hasValidAddress = dp.address && dp.address.trim() !== '' && dp.address !== 'Enter Address / Node ID';
+                const hasValidDatatype = isOpcUa || (dp.datatype && dp.datatype.trim() !== '' && dp.datatype !== '-');
+                
+                // Debug: Zeige was gefiltert wird
+                if (!hasValidName || !hasValidAddress || !hasValidDatatype) {
+                    console.log('Filtere ungültigen Datenpunkt heraus:', dp);
+                    return false;
+                }
+                
+                return true;
             }),
         };
 
         deviceData.deviceId = localStorage.getItem('device_id');
 
-        console.log('Zu aktualisierende Gerätedaten:', deviceData);
+            console.log('Zu aktualisierende Gerätedaten:', deviceData);
 
-        // API-Request senden
-        fetch(`/api/update-device/${deviceData.deviceId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(deviceData),
-        }).then(response => {
+            // API-Request senden
+            const response = await fetch(`/api/update-device/${deviceData.deviceId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(deviceData),
+            });
+
             if (!response.ok) {
                 throw new Error(`Fehler beim Aktualisieren des Geräts: ${response.statusText}`);
             }
-        }).catch(error => {
-            console.error('Fehler beim Aktualisieren des Geräts:', error);
-        });
+            
+            // Erfolgreiche Rückmeldung anzeigen
+            const validDatapointsCount = deviceData.datapoints.length;
+            if (validDatapointsCount > 0) {
+                console.log(`✅ Gerät "${deviceData.deviceName}" erfolgreich aktualisiert mit ${validDatapointsCount} Datenpunkten`);
+            } else {
+                console.log(`✅ Gerät "${deviceData.deviceName}" erfolgreich aktualisiert (keine Änderungen an Datenpunkten)`);
+            }
 
-        // Modal schließen
-        const modalEl = document.getElementById('modal-edit-device');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) {
-            modalInstance.hide();
+            // Warte kurz bevor Modal geschlossen wird
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Modal schließen
+            const modalEl = document.getElementById('modal-edit-device');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
+            resolve();
+            
+        } catch (error) {
+            console.error('❌ Fehler beim Aktualisieren des Geräts:', error);
+            alert('Fehler beim Speichern des Geräts. Bitte überprüfen Sie Ihre Eingaben und versuchen Sie es erneut.');
+            reject(error);
         }
-    } catch (error) {
-        console.error('Fehler beim Aktualisieren des Geräts:', error);
-        // alert('Fehler beim Aktualisieren des Geräts. Bitte versuchen Sie es erneut.');
-    }
+    });
 }

@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -219,6 +220,16 @@ func ValidateAndFixOPCUAAddress(address string) (string, error) {
 		return "", fmt.Errorf("invalid OPC-UA address format: must start with 'opc.tcp://'")
 	}
 
+	// Fixe IPv6-Adressen mit Zone ID
+	fixedAddress, err := fixIPv6URLEncoding(address)
+	if err != nil {
+		logrus.Warnf("OPC-UA: Error fixing IPv6 URL encoding: %v", err)
+		fixedAddress = address // Fallback zur ursprünglichen Adresse
+	} else if fixedAddress != address {
+		logrus.Infof("OPC-UA: Fixed IPv6 URL encoding: %s -> %s", address, fixedAddress)
+		address = fixedAddress
+	}
+
 	// Teile die URL auf, um die Host-Adresse zu extrahieren
 	parts := strings.Split(address, "/")
 	if len(parts) < 3 {
@@ -234,8 +245,8 @@ func ValidateAndFixOPCUAAddress(address string) (string, error) {
 		logrus.Infof("OPC-UA: Added default port 4840 to address")
 	}
 
-	// Versuche die Adresse aufzulösen
-	host, _, err := net.SplitHostPort(hostPort)
+	// Spezielle Behandlung für IPv6-Adressen
+	host, _, err := parseHostPort(hostPort)
 	if err != nil {
 		return "", fmt.Errorf("invalid host:port format: %v", err)
 	}
@@ -258,13 +269,140 @@ func ValidateAndFixOPCUAAddress(address string) (string, error) {
 	return address, nil
 }
 
+// fixIPv6URLEncoding behebt IPv6 URL-Encoding-Probleme
+func fixIPv6URLEncoding(address string) (string, error) {
+	// Prüfe auf IPv6-Adresse mit Zone ID (% Zeichen)
+	if !strings.Contains(address, "%") {
+		return address, nil // Keine Zone ID, keine Änderung nötig
+	}
+
+	// Parse die URL, um die Komponenten zu extrahieren
+	_, err := url.Parse(address)
+	if err != nil {
+		// Wenn URL-Parsing fehlschlägt, versuche manuelle Korrektur
+		return fixIPv6ManualEncoding(address), nil
+	}
+
+	// Wenn Parsing erfolgreich war, ist die URL bereits korrekt
+	return address, nil
+}
+
+// fixIPv6ManualEncoding führt manuelle IPv6 URL-Korrektur durch
+func fixIPv6ManualEncoding(address string) string {
+	// Teile die URL auf
+	parts := strings.Split(address, "/")
+	if len(parts) < 3 {
+		return address
+	}
+
+	hostPart := parts[2]
+
+	// Prüfe auf IPv6 mit Zone ID
+	if strings.Contains(hostPart, "%") && strings.HasPrefix(hostPart, "[") && strings.Contains(hostPart, "]") {
+		// IPv6-Adresse bereits in eckigen Klammern - URL-escape die Zone ID
+		zoneIdx := strings.Index(hostPart, "%")
+		if zoneIdx > 0 {
+			beforeZone := hostPart[:zoneIdx]
+			afterZone := hostPart[zoneIdx+1:]
+
+			// Finde das Ende der Zone ID (bis ] oder :)
+			zoneEnd := strings.IndexAny(afterZone, "]:")
+			if zoneEnd >= 0 {
+				zoneID := afterZone[:zoneEnd]
+				remainder := afterZone[zoneEnd:]
+
+				// URL-escape die Zone ID
+				escapedZoneID := url.QueryEscape(zoneID)
+				hostPart = beforeZone + "%25" + escapedZoneID + remainder
+			}
+		}
+	} else if strings.Contains(hostPart, "%") {
+		// IPv6-Adresse nicht in eckigen Klammern - füge sie hinzu
+		colonCount := strings.Count(hostPart, ":")
+		if colonCount > 1 { // Wahrscheinlich IPv6
+			// Finde Port (letzter :)
+			lastColon := strings.LastIndex(hostPart, ":")
+			var host, port string
+
+			// Prüfe ob letzter Teil ein Port ist (nur Zahlen)
+			if lastColon > 0 {
+				possiblePort := hostPart[lastColon+1:]
+				if _, err := strconv.Atoi(possiblePort); err == nil {
+					host = hostPart[:lastColon]
+					port = ":" + possiblePort
+				} else {
+					host = hostPart
+					port = ""
+				}
+			} else {
+				host = hostPart
+				port = ""
+			}
+
+			// URL-escape die Zone ID in der IPv6-Adresse
+			if strings.Contains(host, "%") {
+				zoneIdx := strings.Index(host, "%")
+				beforeZone := host[:zoneIdx]
+				afterZone := host[zoneIdx+1:]
+
+				// URL-escape die Zone ID
+				escapedZoneID := url.QueryEscape(afterZone)
+				host = beforeZone + "%25" + escapedZoneID
+			}
+
+			// Füge eckige Klammern um IPv6-Adresse hinzu
+			hostPart = "[" + host + "]" + port
+		}
+	}
+
+	// Rekonstruiere die URL
+	parts[2] = hostPart
+	return strings.Join(parts, "/")
+}
+
+// parseHostPort behandelt IPv6-Adressen korrekt
+func parseHostPort(hostPort string) (host, port string, err error) {
+	// Verwende net.SplitHostPort für korrekte IPv6-Behandlung
+	host, port, err = net.SplitHostPort(hostPort)
+	if err != nil {
+		// Fallback: Versuche manuelle Trennung
+		if strings.HasPrefix(hostPort, "[") {
+			// IPv6 mit eckigen Klammern
+			endBracket := strings.Index(hostPort, "]")
+			if endBracket > 0 {
+				host = hostPort[1:endBracket]
+				remainder := hostPort[endBracket+1:]
+				if strings.HasPrefix(remainder, ":") {
+					port = remainder[1:]
+				} else {
+					port = "4840" // Standard OPC-UA Port
+				}
+				err = nil
+			}
+		} else {
+			// Kein Port angegeben
+			host = hostPort
+			port = "4840"
+			err = nil
+		}
+	}
+	return host, port, err
+}
+
 // GetResolvedAddress gibt die aufgelöste IP-Adresse für eine OPC-UA URL zurück
 func GetResolvedAddress(address string) (string, error) {
 	if !strings.HasPrefix(address, "opc.tcp://") {
 		return "", fmt.Errorf("invalid OPC-UA address format")
 	}
 
-	parts := strings.Split(address, "/")
+	// Fixe IPv6-Adressen mit Zone ID
+	fixedAddress, err := fixIPv6URLEncoding(address)
+	if err != nil {
+		logrus.Warnf("OPC-UA: Error fixing IPv6 URL encoding: %v", err)
+		fixedAddress = address // Fallback zur ursprünglichen Adresse
+	}
+
+	parts := strings.Split(fixedAddress, "/")
 	if len(parts) < 3 {
 		return "", fmt.Errorf("invalid OPC-UA address format")
 	}
@@ -274,13 +412,17 @@ func GetResolvedAddress(address string) (string, error) {
 		hostPort += ":4840"
 	}
 
-	host, port, err := net.SplitHostPort(hostPort)
+	host, port, err := parseHostPort(hostPort)
 	if err != nil {
 		return "", err
 	}
 
 	// Wenn es bereits eine IP ist, gib sie zurück
 	if ip := net.ParseIP(host); ip != nil {
+		// Für IPv6-Adressen müssen eckige Klammern verwendet werden
+		if strings.Contains(ip.String(), ":") {
+			return fmt.Sprintf("[%s]:%s", ip.String(), port), nil
+		}
 		return fmt.Sprintf("%s:%s", ip.String(), port), nil
 	}
 
@@ -295,7 +437,11 @@ func GetResolvedAddress(address string) (string, error) {
 	}
 
 	// Verwende die erste IP
-	return fmt.Sprintf("%s:%s", ips[0], port), nil
+	ip := ips[0]
+	if strings.Contains(ip, ":") {
+		return fmt.Sprintf("[%s]:%s", ip, port), nil
+	}
+	return fmt.Sprintf("%s:%s", ip, port), nil
 }
 
 // DiagnoseDNSProblem diagnostiziert DNS-Auflösungsprobleme für OPC-UA Adressen
@@ -318,7 +464,7 @@ func DiagnoseDNSProblem(address string) {
 		hostPort += ":4840"
 	}
 
-	host, port, err := net.SplitHostPort(hostPort)
+	host, port, err := parseHostPort(hostPort)
 	if err != nil {
 		logrus.Errorf("Fehler beim Parsen von Host:Port: %v", err)
 		return

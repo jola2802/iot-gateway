@@ -665,47 +665,66 @@ func updateDevice(c *gin.Context) {
 			return
 		}
 
-		// Aktualisiere die S7-Datapoints
-		_, err = db.Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
-		if err != nil {
-			logrus.Errorf("Error clearing old datapoints: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old datapoints"})
-			return
-		}
+		// Filtere gültige Datenpunkte heraus
+		validDatapoints := make([]struct {
+			DatapointId string `json:"datapointId"`
+			Name        string `json:"name"`
+			Datatype    string `json:"datatype"`
+			Address     string `json:"address"`
+		}, 0)
 
 		for _, dp := range updatedDevice.DataPoints {
-			// Automatische Generierung der DatapointId, falls leer
-			if dp.DatapointId == "" && dp.Address != "" && dp.Name != "" {
-				// Hole die device_id
-				var deviceId int
-				err := db.QueryRow(`SELECT id FROM devices WHERE id = ?`, device_id).Scan(&deviceId)
-				if err != nil {
-					logrus.Errorf("Error retrieving device_id: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device_id"})
-					return
-				}
-				var nextId int
-				err = db.QueryRow(`SELECT COALESCE(MAX(CAST(id AS INTEGER)), 0) + 1 FROM s7_datapoints WHERE device_id = ?`, deviceId).Scan(&nextId)
-				if err != nil {
-					logrus.Errorf("Error finding next datapoint ID: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
-					return
-				}
-				dp.DatapointId = fmt.Sprintf("1%.3d%.4d", deviceId, nextId)
-				logrus.Error(dp.DatapointId)
+			// Prüfe ob der Datenpunkt gültig ist
+			if dp.Name != "" && dp.Address != "" && dp.Datatype != "" {
+				validDatapoints = append(validDatapoints, dp)
+			} else {
+				logrus.Debugf("Skipping invalid S7 datapoint: %+v", dp)
 			}
+		}
 
-			if dp.DatapointId == "" || dp.Name == "" || dp.Address == "" {
-				logrus.Errorf("Skipping empty datapoint: %+v", dp)
-				continue
-			}
+		logrus.Infof("Verarbeite %d gültige S7-Datenpunkte von %d gesendeten", len(validDatapoints), len(updatedDevice.DataPoints))
 
-			_, err = db.Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`, device_id, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
+		// Nur wenn wir gültige Datenpunkte haben, lösche die alten und füge neue hinzu
+		if len(validDatapoints) > 0 {
+			// Lösche alte S7-Datapoints
+			_, err = db.Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 			if err != nil {
-				logrus.Errorf("Error inserting new datapoints: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new datapoints"})
+				logrus.Errorf("Error clearing old datapoints: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old datapoints"})
 				return
 			}
+
+			for _, dp := range validDatapoints {
+				// Automatische Generierung der DatapointId, falls leer
+				if dp.DatapointId == "" {
+					// Hole die device_id
+					var deviceId int
+					err := db.QueryRow(`SELECT id FROM devices WHERE id = ?`, device_id).Scan(&deviceId)
+					if err != nil {
+						logrus.Errorf("Error retrieving device_id: %v", err)
+						c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device_id"})
+						return
+					}
+					var nextId int
+					err = db.QueryRow(`SELECT COALESCE(MAX(CAST(id AS INTEGER)), 0) + 1 FROM s7_datapoints WHERE device_id = ?`, deviceId).Scan(&nextId)
+					if err != nil {
+						logrus.Errorf("Error finding next datapoint ID: %v", err)
+						c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
+						return
+					}
+					dp.DatapointId = fmt.Sprintf("1%.3d%.4d", deviceId, nextId)
+					logrus.Debugf("Generated DatapointId: %s", dp.DatapointId)
+				}
+
+				_, err = db.Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`, device_id, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
+				if err != nil {
+					logrus.Errorf("Error inserting new datapoints: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new datapoints"})
+					return
+				}
+			}
+		} else {
+			logrus.Warnf("Keine gültigen S7-Datenpunkte erhalten - bestehende Datenpunkte bleiben erhalten")
 		}
 
 		logrus.Infof("S7 device and datapoints updated successfully for %s", updatedDevice.DeviceName)
@@ -722,45 +741,65 @@ func updateDevice(c *gin.Context) {
 			return
 		}
 
-		// Lösche alte OPC-UA DataNodes
-		_, err = db.Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
-		if err != nil {
-			logrus.Errorf("Error clearing old OPC-UA nodes: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old OPC-UA nodes"})
-			return
+		// Filtere gültige OPC-UA Datenpunkte heraus
+		validOpcUaNodes := make([]struct {
+			DatapointId string `json:"datapointId"`
+			Name        string `json:"name"`
+			Datatype    string `json:"datatype"`
+			Address     string `json:"address"`
+		}, 0)
+
+		for _, node := range updatedDevice.DataPoints {
+			// Prüfe ob der OPC-UA Knoten gültig ist (für OPC-UA brauchen wir nur Name und Address)
+			if node.Name != "" && node.Address != "" {
+				validOpcUaNodes = append(validOpcUaNodes, node)
+			} else {
+				logrus.Debugf("Skipping invalid OPC-UA node: %+v", node)
+			}
 		}
 
-		// Device_id to INT-Value
-		dev_id, _ := strconv.Atoi(device_id)
+		logrus.Infof("Verarbeite %d gültige OPC-UA-Knoten von %d gesendeten", len(validOpcUaNodes), len(updatedDevice.DataPoints))
 
-		// Füge die neuen OPC-UA DataNodes ein
-		for _, node := range updatedDevice.DataPoints {
-			// Automatische Generierung der DatapointId, falls leer
-			if node.DatapointId == "" && node.Address != "" && node.Name != "" {
-				var nextId int
-				err = db.QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, device_id).Scan(&nextId)
-				if err != nil {
-					logrus.Errorf("Error finding next datapoint ID: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
-					return
-				}
-				node.DatapointId = fmt.Sprintf("1%03d%03d", dev_id, nextId)
-			}
-
-			if node.DatapointId == "" || node.Name == "" || node.Address == "" {
-				logrus.Errorf("Skipping empty OPC-UA node: %+v", node)
-				continue
-			}
-
-			query = `
-				INSERT INTO opcua_datanodes (device_id, datapointId, name, node_identifier)
-				VALUES ( ?, ?, ?, ?)`
-			_, err = db.Exec(query, dev_id, node.DatapointId, node.Name, node.Address)
+		// Nur wenn wir gültige Knoten haben, lösche die alten und füge neue hinzu
+		if len(validOpcUaNodes) > 0 {
+			// Lösche alte OPC-UA DataNodes
+			_, err = db.Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
 			if err != nil {
-				logrus.Errorf("Error inserting new OPC-UA nodes: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new OPC-UA nodes"})
+				logrus.Errorf("Error clearing old OPC-UA nodes: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old OPC-UA nodes"})
 				return
 			}
+
+			// Device_id to INT-Value
+			dev_id, _ := strconv.Atoi(device_id)
+
+			// Füge die neuen OPC-UA DataNodes ein
+			for _, node := range validOpcUaNodes {
+				// Automatische Generierung der DatapointId, falls leer
+				if node.DatapointId == "" {
+					var nextId int
+					err = db.QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, device_id).Scan(&nextId)
+					if err != nil {
+						logrus.Errorf("Error finding next datapoint ID: %v", err)
+						c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
+						return
+					}
+					node.DatapointId = fmt.Sprintf("1%03d%03d", dev_id, nextId)
+					logrus.Debugf("Generated OPC-UA DatapointId: %s", node.DatapointId)
+				}
+
+				query = `
+					INSERT INTO opcua_datanodes (device_id, datapointId, name, node_identifier)
+					VALUES ( ?, ?, ?, ?)`
+				_, err = db.Exec(query, dev_id, node.DatapointId, node.Name, node.Address)
+				if err != nil {
+					logrus.Errorf("Error inserting new OPC-UA nodes: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new OPC-UA nodes"})
+					return
+				}
+			}
+		} else {
+			logrus.Warnf("Keine gültigen OPC-UA-Knoten erhalten - bestehende Knoten bleiben erhalten")
 		}
 
 		logrus.Infof("OPC-UA device and nodes updated successfully for %s", updatedDevice.DeviceName)

@@ -1,6 +1,6 @@
 // Ignore all files in the node-red-data directory
 data
-node-red-data copy
+node-red-data
 
 // Ignore all files in the .vscode directory
 .vscode
@@ -21,3 +21,4 @@ package-lock.json
 DOCKER_DNS_SOLUTION.md
 iot_gateway.db-shm
 
+iot_gateway_old.db

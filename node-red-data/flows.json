@@ -2220,7 +2220,7 @@
         "env": [
             {
                 "name": "DEVICE_ID",
-                "value": "2",
+                "value": "9",
                 "type": "num"
             },
             {
@@ -2265,100 +2265,6 @@
         "x": 130,
         "y": 340,
         "wires": []
-    },
-    {
-        "id": "3cb1c96df128a2a4",
-        "type": "inject",
-        "z": "2dc52bb27159c699",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 120,
-        "y": 420,
-        "wires": [
-            [
-                "fe48b0d94cc37d60"
-            ]
-        ]
-    },
-    {
-        "id": "fb5a7cad2683aebf",
-        "type": "debug",
-        "z": "2dc52bb27159c699",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 560,
-        "y": 460,
-        "wires": []
-    },
-    {
-        "id": "6c2b121efaa31d23",
-        "type": "OpcUa-Client",
-        "z": "2dc52bb27159c699",
-        "endpoint": "10c6821e0eaf4a53",
-        "action": "read",
-        "deadbandtype": "a",
-        "deadbandvalue": 1,
-        "time": 10,
-        "timeUnit": "s",
-        "certificate": "n",
-        "localfile": "",
-        "localkeyfile": "",
-        "securitymode": "None",
-        "securitypolicy": "None",
-        "useTransport": false,
-        "maxChunkCount": 1,
-        "maxMessageSize": 8192,
-        "receiveBufferSize": 8192,
-        "sendBufferSize": 8192,
-        "setstatusandtime": false,
-        "keepsessionalive": false,
-        "name": "",
-        "x": 320,
-        "y": 480,
-        "wires": [
-            [
-                "fb5a7cad2683aebf"
-            ],
-            [],
-            []
-        ]
-    },
-    {
-        "id": "fe48b0d94cc37d60",
-        "type": "OpcUa-Item",
-        "z": "2dc52bb27159c699",
-        "item": "ns=3;i=182",
-        "datatype": "Int64",
-        "value": "",
-        "name": "",
-        "x": 120,
-        "y": 480,
-        "wires": [
-            [
-                "6c2b121efaa31d23"
-            ]
-        ]
     },
     {
         "id": "77001c104835e0f4",
@@ -2965,7 +2871,7 @@
         "type": "debug",
         "z": "ba5f08246c66f4ff",
         "name": "debug 1",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3012,7 +2918,7 @@
         "type": "debug",
         "z": "ba5f08246c66f4ff",
         "name": "debug 3",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,

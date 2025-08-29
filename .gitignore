@@ -21,3 +21,4 @@ package-lock.json
 DOCKER_DNS_SOLUTION.md
 iot_gateway.db-shm
 
+iot_gateway_old.db

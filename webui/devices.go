@@ -2,6 +2,7 @@ package webui
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"iot-gateway/logic"
 	"net/http"
@@ -205,6 +206,15 @@ func deviceDataWebSocket(c *gin.Context) {
 		return
 	}
 
+	// Überprüfe den Token
+	wsTokenStore.RLock()
+	expiration, exists := wsTokenStore.tokens[token]
+	wsTokenStore.RUnlock()
+	if !exists || expiration.Before(time.Now()) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+		return
+	}
+
 	// WebSocket-Verbindung
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -213,6 +223,12 @@ func deviceDataWebSocket(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
+
+	// Setze Ping/Pong-Handler
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
 
 	// Datenbankverbindung
 	db, err := getDBConnection(c)
@@ -225,8 +241,11 @@ func deviceDataWebSocket(c *gin.Context) {
 	// Maps mit Mutex-Schutz
 	aggregated := make(map[string]*AggregatedData)
 	deviceStatus := make(map[string]string)
-	lastSentStatus := make(map[string]string) // Neue Map für den letzten gesendeten Status
+	lastSentStatus := make(map[string]string)
 	var aggMutex sync.Mutex
+
+	// Channel für Ping-Nachrichten
+	pingChan := make(chan struct{}, 1)
 
 	// Verbesserte Status-Update-Verarbeitung
 	callbackFn := func(cl *MQTT.Client, sub packets.Subscription, pk packets.Packet) {
@@ -277,9 +296,11 @@ func deviceDataWebSocket(c *gin.Context) {
 	// Verbesserte Ticker-Behandlung
 	dataTicker := time.NewTicker(500 * time.Millisecond)
 	statusTicker := time.NewTicker(5 * time.Second)
+	pingTicker := time.NewTicker(30 * time.Second)
 	defer func() {
 		dataTicker.Stop()
 		statusTicker.Stop()
+		pingTicker.Stop()
 	}()
 
 	// Initialer Status mit Fehlerbehandlung
@@ -300,6 +321,46 @@ func deviceDataWebSocket(c *gin.Context) {
 		logrus.Errorf("Error subscribing to topic driver/states/#: %v", err)
 		return
 	}
+
+	// Goroutine für Ping-Nachrichten
+	go func() {
+		for range pingTicker.C {
+			select {
+			case pingChan <- struct{}{}:
+			default:
+			}
+		}
+	}()
+
+	// Goroutine für WebSocket-Nachrichten
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					logrus.Errorf("WebSocket read error: %v", err)
+				}
+				return
+			}
+
+			// Ping-Nachricht verarbeiten
+			var pingMsg struct {
+				Type      string `json:"type"`
+				Timestamp int64  `json:"timestamp"`
+			}
+			if err := json.Unmarshal(message, &pingMsg); err == nil && pingMsg.Type == "ping" {
+				// Pong-Antwort senden
+				pongMsg := map[string]interface{}{
+					"type":      "pong",
+					"timestamp": pingMsg.Timestamp,
+				}
+				if err := conn.WriteJSON(pongMsg); err != nil {
+					logrus.Errorf("Error sending pong: %v", err)
+					return
+				}
+			}
+		}
+	}()
 
 	for {
 		select {
@@ -351,6 +412,13 @@ func deviceDataWebSocket(c *gin.Context) {
 				}
 			}
 			aggMutex.Unlock()
+
+		case <-pingChan:
+			// Ping-Nachricht senden
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				logrus.Errorf("Error sending ping: %v", err)
+				return
+			}
 		}
 	}
 }
@@ -859,9 +927,14 @@ func updateDevice(c *gin.Context) {
 
 	logrus.Infof("Device updated successfully for %s", updatedDevice.DeviceName)
 
-	c.Set("device_id", device_id)
-	RestartDriver(c)
-
 	// Erfolgreiche Antwort senden
 	c.JSON(http.StatusOK, gin.H{"message": "success"})
+
+	// RestartDriver nach der JSON-Antwort aufrufen
+	c.Set("device_id", device_id)
+	go func() {
+		// Kurze Verzögerung um sicherzustellen, dass die JSON-Antwort bereits gesendet wurde
+		time.Sleep(100 * time.Millisecond)
+		RestartDriver(c)
+	}()
 }

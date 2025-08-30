@@ -34,8 +34,64 @@ async function initWebSocket() {
     };
 }
 
+// Verbesserte REST-API-Funktionen mit Retry-Logik
+async function apiRequest(url, options = {}, retries = 3) {
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        ...options
+    };
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch(url, defaultOptions);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            
+            // Prüfe Content-Type der Antwort
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    return await response.json();
+                } catch (jsonError) {
+                    console.error('JSON Parse Error:', jsonError);
+                    // Response-Body kann nicht erneut gelesen werden, daher nur die Fehlermeldung
+                    throw new Error(`JSON Parse Error: ${jsonError.message}`);
+                }
+            } else {
+                // Falls keine JSON-Antwort, Text zurückgeben
+                const responseText = await response.text();
+                console.warn('Non-JSON response received:', responseText);
+                return { message: responseText };
+            }
+        } catch (error) {
+            console.error(`API-Anfrage fehlgeschlagen (Versuch ${attempt}/${retries}):`, error);
+            
+            if (attempt === retries) {
+                throw error;
+            }
+            
+            // Warte vor erneutem Versuch (exponentieller Backoff)
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+// Verbesserte Geräte-Hinzufügung
 document.getElementById('btn-add-new-device').addEventListener('click', async () => {
+    const button = document.getElementById('btn-add-new-device');
+    const originalText = button.innerHTML;
+    
     try {
+        // Button-Status ändern
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Save';
+        
         // Erfassung der Eingabewerte
         const deviceData = {
             deviceName: document.getElementById('device-name').value,
@@ -51,43 +107,77 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
             slot: document.querySelector('#s7-config [placeholder="1"]')?.value || '',
         };
 
-        // Prüfen, ob alle Felder ausgefüllt sind
-        if (deviceData.deviceType === 'opc-ua') {
-            if (!deviceData.deviceName || !deviceData.address || !deviceData.securityPolicy || !deviceData.securityMode || !deviceData.acquisitionTime) {
-                alert('Bitte füllen Sie alle Felder aus.');
-                return;
-            }
-        } else if (deviceData.deviceType === 's7') {
-            if (!deviceData.deviceName || !deviceData.address || !deviceData.rack || !deviceData.slot) {
-                alert('Bitte füllen Sie alle Felder aus.');
-                return;
-            }
+        // Validierung
+        const validationErrors = validateDeviceData(deviceData);
+        if (validationErrors.length > 0) {
+            showNotification('Fehler', validationErrors.join('<br>'), 'error');
+            return;
         }
 
         // API-Request senden
-        const response = await fetch('/api/add-device', {
+        await apiRequest('/api/add-device', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(deviceData),
         });
 
-        if (!response.ok) {
-            throw new Error(`Fehler beim Hinzufügen des Geräts: ${response.statusText}`);
-        }
-
-        // alert('Gerät erfolgreich hinzugefügt!');
-
+        // showNotification('Erfolg', 'Gerät erfolgreich hinzugefügt!', 'success');
+        
         // Modal schließen und Seite aktualisieren
-        // document.getElementById('modal-new-device').modal('hide');
-        window.location.reload(); // Alternativ: Nur die Tabelle aktualisieren
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modal-new-device'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Kurze Verzögerung vor Reload
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
         
     } catch (error) {
         console.error('Fehler beim Speichern des Geräts:', error);
-        alert('Fehler beim Hinzufügen des Geräts. Bitte versuchen Sie es erneut.');
+        showNotification('Fehler', `Fehler beim Hinzufügen des Geräts: ${error.message}`, 'error');
+    } finally {
+        // Button-Status zurücksetzen
+        button.disabled = false;
+        button.innerHTML = originalText;
     }
 });
+
+// Validierungsfunktion für Gerätedaten
+function validateDeviceData(deviceData) {
+    const errors = [];
+    
+    if (!deviceData.deviceName || deviceData.deviceName.trim() === '') {
+        errors.push('Gerätename ist erforderlich');
+    }
+    
+    if (deviceData.deviceType === 'opc-ua') {
+        if (!deviceData.address || deviceData.address.trim() === '') {
+            errors.push('OPC-UA Adresse ist erforderlich');
+        }
+        if (!deviceData.securityPolicy || deviceData.securityPolicy === '') {
+            errors.push('Sicherheitsrichtlinie ist erforderlich');
+        }
+        if (!deviceData.securityMode || deviceData.securityMode === '') {
+            errors.push('Sicherheitsmodus ist erforderlich');
+        }
+        if (!deviceData.acquisitionTime || deviceData.acquisitionTime < 100) {
+            errors.push('Abtastzeit muss mindestens 100ms betragen');
+        }
+    } else if (deviceData.deviceType === 's7') {
+        if (!deviceData.address || deviceData.address.trim() === '') {
+            errors.push('S7 Adresse ist erforderlich');
+        }
+        if (!deviceData.rack || deviceData.rack === '') {
+            errors.push('Rack-Nummer ist erforderlich');
+        }
+        if (!deviceData.slot || deviceData.slot === '') {
+            errors.push('Slot-Nummer ist erforderlich');
+        }
+    }
+    
+    return errors;
+}
 
 // Event-Listener für Save-Button wird dynamisch hinzugefügt
 function attachSaveButtonListener() {
@@ -111,102 +201,160 @@ function attachSaveButtonListener() {
     }
 }
 
+// Verbesserte Geräte-Aktualisierung
 async function saveEditDevice() {
     return new Promise(async (resolve, reject) => {
+        const button = document.getElementById('btn-edit-device');
+        const originalText = button.innerHTML;
+        
         try {
-        // Erfassung der Eingabewerte
-        const deviceData = {
-            // deviceId: document.getElementById('device-name-1').dataset.deviceId, // Nehme die ID aus einem Attribut, falls vorhanden
-            deviceName: document.getElementById('device-name-1').value,
-            deviceType: document.getElementById('select-device-type-1').value,
-            address: document.getElementById('address-1')?.value || document.getElementById('address-2')?.value || '',
-            securityPolicy: document.getElementById('select-security-policy-1')?.value || '',
-            securityMode: document.getElementById('select-security-mode-1')?.value || '',
-            acquisitionTime: parseInt(
-                document.getElementById('acquisition-time-opc-ua-1')?.value ||
-                document.getElementById('acquisition-time-2')?.value || '0',
-                10
-            ),
-            username: document.getElementById('username')?.value || document.getElementById('username-1')?.value || '',
-            password: document.getElementById('password')?.value || document.getElementById('password-1')?.value || '',
-            rack: document.querySelector('#rack')?.value || document.querySelector('#s7-config-1 [placeholder="0"]')?.value || '',
-            slot: document.querySelector('#slot')?.value || document.querySelector('#s7-config-1 [placeholder="1"]')?.value || '',
-            datapoints: Array.from(document.querySelectorAll('#ipi-table tbody tr')).map(row => {
-                // Alle Zellen in der Zeile abrufen
-                const cells = row.querySelectorAll('td');
+            // Button-Status ändern
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Save';
             
-                // Prüfen, ob die Zeile Eingabefelder hat (für neue Datenpunkte)
-                const nameInput = cells[1]?.querySelector('input');
-                const datatypeInput = cells[2]?.querySelector('select');
-                const addressInput = cells[3]?.querySelector('input');
+            // Erfassung der Eingabewerte
+            const deviceData = {
+                deviceName: document.getElementById('device-name-1').value,
+                deviceType: document.getElementById('select-device-type-1').value,
+                address: document.getElementById('address-1')?.value || document.getElementById('address-2')?.value || '',
+                securityPolicy: document.getElementById('select-security-policy-1')?.value || '',
+                securityMode: document.getElementById('select-security-mode-1')?.value || '',
+                acquisitionTime: parseInt(
+                    document.getElementById('acquisition-time-opc-ua-1')?.value ||
+                    document.getElementById('acquisition-time-2')?.value || '0',
+                    10
+                ),
+                username: document.getElementById('username')?.value || document.getElementById('username-1')?.value || '',
+                password: document.getElementById('password')?.value || document.getElementById('password-1')?.value || '',
+                rack: document.querySelector('#rack')?.value || document.querySelector('#s7-config-1 [placeholder="0"]')?.value || '',
+                slot: document.querySelector('#slot')?.value || document.querySelector('#s7-config-1 [placeholder="1"]')?.value || '',
+                datapoints: Array.from(document.querySelectorAll('#ipi-table tbody tr')).map(row => {
+                    const cells = row.querySelectorAll('td');
+                    const nameInput = cells[1]?.querySelector('input');
+                    const datatypeInput = cells[2]?.querySelector('select');
+                    const addressInput = cells[3]?.querySelector('input');
 
-                const isOpcUa = document.getElementById('select-device-type-1').value === 'opc-ua';
-                return {
-                    datapointId: row.querySelector('td').textContent.trim(),
-                    name: nameInput ? nameInput.value.trim() : cells[1]?.textContent.trim() || '',
-                    datatype: isOpcUa ? '' : datatypeInput ? datatypeInput.value.trim() : cells[2]?.textContent.trim() || '',
-                    address: addressInput ? addressInput.value.trim() : cells[3]?.textContent.trim() || '',
-                };
-            }).filter(dp => {
-                // Filtere leere oder ungültige Datenpunkte heraus
-                // Für OPC-UA: Name und Address müssen gefüllt sein
-                // Für S7: Name, Address und Datatype müssen gefüllt sein
-                const isOpcUa = document.getElementById('select-device-type-1').value === 'opc-ua';
-                const hasValidName = dp.name && dp.name.trim() !== '' && dp.name !== 'Enter Name';
-                const hasValidAddress = dp.address && dp.address.trim() !== '' && dp.address !== 'Enter Address / Node ID';
-                const hasValidDatatype = isOpcUa || (dp.datatype && dp.datatype.trim() !== '' && dp.datatype !== '-');
-                
-                // Debug: Zeige was gefiltert wird
-                if (!hasValidName || !hasValidAddress || !hasValidDatatype) {
-                    console.log('Filtere ungültigen Datenpunkt heraus:', dp);
-                    return false;
-                }
-                
-                return true;
-            }),
-        };
+                    const isOpcUa = document.getElementById('select-device-type-1').value === 'opc-ua';
+                    return {
+                        datapointId: row.querySelector('td').textContent.trim(),
+                        name: nameInput ? nameInput.value.trim() : cells[1]?.textContent.trim() || '',
+                        datatype: isOpcUa ? '' : datatypeInput ? datatypeInput.value.trim() : cells[2]?.textContent.trim() || '',
+                        address: addressInput ? addressInput.value.trim() : cells[3]?.textContent.trim() || '',
+                    };
+                }).filter(dp => {
+                    const isOpcUa = document.getElementById('select-device-type-1').value === 'opc-ua';
+                    const hasValidName = dp.name && dp.name.trim() !== '' && dp.name !== 'Enter Name';
+                    const hasValidAddress = dp.address && dp.address.trim() !== '' && dp.address !== 'Enter Address / Node ID';
+                    const hasValidDatatype = isOpcUa || (dp.datatype && dp.datatype.trim() !== '' && dp.datatype !== '-');
+                    
+                    if (!hasValidName || !hasValidAddress || !hasValidDatatype) {
+                        console.log('Filtere ungültigen Datenpunkt heraus:', dp);
+                        return false;
+                    }
+                    return true;
+                }),
+            };
 
-        deviceData.deviceId = localStorage.getItem('device_id');
+            deviceData.deviceId = localStorage.getItem('device_id');
 
             console.log('Zu aktualisierende Gerätedaten:', deviceData);
 
             // API-Request senden
-            const response = await fetch(`/api/update-device/${deviceData.deviceId}`, {
+            await apiRequest(`/api/update-device/${deviceData.deviceId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(deviceData),
             });
-
-            if (!response.ok) {
-                throw new Error(`Fehler beim Aktualisieren des Geräts: ${response.statusText}`);
-            }
             
             // Erfolgreiche Rückmeldung anzeigen
             const validDatapointsCount = deviceData.datapoints.length;
             if (validDatapointsCount > 0) {
-                console.log(`✅ Gerät "${deviceData.deviceName}" erfolgreich aktualisiert mit ${validDatapointsCount} Datenpunkten`);
+                showNotification('Erfolg', `Gerät "${deviceData.deviceName}" erfolgreich aktualisiert mit ${validDatapointsCount} Datenpunkten`, 'success');
             } else {
-                console.log(`✅ Gerät "${deviceData.deviceName}" erfolgreich aktualisiert (keine Änderungen an Datenpunkten)`);
+                showNotification('Erfolg', `Gerät "${deviceData.deviceName}" erfolgreich aktualisiert`, 'success');
             }
 
             // Warte kurz bevor Modal geschlossen wird
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Modal schließen
+            // Modal ordnungsgemäß schließen
             const modalEl = document.getElementById('modal-edit-device');
             const modalInstance = bootstrap.Modal.getInstance(modalEl);
             if (modalInstance) {
                 modalInstance.hide();
+                
+                // Warte bis das Modal vollständig geschlossen ist
+                modalEl.addEventListener('hidden.bs.modal', function onHidden() {
+                    // Entferne den Event-Listener
+                    modalEl.removeEventListener('hidden.bs.modal', onHidden);
+                    
+                    // Entferne das graue Overlay manuell falls es noch da ist
+                    setTimeout(() => {
+                        // Verwende die globale removeModalOverlay Funktion falls verfügbar
+                        if (typeof removeModalOverlay === 'function') {
+                            removeModalOverlay();
+                        } else {
+                            // Fallback: Manuelles Entfernen
+                            const backdrop = document.querySelector('.modal-backdrop');
+                            if (backdrop) {
+                                backdrop.remove();
+                            }
+                            document.body.classList.remove('modal-open');
+                            document.body.style.overflow = '';
+                            document.body.style.paddingRight = '';
+                        }
+                        
+                        // Aktualisiere die Geräteliste
+                        if (typeof fetchAndPopulateDevices === 'function') {
+                            fetchAndPopulateDevices();
+                        }
+                    }, 1000);
+                }, { once: true });
             }
             
             resolve();
             
         } catch (error) {
             console.error('❌ Fehler beim Aktualisieren des Geräts:', error);
-            alert('Fehler beim Speichern des Geräts. Bitte überprüfen Sie Ihre Eingaben und versuchen Sie es erneut.');
+            showNotification('Fehler', `Fehler beim Speichern des Geräts: ${error.message}`, 'error');
             reject(error);
+        } finally {
+            // Button-Status zurücksetzen
+            button.disabled = false;
+            button.innerHTML = originalText;
         }
     });
+}
+
+// Benachrichtigungssystem
+function showNotification(title, message, type = 'info') {
+    // Entferne bestehende Benachrichtigungen
+    const existingNotifications = document.querySelectorAll('.notification-toast');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `notification-toast alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        min-width: 300px;
+        max-width: 500px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    notification.innerHTML = `
+        <strong>${title}</strong><br>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Automatisch ausblenden nach 5 Sekunden
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
 }

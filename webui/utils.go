@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"time"
 
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	MQTT "github.com/mochi-mqtt/server/v2"
@@ -131,13 +133,24 @@ func RestartDriver(c *gin.Context) {
 	// get driver id from context
 	driverID := c.Param("device_id")
 
+	// Falls device_id nicht als Parameter verfügbar ist, versuche es aus dem Context zu holen
+	if driverID == "" {
+		if deviceID, exists := c.Get("device_id"); exists {
+			driverID = fmt.Sprintf("%v", deviceID)
+		}
+	}
+
 	// get db from context
 	db := c.MustGet("db").(*sql.DB)
 
 	// restart driver
 	logic.RestartDevice(db, driverID)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Driver restarted successfully"})
+	// Nur JSON-Antwort senden, wenn es sich um einen direkten API-Aufruf handelt
+	// und nicht um einen Goroutine-Aufruf
+	if c.Writer.Status() == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Driver restarted successfully"})
+	}
 }
 
 // join fügt den aktuellen Pfad mit dem neuen Knoten zusammen

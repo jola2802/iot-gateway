@@ -87,47 +87,85 @@ function createDeviceRow(device) {
     // Device ID
     const idCell = document.createElement('td');
     idCell.textContent = device.id;
-    idCell.style.textAlign = 'center';
-    idCell.style.verticalAlign = 'middle';
+    idCell.style.cssText = `
+        text-align: center;
+        vertical-align: middle;
+        width: 10%;
+        font-weight: bold;
+        font-family: inherit;
+        font-size: 14px;
+    `;
     row.appendChild(idCell);
 
     // Device Name
     const deviceCell = document.createElement('td');
     deviceCell.textContent = device.deviceName;
-    deviceCell.style.fontWeight = 'bold';
-    deviceCell.style.width = 'break-all';
-    deviceCell.style.verticalAlign = 'middle';
+    deviceCell.style.cssText = `
+        font-weight: bold;
+        width: 25%;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
+        font-family: inherit;
+        font-size: 14px;
+    `;
     row.appendChild(deviceCell);
 
     // Type
     const typeCell = document.createElement('td');
     typeCell.textContent = device.deviceType;
-    typeCell.style.textAlign = 'center';
-    typeCell.style.verticalAlign = 'middle';
+    typeCell.style.cssText = `
+        text-align: center;
+        vertical-align: middle;
+        width: 15%;
+        font-family: inherit;
+        font-size: 14px;
+        text-transform: uppercase;
+        font-weight: 500;
+    `;
     row.appendChild(typeCell);
 
     // Address
     const addressCell = document.createElement('td');
     addressCell.textContent = device.address;
-    addressCell.style.fontWeight = 'bold';
-    addressCell.style.width = 'break-all';
-    addressCell.style.textAlign = 'center';
-    addressCell.style.verticalAlign = 'middle';
+    addressCell.style.cssText = `
+        font-weight: bold;
+        width: 25%;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: center;
+        vertical-align: middle;
+        font-family: inherit;
+        font-size: 14px;
+    `;
     row.appendChild(addressCell);
 
     // Acquisition Time
     const acquisitionTimeCell = document.createElement('td');
     acquisitionTimeCell.textContent = device.acquisitionTime;
-    acquisitionTimeCell.style.textAlign = 'center';
-    acquisitionTimeCell.style.verticalAlign = 'middle';
+    acquisitionTimeCell.style.cssText = `
+        text-align: center;
+        vertical-align: middle;
+        width: 15%;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 500;
+    `;
     row.appendChild(acquisitionTimeCell);
 
     // Status
     const statusCell = document.createElement('td');
     const statusIcon = createStatusIcon(device.status);
     statusCell.appendChild(statusIcon);
-    statusCell.style.textAlign = 'center';
-    statusCell.style.verticalAlign = 'middle';
+    statusCell.style.cssText = `
+        text-align: center;
+        vertical-align: middle;
+        width: 10%;
+    `;
     row.appendChild(statusCell);
 
     // Actions
@@ -310,15 +348,23 @@ function updateDeviceTables(devices) {
                 if (existingDatapointIds.has(datapoint.id)) {
                     // Datapoint existiert bereits, nur Wert aktualisieren
                     const valueCell = existingRow.querySelector('td:nth-child(2)');
-                    valueCell.textContent = datapoint.value;
+                    const oldValue = valueCell.textContent;
+                    const newValue = datapoint.value;
+                    
+                    // Nur aktualisieren wenn sich der Wert geändert hat
+                    if (oldValue !== newValue) {
+                        updateValueWithAnimation(valueCell, oldValue, newValue);
+                    }
 
                     // Chart Button hinzufügen (auch für bestehende Datapoints)
                     const chartCell = existingRow.querySelector('td:last-child');
                     if (!chartCell) {
                         const newChartCell = document.createElement('td');
                         const chartButton = document.createElement('button');
-                        chartButton.className = 'btn btn-outline-secondary';
+                        chartButton.className = 'btn btn-outline-secondary btn-sm';
                         chartButton.innerHTML = '<i class="typcn typcn-chart-line"></i>';
+                        chartButton.style.width = '40px';
+                        chartButton.style.height = '32px';
                         chartButton.addEventListener('click', () => openChartModal(deviceId, datapoint));
                         newChartCell.appendChild(chartButton);
                         existingRow.appendChild(newChartCell);
@@ -329,22 +375,82 @@ function updateDeviceTables(devices) {
                     // Datapoint existiert noch nicht, neue Zeile erstellen
                     const row = document.createElement('tr');
                     row.setAttribute('data-datapoint-id', datapoint.id);
+                    row.style.cssText = `
+                        animation: fadeIn 0.3s ease-in;
+                        height: 50px;
+                    `;
 
                     // Datapoint ID
                     const idCell = document.createElement('td');
                     idCell.textContent = datapoint.id;
+                    idCell.style.cssText = `
+                        width: 25%;
+                        max-width: 150px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        font-family: inherit;
+                        font-size: 13px;
+                        vertical-align: middle;
+                        color: #6c757d;
+                        font-weight: 500;
+                    `;
                     row.appendChild(idCell);
 
-                    // Last Value
+                    // Last Value mit fester Größe
                     const valueCell = document.createElement('td');
-                    valueCell.textContent = datapoint.value;
+                    valueCell.style.cssText = `
+                        width: 45%;
+                        max-width: 200px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        font-weight: bold;
+                        font-size: 14px;
+                        vertical-align: middle;
+                        position: relative;
+                    `;
+                    
+                    // Erstelle Container für den Wert
+                    const valueContainer = document.createElement('div');
+                    valueContainer.className = 'value-container';
+                    valueContainer.style.cssText = `
+                        width: 100%;
+                        height: 32px;
+                        line-height: 32px;
+                        text-align: center;
+                        border-radius: 4px;
+                        background: #f8f9fa;
+                        border: 1px solid #dee2e6;
+                        transition: all 0.2s ease;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        font-family: inherit;
+                        font-size: 14px;
+                        font-weight: 600;
+                    `;
+                    valueContainer.textContent = datapoint.value;
+                    valueCell.appendChild(valueContainer);
                     row.appendChild(valueCell);
 
                     // Chart Button
                     const chartCell = document.createElement('td');
+                    chartCell.style.cssText = `
+                        width: 30%;
+                        text-align: center;
+                        vertical-align: middle;
+                    `;
                     const chartButton = document.createElement('button');
-                    chartButton.className = 'btn btn-outline-secondary';
+                    chartButton.className = 'btn btn-outline-secondary btn-sm';
                     chartButton.innerHTML = '<i class="typcn typcn-chart-line"></i>';
+                    chartButton.style.cssText = `
+                        width: 40px;
+                        height: 32px;
+                        padding: 0;
+                        transition: all 0.2s ease;
+                        font-size: 14px;
+                    `;
                     chartButton.addEventListener('click', () => openChartModal(deviceId, datapoint));
                     chartCell.appendChild(chartButton);
                     row.appendChild(chartCell);
@@ -369,21 +475,124 @@ function updateDeviceTables(devices) {
     });
 }
 
+// Funktion für animierte Wertaktualisierung
+function updateValueWithAnimation(cell, oldValue, newValue) {
+    const valueContainer = cell.querySelector('.value-container');
+    if (!valueContainer) return;
+
+    // Prüfe ob sich der Wert wirklich geändert hat
+    if (valueContainer.textContent === newValue) return;
+
+    // Füge Highlight-Animation hinzu
+    valueContainer.style.animation = 'valueUpdate 0.5s ease-in-out';
+    
+    // Aktualisiere den Wert
+    valueContainer.textContent = newValue;
+    
+    // Entferne Animation nach Abschluss
+    setTimeout(() => {
+        valueContainer.style.animation = '';
+    }, 500);
+}
+
+// CSS-Animationen hinzufügen
+function addValueAnimations() {
+    if (!document.getElementById('value-animations')) {
+        const style = document.createElement('style');
+        style.id = 'value-animations';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            @keyframes valueUpdate {
+                0% { background-color: #f8f9fa; transform: scale(1); }
+                50% { background-color: #fff3cd; transform: scale(1.05); }
+                100% { background-color: #f8f9fa; transform: scale(1); }
+            }
+            
+            .value-container:hover {
+                background-color: #e9ecef !important;
+                border-color: #adb5bd !important;
+            }
+            
+            .btn-outline-secondary:hover {
+                background-color: #6c757d;
+                border-color: #6c757d;
+                color: white;
+            }
+            
+            .table-responsive {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+            
+            .accordion-body {
+                padding: 1rem;
+                background-color: #f8f9fa;
+            }
+            
+            .table td {
+                vertical-align: middle;
+                padding: 0.5rem;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
 // Funktion aufrufen, um die Tabelle und Accordion-Struktur zu befüllen
 fetchAndPopulateDevices();
 hideAllConfigs();
+addValueAnimations(); // CSS-Animationen hinzufügen
+
+// Globale Funktion zum Entfernen des Modal-Overlays
+function removeModalOverlay() {
+    // Entferne alle Modal-Backdrops
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => backdrop.remove());
+    
+    // Entferne modal-open Klasse vom body
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+}
 
 // Event-Listener für Modal-Events hinzufügen
 document.getElementById('modal-edit-device').addEventListener('hidden.bs.modal', function () {
     // Modal vollständig zurücksetzen wenn es geschlossen wird
-    resetEditModal();
+    setTimeout(() => {
+        resetEditModal();
+    }, 100);
 });
 
 document.getElementById('modal-edit-device').addEventListener('hide.bs.modal', function () {
-    // Seite aktualisieren wenn Modal geschlossen wird
+    // Entferne das graue Overlay manuell
     setTimeout(() => {
-        fetchAndPopulateDevices();
-    }, 100);
+        removeModalOverlay();
+    }, 50);
+});
+
+// Event-Listener für das Schließen-Button im Modal
+document.addEventListener('click', function(event) {
+    if (event.target.matches('[data-bs-dismiss="modal"]') || 
+        event.target.closest('[data-bs-dismiss="modal"]')) {
+        
+        // Warte kurz und entferne dann das Overlay
+        setTimeout(() => {
+            removeModalOverlay();
+        }, 100);
+    }
+});
+
+// Event-Listener für ESC-Taste
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        setTimeout(() => {
+            removeModalOverlay();
+        }, 100);
+    }
 });
 
 // #########

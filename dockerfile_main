@@ -49,8 +49,5 @@ COPY --from=builder /app/iot_gateway.db /app/iot_gateway.db
 
 RUN chmod +x /app/iot-gateway
 
-# Expose necessary ports
-EXPOSE 8088 5000 5001 5100 5101
-
 # Command to run Go application
 ENTRYPOINT [ "/app/iot-gateway" ]

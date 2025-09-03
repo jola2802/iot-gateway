@@ -54,11 +54,26 @@ func getMQTTServer(c *gin.Context) (*MQTT.Server, error) {
 func loadConfigFromEnv() (*Config, error) {
 	config := &Config{}
 
+	// HTTP Port konfigurieren
 	config.WebUI.HTTPPort = os.Getenv("WEBUI_HTTP_PORT")
-
-	// if config.WebUI.HTTPPort is empty, set it to 8080
 	if config.WebUI.HTTPPort == "" {
 		config.WebUI.HTTPPort = "8088"
+	}
+
+	// HTTPS Port konfigurieren
+	config.WebUI.HTTPSPort = os.Getenv("NGINX_HTTPS_PORT")
+	if config.WebUI.HTTPSPort == "" {
+		config.WebUI.HTTPSPort = "8443"
+	}
+
+	// HTTPS aktivieren/deaktivieren
+	useHTTPS := os.Getenv("USE_HTTPS")
+	config.WebUI.UseHTTPS = useHTTPS == "true" || useHTTPS == "1"
+
+	// TLS Zertifikate
+	if config.WebUI.UseHTTPS {
+		config.WebUI.TLSCert = os.Getenv("NGINX_TLS_CERT")
+		config.WebUI.TLSKey = os.Getenv("NGINX_TLS_KEY")
 	}
 
 	return config, nil

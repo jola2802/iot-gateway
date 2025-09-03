@@ -14,11 +14,23 @@ import (
 )
 
 func GenerateSelfSignedCert() (tls.Certificate, error) {
+	// Zertifikatspfade aus Umgebungsvariablen holen
+	certPath := os.Getenv("NGINX_TLS_CERT")
+	keyPath := os.Getenv("NGINX_TLS_KEY")
+
+	// Fallback auf Standardpfade, wenn Umgebungsvariablen nicht gesetzt sind
+	if certPath == "" {
+		certPath = "server.crt"
+	}
+	if keyPath == "" {
+		keyPath = "server.key"
+	}
+
 	// Prüfen, ob Zertifikatsdateien bereits vorhanden sind
-	if _, err := os.Stat("server.crt"); err == nil {
-		if _, err := os.Stat("server.key"); err == nil {
+	if _, err := os.Stat(certPath); err == nil {
+		if _, err := os.Stat(keyPath); err == nil {
 			// Zertifikate laden, wenn sie existieren
-			return tls.LoadX509KeyPair("server.crt", "server.key")
+			return tls.LoadX509KeyPair(certPath, keyPath)
 		}
 	}
 
@@ -57,14 +69,14 @@ func GenerateSelfSignedCert() (tls.Certificate, error) {
 		return tls.Certificate{}, err
 	}
 
-	certOut, err := os.Create("server.crt")
+	certOut, err := os.Create(certPath)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
 	defer certOut.Close()
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 
-	keyOut, err := os.Create("server.key")
+	keyOut, err := os.Create(keyPath)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
@@ -75,5 +87,5 @@ func GenerateSelfSignedCert() (tls.Certificate, error) {
 	}
 	pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: privBytes})
 
-	return tls.LoadX509KeyPair("server.crt", "server.key")
+	return tls.LoadX509KeyPair(certPath, keyPath)
 }

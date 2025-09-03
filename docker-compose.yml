@@ -5,14 +5,14 @@ services:
     build:
       context: .
       dockerfile: dockerfile_main
-    expose:
-      - ${MQTT_LISTENER_LOCAL_TCP_ADDRESS}
-      - ${MQTT_LISTENER_LOCAL_WS_ADDRESS}
-      - ${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}
-      - ${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
-      - ${WEBUI_HTTP_PORT}
+    ports:
+      - "${MQTT_LISTENER_LOCAL_TCP_ADDRESS}:${MQTT_LISTENER_LOCAL_TCP_ADDRESS}"
+      - "${MQTT_LISTENER_LOCAL_WS_ADDRESS}:${MQTT_LISTENER_LOCAL_WS_ADDRESS}"
+      - "${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}:${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}"
+      - "${MQTT_LISTENER_PUBLIC_WS_ADDRESS}:${MQTT_LISTENER_PUBLIC_WS_ADDRESS}"
+      - "${WEBUI_HTTP_PORT}:${WEBUI_HTTP_PORT}"
     environment:
-      - INFLUXDB_URL=${INFLUXDB_URL}
+      - INFLUXDB_URL=http://localhost:${INFLUXDB_HTTP_PORT}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
       - INFLUXDB_ORG=${INFLUXDB_ORG}
       - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
@@ -22,8 +22,6 @@ services:
       - MQTT_LISTENER_PUBLIC_WS_ADDRESS=${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
       - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
       - TZ=Europe/Berlin
-    depends_on:
-      - nginx
     networks:
       - gateway-network
     restart: unless-stopped
@@ -34,12 +32,12 @@ services:
     build:
       context: .
       dockerfile: dockerfile_nodered
-    expose:
-      - ${NODE_RED_HTTP_PORT}
+    ports:
+      - "${NODE_RED_HTTP_PORT}:${NODE_RED_HTTP_PORT}"
     environment:
       - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
       - NODE_RED_CREDENTIAL_SECRET=${NODE_RED_CREDENTIAL_SECRET}
-      - INFLUXDB_URL=${INFLUXDB_URL}
+      - INFLUXDB_URL=http://localhost:${INFLUXDB_HTTP_PORT}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
       - INFLUXDB_ORG=${INFLUXDB_ORG}
       - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
@@ -57,8 +55,8 @@ services:
   influxdb:
     container_name: gateway-influxdb
     image: influxdb:2.7
-    expose:
-      - ${INFLUXDB_HTTP_PORT}
+    ports:
+      - "${INFLUXDB_HTTP_PORT}:${INFLUXDB_HTTP_PORT}"
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_ADMIN_USER}
@@ -68,36 +66,6 @@ services:
       - DOCKER_INFLUXDB_INIT_RETENTION=${INFLUXDB_RETENTION}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
       - TZ=Europe/Berlin
-    networks:
-      - gateway-network
-    restart: unless-stopped
-
-  ## NGINX
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: gateway-nginx
-    ports:
-      - "${MQTT_LISTENER_LOCAL_TCP_ADDRESS}:${MQTT_LISTENER_LOCAL_TCP_ADDRESS}"
-      - "${MQTT_LISTENER_LOCAL_WS_ADDRESS}:${MQTT_LISTENER_LOCAL_WS_ADDRESS}"
-      - "${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}:${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}"
-      - "${MQTT_LISTENER_PUBLIC_WS_ADDRESS}:${MQTT_LISTENER_PUBLIC_WS_ADDRESS}"
-      - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
-      - "1880:1880"  # Node-RED Proxy für interne Container-Kommunikation
-    volumes:
-      - ${NGINX_TLS_CERT}:/etc/nginx/certs/server.crt
-      - ${NGINX_TLS_KEY}:/etc/nginx/certs/server.key
-      - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
-
-    environment:
-      - MQTT_LISTENER_LOCAL_TCP_ADDRESS=${MQTT_LISTENER_LOCAL_TCP_ADDRESS}
-      - MQTT_LISTENER_LOCAL_WS_ADDRESS=${MQTT_LISTENER_LOCAL_WS_ADDRESS}
-      - MQTT_LISTENER_PUBLIC_TCP_ADDRESS=${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}
-      - MQTT_LISTENER_PUBLIC_WS_ADDRESS=${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
-      - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
-      - NGINX_HTTPS_PORT=${NGINX_HTTPS_PORT}
-      - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
-      - INFLUXDB_HTTP_PORT=${INFLUXDB_HTTP_PORT}
-    command: /bin/sh -c "envsubst '$$MQTT_LISTENER_LOCAL_TCP_ADDRESS $$MQTT_LISTENER_LOCAL_WS_ADDRESS $$MQTT_LISTENER_PUBLIC_TCP_ADDRESS $$MQTT_LISTENER_PUBLIC_WS_ADDRESS $$WEBUI_HTTP_PORT $$NGINX_HTTPS_PORT $$NODE_RED_HTTP_PORT $$INFLUXDB_HTTP_PORT' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     networks:
       - gateway-network
     restart: unless-stopped

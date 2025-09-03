@@ -12,7 +12,7 @@ services:
       - "${MQTT_LISTENER_PUBLIC_WS_ADDRESS}:${MQTT_LISTENER_PUBLIC_WS_ADDRESS}"
       - "${WEBUI_HTTP_PORT}:${WEBUI_HTTP_PORT}"
     environment:
-      - INFLUXDB_URL=http://localhost:${INFLUXDB_HTTP_PORT}
+      - INFLUXDB_URL=http://127.0.0.1:${INFLUXDB_HTTP_PORT}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
       - INFLUXDB_ORG=${INFLUXDB_ORG}
       - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
@@ -21,9 +21,11 @@ services:
       - MQTT_LISTENER_PUBLIC_TCP_ADDRESS=${MQTT_LISTENER_PUBLIC_TCP_ADDRESS}
       - MQTT_LISTENER_PUBLIC_WS_ADDRESS=${MQTT_LISTENER_PUBLIC_WS_ADDRESS}
       - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
+      - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
       - TZ=Europe/Berlin
-    networks:
-      - gateway-network
+    volumes:
+      - ./iot_gateway.db:/app/iot_gateway.db
+    network_mode: host
     restart: unless-stopped
 
   ## Node-RED
@@ -37,18 +39,18 @@ services:
     environment:
       - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
       - NODE_RED_CREDENTIAL_SECRET=${NODE_RED_CREDENTIAL_SECRET}
-      - INFLUXDB_URL=http://localhost:${INFLUXDB_HTTP_PORT}
+      - INFLUXDB_URL=http://127.0.0.1:${INFLUXDB_HTTP_PORT}
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
       - INFLUXDB_ORG=${INFLUXDB_ORG}
       - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
       - MQTT_LISTENER_LOCAL_TCP_ADDRESS=${MQTT_LISTENER_LOCAL_TCP_ADDRESS}
       - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
+      - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
       - TZ=Europe/Berlin
     volumes:
       - ${DATA_PATH}:/data/shared/
       - ./node-red-data:/data
-    networks:
-      - gateway-network
+    network_mode: host
     restart: unless-stopped
 
   ## InfluxDB
@@ -66,8 +68,7 @@ services:
       - DOCKER_INFLUXDB_INIT_RETENTION=${INFLUXDB_RETENTION}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
       - TZ=Europe/Berlin
-    networks:
-      - gateway-network
+    network_mode: host
     restart: unless-stopped
 
 networks:

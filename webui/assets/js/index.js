@@ -35,12 +35,6 @@
                         nodeRedElement.textContent = data.nodeRedConnection ? 'Connected' : 'Disconnected';
                         nodeRedElement.style.color = data.nodeRedConnection ? 'green' : 'red';
 
-                        // // Update the Node-RED URL only if the value is not empty
-                        // if (data.nodeRedURL !== undefined) {
-                        //     const currentUrl = window.location.href;
-                        //     const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
-                        //     nodeRedElement.href = `${baseUrl}/nodered`;
-                        // }
                     }
                     // Update the Node-RED address if there is no value yet
                     const nodeRedAddressElement = document.getElementById('node-red-address');
@@ -48,9 +42,7 @@
                     // Check if there is already a value in nodeRedAddressElement
                     if (nodeRedAddressElement.href === undefined || nodeRedAddressElement.href === "" || nodeRedAddressElement.href === null) {
                         nodeRedAddressElement.style.color = 'black';
-                        const currentUrl = window.location.href;
-                        const baseUrl = currentUrl.split('/').slice(0, -1).join('/');
-                        nodeRedAddressElement.href = `${baseUrl}/nodered`;
+                        nodeRedAddressElement.href = `http://127.0.0.1:1880`;
                     }
                 }
 

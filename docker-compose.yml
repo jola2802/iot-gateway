@@ -23,8 +23,8 @@ services:
       - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
       - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
       - TZ=Europe/Berlin
-    volumes:
-      - ./iot_gateway.db:/app/iot_gateway.db
+    # volumes:
+      # - ./iot_gateway.db:/app/iot_gateway.db
     networks:
       - iot-network
     restart: unless-stopped

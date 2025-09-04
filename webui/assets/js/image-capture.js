@@ -343,13 +343,6 @@ function renderProcessTable() {
                 }
             </td>
             <td>
-                ${getUploadStatusBadge(process.last_upload_status, process.last_upload_error)}
-                ${process.enable_upload ? 
-                    `<br><small class="text-muted">Success: ${process.upload_success_count} | Failed: ${process.upload_failure_count}</small>` : 
-                    '<br><small class="text-muted">Upload disabled</small>'
-                }
-            </td>
-            <td>
                 <div class="btn-group" role="group">
                     ${process.status === 'running' ? 
                         `<a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" onclick="stopProcess(${process.id})" title="Prozess stoppen" style="margin-left: 5px;">

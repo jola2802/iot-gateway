@@ -325,11 +325,6 @@ function renderProcessTable() {
                 }
             </td>
             <td>
-                <button class="btn btn-sm btn-outline-info" onclick="showEndpointInfo(${process.id}, '${escapeHtml(process.name)}')">
-                    <i class="fas fa-code"></i> API Endpoints
-                </button>
-            </td>
-            <td>
                 <div class="btn-group" role="group">
                     ${process.status === 'running' ? 
                         `<a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" onclick="stopProcess(${process.id})" title="Prozess stoppen" style="margin-left: 5px;">
@@ -600,7 +595,7 @@ async function executeProcess(processId) {
         // Nach kurzer Zeit die Prozesse neu laden, um das neue Bild zu sehen
         setTimeout(() => {
             loadProcesses();
-        }, 2000);
+        }, 4000);
         
     } catch (error) {
         console.error('Error executing:', error);

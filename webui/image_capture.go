@@ -2,11 +2,9 @@ package webui
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"iot-gateway/logic"
 	"net/http"
 	"strconv"
@@ -72,6 +70,19 @@ func (pm *ProcessManager) IsProcessRunning(processID int) bool {
 	return false
 }
 
+// IsProcessReallyRunning prüft, ob ein Prozess wirklich läuft
+// Diese Funktion wird vor kritischen Operationen aufgerufen
+func (pm *ProcessManager) IsProcessReallyRunning(processID int) bool {
+	pm.mutex.RLock()
+	defer pm.mutex.RUnlock()
+
+	if runningProcess, exists := pm.processes[processID]; exists {
+		// Zusätzliche Prüfung: Ist der Prozess nicht nur in der Map, sondern auch wirklich aktiv?
+		return runningProcess.IsRunning && runningProcess.StopChan != nil
+	}
+	return false
+}
+
 // GetRunningProcesses gibt eine Liste aller laufenden Prozesse zurück
 func (pm *ProcessManager) GetRunningProcesses() []int {
 	pm.mutex.RLock()
@@ -84,6 +95,54 @@ func (pm *ProcessManager) GetRunningProcesses() []int {
 		}
 	}
 	return runningIDs
+}
+
+// ValidateRunningProcesses prüft alle laufenden Prozesse und stoppt ungültige
+func (pm *ProcessManager) ValidateRunningProcesses() {
+	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
+
+	var processesToStop []int
+
+	for processID, runningProcess := range pm.processes {
+		// Prüfen, ob der Prozess wirklich noch laufen sollte
+		if !runningProcess.IsRunning || runningProcess.StopChan == nil {
+			processesToStop = append(processesToStop, processID)
+			logrus.Warnf("Prozess %d ist in einem ungültigen Zustand und wird gestoppt", processID)
+		}
+	}
+
+	// Ungültige Prozesse stoppen
+	for _, processID := range processesToStop {
+		if runningProcess, exists := pm.processes[processID]; exists {
+			// Channel sicher schließen
+			select {
+			case <-runningProcess.StopChan:
+				// Channel bereits geschlossen
+			default:
+				close(runningProcess.StopChan)
+			}
+			delete(pm.processes, processID)
+			logrus.Infof("Ungültiger Prozess %d wurde bereinigt", processID)
+		}
+	}
+}
+
+// StartProcessMonitor startet einen Monitor, der regelmäßig alle laufenden Prozesse überprüft
+func (pm *ProcessManager) StartProcessMonitor() {
+	go func() {
+		ticker := time.NewTicker(30 * time.Second) // Alle 30 Sekunden prüfen
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				pm.ValidateRunningProcesses()
+			}
+		}
+	}()
+
+	logrus.Info("Image Capture Prozess-Monitor gestartet")
 }
 
 // RunningProcess repräsentiert einen laufenden Prozess
@@ -165,6 +224,9 @@ func InitImageCaptureProcesses(db *sql.DB) {
 			logrus.Infof("Prozess %s (ID: %d) erfolgreich wiederhergestellt", process.Name, process.ID)
 		}
 	}
+
+	// Prozess-Monitor starten
+	processManager.StartProcessMonitor()
 }
 
 // getImageCaptureProcesses holt alle Image Capture Prozesse aus der Datenbank
@@ -606,7 +668,7 @@ func executeImageCaptureProcess(c *gin.Context) {
 
 	// Einmalige Ausführung in einer Go-Routine
 	go func() {
-		result, err := executeSingleImageCapture(db, &process)
+		result, err := executeSingleImageCapture(db, &process, true) // true = manuelle Ausführung
 		if err != nil {
 			imageChan <- &ImageCaptureResult{Error: err}
 		} else {
@@ -621,10 +683,9 @@ func executeImageCaptureProcess(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 			return
 		}
-		// c.JSON(http.StatusOK, gin.H{"image": result.Image})
-		c.Data(http.StatusOK, "image/jpeg", []byte(result.Image))
+		c.JSON(http.StatusOK, gin.H{})
 
-	case <-time.After(30 * time.Second):
+	case <-time.After(20 * time.Second):
 		c.JSON(http.StatusRequestTimeout, gin.H{"error": "Zeitüberschreitung beim Image Capture"})
 	}
 }
@@ -645,10 +706,15 @@ type NodeRedImageCaptureResponse struct {
 	Image          string `json:"image"`
 	DeviceID       string `json:"device_id"`
 	Uploaded       bool   `json:"uploaded"`
-	ProcessID      string `json:"process_id"`
+	ProcessID      int    `json:"process_id"` // Geändert von string zu int
 }
 
-func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess) (*ImageCaptureResult, error) {
+func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess, isManualExecution bool) (*ImageCaptureResult, error) {
+	// Sicherheitsprüfung: Nur bei automatischen (zyklischen) Ausführungen prüfen
+	if !isManualExecution && !processManager.IsProcessReallyRunning(process.ID) {
+		return nil, fmt.Errorf("prozess %d ist nicht mehr aktiv - image capture abgebrochen", process.ID)
+	}
+
 	// Geräteinformationen aus der Datenbank holen
 	if db == nil {
 		return nil, fmt.Errorf("datenbankverbindung ist nil")
@@ -676,6 +742,7 @@ func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess) (*Image
 		"M_NODE_IMAGE":          process.MethodID,
 		"M_ARGS":                string(methodArgsJSON),
 		"NODE_CHECK":            process.CheckNodeID,
+		"NODE_READ_AVAILABLE":   process.AckNodeID,
 		"NODE_IMAGE":            process.ImageNodeID,
 		"NODE_ACK_READ":         process.AckNodeID,
 		"DEVICE_ID":             strconv.Itoa(process.DeviceID),
@@ -696,73 +763,35 @@ func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess) (*Image
 	}
 
 	// HTTP Request an Node-RED API senden
-	result, err := callNodeRedImageCaptureAPI(payload)
+	err = callNodeRedImageCaptureAPI(payload)
 	if err != nil {
 		return nil, fmt.Errorf("fehler beim Aufruf der Node-RED API: %v", err)
 	}
 
-	// Response verarbeiten
-	if !result.Success {
-		return nil, fmt.Errorf("node-RED Image Capture fehlgeschlagen")
-	}
-
-	// Datenbank mit Ergebnissen aktualisieren
-	uploadStatus := "not_attempted"
-	uploadError := ""
-
-	if result.Uploaded {
-		uploadStatus = "success"
-		process.UploadSuccessCount++
-	} else if process.EnableUpload {
-		uploadStatus = "failed"
-		uploadError = "Upload fehlgeschlagen"
-		process.UploadFailureCount++
-	}
-
-	// Datenbank Update
-	now := time.Now()
-	updateQuery := `
-		UPDATE image_capture_processes SET
-			last_execution = ?, last_image = ?, 
-			last_upload_status = ?, last_upload_error = ?,
-			upload_success_count = ?, upload_failure_count = ?,
-			updated_at = ?
-		WHERE id = ?
-	`
-	_, err = logic.SafeDBExec(db, updateQuery,
-		now.Format(time.RFC3339), result.Image,
-		uploadStatus, uploadError,
-		process.UploadSuccessCount, process.UploadFailureCount,
-		now.Format(time.RFC3339), process.ID)
-
 	if err != nil {
-		logrus.Errorf("Fehler beim Update der Datenbank nach Image Capture: %v", err)
+		return nil, fmt.Errorf("node-RED Image Capture fehlgeschlagen: %v", err)
 	}
-
-	// Bild auch in die images-Tabelle speichern für Historie und Downloads
-	saveImageToDB(db, result.Image, now, process.DeviceID, strconv.Itoa(process.ID))
 
 	return &ImageCaptureResult{
-		Image: result.Image,
 		Error: nil,
 	}, nil
 }
 
 // callNodeRedImageCaptureAPI führt einen HTTP POST Request zur Node-RED Image Capture API aus
-func callNodeRedImageCaptureAPI(payload map[string]interface{}) (*NodeRedImageCaptureResponse, error) {
+func callNodeRedImageCaptureAPI(payload map[string]interface{}) error {
 	// Node-RED läuft standardmäßig auf Port 1880 über NGINX-Proxy
-	nodeRedURL := "http://gateway-nginx:1880/api/img-capture"
+	nodeRedURL := "http://localhost:1880/api/img-capture"
 
 	// JSON Payload erstellen
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("fehler beim Erstellen der JSON-Payload: %v", err)
+		return fmt.Errorf("fehler beim Erstellen der JSON-Payload: %v", err)
 	}
 
 	// HTTP Request erstellen
 	req, err := http.NewRequest("POST", nodeRedURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("fehler beim Erstellen des HTTP-Requests: %v", err)
+		return fmt.Errorf("fehler beim Erstellen des HTTP-Requests: %v", err)
 	}
 
 	// Headers setzen
@@ -774,153 +803,14 @@ func callNodeRedImageCaptureAPI(payload map[string]interface{}) (*NodeRedImageCa
 	}
 
 	// Request ausführen
-	logrus.Infof("Sende Image Capture Request an Node-RED: %s", nodeRedURL)
+	// logrus.Infof("Sende Image Capture Request an Node-RED: %s", nodeRedURL)
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Fehler beim Ausführen des HTTP-Requests: %v", err)
+		return fmt.Errorf("Fehler beim Ausführen des HTTP-Requests: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// Response Body lesen
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("Fehler beim Lesen der Response: %v", err)
-	}
-
-	// HTTP Status Code prüfen
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Node-RED API Fehler (Status %d): %s", resp.StatusCode, string(body))
-	}
-
-	// JSON Response parsen
-	var result NodeRedImageCaptureResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("Fehler beim Parsen der JSON-Response: %v", err)
-	}
-
-	logrus.Infof("Node-RED Image Capture erfolgreich: Success=%t, Device=%s, Uploaded=%t",
-		result.Success, result.DeviceID, result.Uploaded)
-
-	return &result, nil
-}
-
-// OLD
-// executeSingleImageCapture führt eine einzelne Image Capture Ausführung durch
-func executeSingleImageCaptureOLD(db *sql.DB, process *ImageCaptureProcess) (*ImageCaptureResult, error) {
-	// Geräteinformationen aus der Datenbank holen
-	if db == nil {
-		return nil, fmt.Errorf("Datenbankverbindung ist nil")
-	}
-
-	deviceQuery := `SELECT security_mode, security_policy, username, password FROM devices WHERE id = ?`
-	var securityMode, securityPolicy, username, password sql.NullString
-	err := db.QueryRow(deviceQuery, process.DeviceID).Scan(&securityMode, &securityPolicy, &username, &password)
-	if err != nil {
-		return nil, fmt.Errorf("Fehler beim Laden der Geräteinformationen: %v", err)
-	}
-
-	// MethodArgs konvertieren
-	methodArgsJSON := json.RawMessage("{}")
-	if process.MethodArgs != nil {
-		if jsonBytes, err := json.Marshal(process.MethodArgs); err == nil {
-			methodArgsJSON = json.RawMessage(jsonBytes)
-		}
-	}
-
-	// Image Capture Parameter vorbereiten
-	params := ImageCaptureParams{
-		Endpoint:       process.Endpoint,
-		ObjectId:       process.ObjectID,
-		MethodId:       process.MethodID,
-		MethodArgs:     methodArgsJSON,
-		CheckNodeId:    process.CheckNodeID,
-		ImageNodeId:    process.ImageNodeID,
-		AckNodeId:      process.AckNodeID,
-		DeviceId:       strconv.Itoa(process.DeviceID),
-		EnableUpload:   fmt.Sprintf("%t", process.EnableUpload),
-		UploadUrl:      process.UploadURL,
-		SecurityMode:   securityMode.String,
-		SecurityPolicy: securityPolicy.String,
-		Username:       username.String,
-		Password:       password.String,
-		Headers:        process.UploadHeaders,
-	}
-
-	// OPC UA Client erstellen und verbinden
-	client, err := createAndConnectOPCUAClient(params)
-	if err != nil {
-		return nil, fmt.Errorf("Fehler beim Erstellen des OPC UA Clients: %v", err)
-	}
-
-	ctx := context.Background()
-	defer client.Close(ctx)
-
-	// Methode aufrufen
-	if err := callOPCUAMethod(ctx, params); err != nil {
-		return nil, fmt.Errorf("Fehler beim Methodenaufruf: %v", err)
-	}
-
-	// Warten auf Boolean-Wert
-	if err := waitForBooleanTrue(ctx, client, params.CheckNodeId); err != nil {
-		return nil, fmt.Errorf("Fehler beim Warten auf Boolean-Wert: %v", err)
-	}
-
-	// Bild lesen
-	base64String, err := readImageString(ctx, client, params.ImageNodeId)
-	if err != nil {
-		return nil, fmt.Errorf("Fehler beim Lesen des Bildes: %v", err)
-	}
-
-	// Ack setzen
-	if err := writeBoolean(ctx, client, params.AckNodeId, true); err != nil {
-		logrus.Errorf("Fehler beim Setzen des Ack-Werts: %v", err)
-	}
-
-	// Upload verarbeiten (wenn aktiviert)
-	uploadStatus := "not_attempted"
-	uploadError := ""
-
-	if process.EnableUpload && process.UploadURL != "" {
-		success := uploadToExternalDatabase(base64String, process.UploadURL, process.UploadHeaders, strconv.Itoa(process.DeviceID), process.TimestampHeaderName)
-		if success {
-			uploadStatus = "success"
-			process.UploadSuccessCount++
-		} else {
-			uploadStatus = "failed"
-			uploadError = "Upload fehlgeschlagen"
-			process.UploadFailureCount++
-		}
-	} else if process.EnableUpload {
-		uploadStatus = "skipped"
-		uploadError = "Upload URL nicht konfiguriert"
-	}
-
-	// Datenbank aktualisieren
-	now := time.Now()
-	updateQuery := `
-		UPDATE image_capture_processes SET
-			last_execution = ?, last_image = ?, 
-			last_upload_status = ?, last_upload_error = ?,
-			upload_success_count = ?, upload_failure_count = ?,
-			updated_at = ?
-		WHERE id = ?
-	`
-	_, dbErr := logic.SafeDBExec(db, updateQuery,
-		now.Format(time.RFC3339), base64String,
-		uploadStatus, uploadError,
-		process.UploadSuccessCount, process.UploadFailureCount,
-		now.Format(time.RFC3339), process.ID)
-	if dbErr != nil {
-		logrus.Errorf("Fehler beim Update der Datenbank: %v", dbErr)
-	}
-
-	// Bild in die Datenbank speichern
-	saveImageToDB(db, base64String, now, process.DeviceID, strconv.Itoa(process.ID))
-
-	return &ImageCaptureResult{
-		Image: base64String,
-		Error: nil,
-	}, nil
+	return nil
 }
 
 // StartProcess startet einen Image Capture Prozess
@@ -967,6 +857,8 @@ func (pm *ProcessManager) StopProcess(processID int) {
 
 		delete(pm.processes, processID)
 		logrus.Infof("Image Capture Prozess %d erfolgreich gestoppt", processID)
+	} else {
+		logrus.Warnf("Image Capture Prozess %d war nicht im ProcessManager registriert", processID)
 	}
 }
 
@@ -990,6 +882,15 @@ func (pm *ProcessManager) runProcess(db *sql.DB, runningProcess *RunningProcess)
 	}()
 
 	for {
+		// Zuerst prüfen, ob der Prozess noch laufen soll
+		pm.mutex.RLock()
+		if !runningProcess.IsRunning {
+			pm.mutex.RUnlock()
+			logrus.Infof("Image Capture Prozess %d ist nicht mehr running, stoppe", processID)
+			return
+		}
+		pm.mutex.RUnlock()
+
 		select {
 		case <-runningProcess.StopChan:
 			logrus.Infof("Image Capture Prozess %d erhielt Stop-Signal", processID)
@@ -1008,7 +909,7 @@ func (pm *ProcessManager) runProcess(db *sql.DB, runningProcess *RunningProcess)
 			logrus.Infof("Image Capture Prozess %d führt Capture aus", processID)
 
 			// Image Capture mit der gemeinsamen Funktion ausführen
-			result, err := executeSingleImageCapture(db, process)
+			result, err := executeSingleImageCapture(db, process, false) // false = automatische Ausführung
 			if err != nil {
 				runningProcess.LastError = err.Error()
 				logrus.Errorf("Fehler beim Image Capture für Prozess %d: %v", processID, err)
@@ -1061,6 +962,45 @@ func StopAllImageCaptureProcesses(db *sql.DB) {
 	} else {
 		logrus.Info("Alle Image Capture Prozesse gestoppt und Status aktualisiert")
 	}
+}
+
+// LogProcessStatus loggt den aktuellen Status aller laufenden Prozesse
+func (pm *ProcessManager) LogProcessStatus() {
+	pm.mutex.RLock()
+	defer pm.mutex.RUnlock()
+
+	runningCount := 0
+	stoppedCount := 0
+
+	for processID, runningProcess := range pm.processes {
+		if runningProcess.IsRunning {
+			runningCount++
+			logrus.Infof("Prozess %d läuft (Start: %s, Letztes Bild: %s)",
+				processID,
+				runningProcess.StartTime.Format("15:04:05"),
+				runningProcess.LastImage)
+		} else {
+			stoppedCount++
+			logrus.Infof("Prozess %d ist gestoppt (Letzter Fehler: %s)",
+				processID,
+				runningProcess.LastError)
+		}
+	}
+
+	// logrus.Infof("Image Capture Prozess-Status: %d laufend, %d gestoppt", runningCount, stoppedCount)
+}
+
+// GracefulShutdown stoppt alle laufenden Prozesse sauber beim Herunterfahren der Anwendung
+func GracefulShutdown(db *sql.DB) {
+	logrus.Info("Starte sauberes Herunterfahren der Image Capture Prozesse...")
+
+	// Alle laufenden Prozesse stoppen
+	StopAllImageCaptureProcesses(db)
+
+	// Kurz warten, damit alle Goroutines sauber beendet werden können
+	time.Sleep(2 * time.Second)
+
+	logrus.Info("Image Capture Prozesse erfolgreich heruntergefahren")
 }
 
 // scanProcessFromRow scannt einen Prozess aus einer Datenbankzeile

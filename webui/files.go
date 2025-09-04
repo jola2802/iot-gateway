@@ -18,9 +18,10 @@ import (
 
 // ImageRequest repräsentiert den JSON-Payload, der vom Client gesendet wird.
 type ImageRequest struct {
-	Image     string `json:"image"`
-	Device    string `json:"device"`
-	ProcessID string `json:"process_id"`
+	Image         string `json:"image"`
+	LastExecution string `json:"last_execution"`
+	DeviceID      string `json:"device_id"`
+	ProcessID     int    `json:"process_id"`
 }
 
 func saveImage(c *gin.Context) {
@@ -38,61 +39,26 @@ func saveImage(c *gin.Context) {
 		return
 	}
 
-	deviceID, err := strconv.Atoi(req.Device)
+	deviceID, err := strconv.Atoi(req.DeviceID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID: " + err.Error()})
 		return
 	}
-	saveImageToDB(db, req.Image, time.Now(), deviceID, req.ProcessID)
+	saveImageToDB(db, req.Image, deviceID, req.ProcessID, req.LastExecution)
 
 	// Sende eine Erfolgsmeldung zurück.
 	c.JSON(http.StatusOK, gin.H{"message": "Image saved"})
 }
 
-func saveImageToDB(db *sql.DB, image string, timestamp time.Time, deviceID int, processID string) {
+func saveImageToDB(db *sql.DB, image string, deviceID int, processID int, lastExecution string) {
 	// Speichere das Bild (als Blob) und den Timestamp in der Datenbank.
-	query := "INSERT INTO images (device, image, timestamp, process_id) VALUES (?, ?, ?, ?)"
-	if _, err := logic.SafeDBExec(db, query, deviceID, image, timestamp, processID); err != nil {
+	// Bei einem INSERT kann man keine WHERE-Klausel verwenden. Stattdessen brauchen wir ein UPDATE
+	query := "UPDATE image_capture_processes SET last_image = ?, last_execution = ? WHERE id = ? AND device_id = ?"
+
+	_, err := logic.SafeDBExec(db, query, image, lastExecution, processID, deviceID)
+	if err != nil {
 		logrus.Errorf("Fehler beim Speichern des Bildes in images-Tabelle: %v", err)
 		return
-	}
-
-	// max 1000 Bilder in der Datenbank speichern
-	rows, err := logic.SafeDBQuery(db, "SELECT COUNT(*) FROM images")
-	if err != nil {
-		logrus.Errorf("Fehler beim Zählen der Bilder: %v", err)
-		return
-	}
-	defer rows.Close()
-
-	var count int
-	for rows.Next() {
-		err = rows.Scan(&count)
-		if err != nil {
-			logrus.Errorf("Fehler beim Lesen der Bild-Anzahl: %v", err)
-			return
-		}
-	}
-
-	// Lösche das älteste Bild, wenn die Anzahl der Bilder NUM_IMAGES_DB überschreitet
-	maxImagesStr := os.Getenv("NUM_IMAGES_DB")
-	if maxImagesStr == "" {
-		maxImagesStr = "1000" // Standard-Wert
-	}
-
-	maxImages, err := strconv.Atoi(maxImagesStr)
-	if err != nil {
-		logrus.Errorf("Fehler beim Parsen von NUM_IMAGES_DB: %v", err)
-		maxImages = 1000 // Fallback
-	}
-
-	if count >= maxImages {
-		_, err := logic.SafeDBExec(db, "DELETE FROM images WHERE id = (SELECT id FROM images ORDER BY timestamp ASC LIMIT 1)")
-		if err != nil {
-			logrus.Errorf("Fehler beim Löschen alter Bilder: %v", err)
-		} else {
-			logrus.Infof("Altes Bild gelöscht, aktuelle Anzahl: %d", count)
-		}
 	}
 }
 
@@ -100,7 +66,7 @@ type Image struct {
 	ID         int    `json:"id"`
 	Device     string `json:"device"`
 	DeviceName string `json:"device_name"`
-	ProcessID  string `json:"process_id"`
+	ProcessID  int    `json:"process_id"`
 	Image      string `json:"image"`
 	Timestamp  string `json:"timestamp"`
 }

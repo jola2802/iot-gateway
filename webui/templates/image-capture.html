@@ -159,7 +159,6 @@
                                              <th>Last Execution</th>
                                              <th>Last Image</th>
                                              <th>Upload Status</th>
-                                             <th>Endpoint</th>
                                              <th>Actions</th>
                                          </tr>
                                     </thead>
@@ -172,7 +171,7 @@
                     </div>
 
                     <!-- Gespeicherte Bilder Sektion -->
-                    <div class="card shadow mb-4">
+                    <!-- <div class="card shadow mb-4">
                         <div class="card-header py-2">
                             <h6 class="m-0 font-weight-bold text-primary">Saved Images</h6>
                             <!-- <p class="text-muted">The latest captured images</p> -->
@@ -200,7 +199,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Bildvorschau Modal -->
                     <div class="modal fade" id="imagePreviewModal" tabindex="-1">
@@ -219,74 +218,6 @@
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                     <a id="downloadImage" href="" class="btn btn-primary" download="image.jpg">Download</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Node-RED Endpoint Info Modal -->
-                    <div class="modal fade" id="endpointInfoModal" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Node-RED API Endpoints</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="row mb-3">
-                                        <div class="col-12">
-                                            <h6>Process: <span id="endpointProcessName" class=""></span></h6>
-                                            <hr>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row mb-4">
-                                        <div class="col-12">
-                                            <h6><i class="fas fa-camera me-2"></i>Single Execution (GET)</h6>
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <code id="executeEndpoint" class="d-block mb-2"></code>
-                                                    <small class="text-muted">Starts a single Image Capture Execution</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="row mb-4">
-                                        <div class="col-md-6">
-                                            <h6><i class="fas fa-play me-2 text-success"></i>Start Process (POST)</h6>
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <code id="startEndpoint" class="d-block mb-2"></code>
-                                                    <small class="text-muted">Starts the cyclic process</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <h6><i class="fas fa-stop me-2 text-warning"></i>Stop Process (POST)</h6>
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <code id="stopEndpoint" class="d-block mb-2"></code>
-                                                    <small class="text-muted">Stops the running process</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="row mb-4">
-                                        <div class="col-12">
-                                            <h6><i class="fas fa-info-circle me-2"></i>Get Process Status (GET)</h6>
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <code id="statusEndpoint" class="d-block mb-2"></code>
-                                                    <small class="text-muted">Gets the current status and information of the process</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>

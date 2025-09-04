@@ -16,7 +16,7 @@
                 "NODE_RED_USERNAME": "admin",
                 "NODE_RED_PASSWORD": "$2a$12$74fx3fUVLCv2NFexw9X8ZO8bZirzLRfVL8K1D4siMHq77s5f4McC2", // bycryted password "password"
                 "FILE_DROP_PATH": "data/shared",
-                "NUM_IMAGES_DB": "25"
+                "NUM_IMAGES_DB": "50"
             }, // Hier kannst du Umgebungsvariablen definieren, falls notwendig
             "args": [], // Argumente, die du an main.go übergeben möchtest
             "buildFlags": "", // Falls zusätzliche Build-Flags benötigt werden

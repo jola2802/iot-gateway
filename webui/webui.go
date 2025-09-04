@@ -63,6 +63,23 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 	}
 
 	store := cookie.NewStore(randomKey)
+
+	// Cookie-Optionen für bessere Kompatibilität zwischen localhost und IP-Adressen
+	config, err = loadConfigFromEnv()
+	if err != nil {
+		logrus.Warnf("Fehler beim Laden der Konfiguration: %v", err)
+	}
+	isSecure := config != nil && config.WebUI.UseHTTPS
+
+	store.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 Tage
+		HttpOnly: true,
+		Secure:   isSecure, // Automatisch basierend auf HTTPS-Konfiguration
+		SameSite: http.SameSiteLaxMode,
+		// Domain wird absichtlich NICHT gesetzt, damit es mit localhost UND IP funktioniert
+	})
+
 	sessionName := "idpm-gateway-session"
 	r.Use(sessions.Sessions(sessionName, store))
 

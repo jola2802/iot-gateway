@@ -388,7 +388,7 @@ func setInfluxDBConfig() {
 
 	if influxdbURL == "" || influxdbToken == "" || influxdbOrg == "" || influxdbBucket == "" {
 		logrus.Warn("Mindestens eine InfluxDB-Umgebungsvariable ist nicht gesetzt. Verwende Standardwerte.")
-		influxdbURL = "http://127.0.0.1:8086"
+		influxdbURL = "http://localhost:8086"
 		influxdbToken = "secret-token"
 		influxdbOrg = "idpm"
 		influxdbBucket = "iot-data"
@@ -550,7 +550,7 @@ func flushBufferWithRetry(db *sql.DB) error {
 		}
 
 		systemHealth.RecordSuccess()
-		logrus.Infof("Erfolgreich %d Punkte in InfluxDB geschrieben", len(points))
+		// logrus.Infof("Erfolgreich %d Punkte in InfluxDB geschrieben", len(points))
 		return nil
 	})
 }

@@ -114,10 +114,10 @@ func brokerStatusWebSocket(c *gin.Context) {
 		if os.Getenv("NODE_RED_URL") != "" {
 			nodeRedUrl = os.Getenv("NODE_RED_URL")
 		} else {
-			nodeRedUrl = "http://127.0.0.1:1880"
+			nodeRedUrl = "http://node-red:1880"
 		}
 	} else {
-		nodeRedUrl = "http://127.0.0.1:1880"
+		nodeRedUrl = "http://node-red:1880"
 		if os.Getenv("NODE_RED_URL") != "" {
 			nodeRedUrl = os.Getenv("NODE_RED_URL")
 		}

@@ -1,6 +1,8 @@
 // Image Capture Prozessverwaltung JavaScript
 let processes = [];
 let devices = [];
+let editMode = false;
+let editProcessId = null;
 
 // Lade Bilder vom Server und aktualisiere die Anzeige
 async function loadImagesFiles() {
@@ -192,8 +194,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Event Listener einrichten
 function setupEventListeners() {
+    // Modal Event Listener für neuen Prozess
+    const addProcessModal = document.getElementById('addProcessModal');
+    if (addProcessModal) {
+        addProcessModal.addEventListener('show.bs.modal', function (event) {
+            // Prüfen ob das Modal durch den "Add" Button geöffnet wurde (nicht durch editProcess)
+            if (!editMode) {
+                console.log('🆕 MODAL: Neuer Prozess - Edit Mode zurücksetzen');
+                editMode = false;
+                editProcessId = null;
+                
+                // Button für neuen Prozess konfigurieren
+                const saveButton = document.getElementById('saveProcess');
+                if (saveButton) {
+                    saveButton.replaceWith(saveButton.cloneNode(true));
+                    const newSaveButton = document.getElementById('saveProcess');
+                    newSaveButton.onclick = saveOrUpdateProcess;
+                }
+                
+                document.querySelector('#addProcessModal .modal-title').textContent = 'New Image Capture Process';
+            }
+        });
+    }
+    
     // Speichern Button
-    document.getElementById('saveProcess').addEventListener('click', saveProcess);
+    document.getElementById('saveProcess').addEventListener('click', saveOrUpdateProcess);
     
     // Geräteauswahl ändert sich
     document.getElementById('deviceSelect').addEventListener('change', function() {
@@ -404,6 +429,17 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Einheitliche Funktion für Speichern und Aktualisieren
+async function saveOrUpdateProcess() {
+    if (editMode && editProcessId) {
+        console.log('✏️ SAVE OR UPDATE: Aktualisiere Prozess ID:', editProcessId);
+        await updateProcess(editProcessId);
+    } else {
+        console.log('🆕 SAVE OR UPDATE: Erstelle neuen Prozess');
+        await saveProcess();
+    }
+}
+
 // Prozess speichern
 async function saveProcess() {
     // console.log('Saving process...');
@@ -605,6 +641,12 @@ async function executeProcess(processId) {
 
 // Prozess bearbeiten
 async function editProcess(processId) {
+    // console.log('✏️ EDIT PROCESS: Starte Bearbeitung für Prozess ID:', processId);
+    
+    // Edit Mode aktivieren
+    editMode = true;
+    editProcessId = processId;
+    
     const process = processes.find(p => p.id === processId);
     if (!process) {
         showAlert('Process not found', 'danger');
@@ -644,7 +686,10 @@ async function editProcess(processId) {
     
     // Speichern-Button für Update konfigurieren
     const saveButton = document.getElementById('saveProcess');
-    saveButton.onclick = () => updateProcess(processId);
+    // Alle Event Listener entfernen und neu setzen
+    saveButton.replaceWith(saveButton.cloneNode(true));
+    const newSaveButton = document.getElementById('saveProcess');
+    newSaveButton.onclick = saveOrUpdateProcess;
     
     // Modal öffnen
     const modal = new bootstrap.Modal(document.getElementById('addProcessModal'));
@@ -710,7 +755,17 @@ async function updateProcess(processId) {
         
         // Formular zurücksetzen und Button zurücksetzen
         document.getElementById('processForm').reset();
-        document.getElementById('saveProcess').onclick = saveProcess;
+        
+        // Edit Mode zurücksetzen
+        editMode = false;
+        editProcessId = null;
+        
+        // Button komplett zurücksetzen
+        const saveButton = document.getElementById('saveProcess');
+        saveButton.replaceWith(saveButton.cloneNode(true));
+        const newSaveButton = document.getElementById('saveProcess');
+        newSaveButton.onclick = saveOrUpdateProcess;
+        
         document.querySelector('#addProcessModal .modal-title').textContent = 'New Image Capture Process';
         
         // Upload Headers zurücksetzen

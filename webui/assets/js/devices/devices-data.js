@@ -120,7 +120,7 @@ document.getElementById('btn-add-new-device').addEventListener('click', async ()
             body: JSON.stringify(deviceData),
         });
 
-        // showNotification('Erfolg', 'Gerät erfolgreich hinzugefügt!', 'success');
+        showNotification('Erfolg', 'Gerät erfolgreich hinzugefügt!', 'success');
         
         // Modal schließen und Seite aktualisieren
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal-new-device'));
@@ -325,36 +325,94 @@ async function saveEditDevice() {
     });
 }
 
-// Benachrichtigungssystem
+// Benachrichtigungssystem - Toast-Style wie bei Image Capture
 function showNotification(title, message, type = 'info') {
-    // Entferne bestehende Benachrichtigungen
-    const existingNotifications = document.querySelectorAll('.notification-toast');
-    existingNotifications.forEach(notification => notification.remove());
+    // Toast-Container erstellen, falls er nicht existiert
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '1055';
+        document.body.appendChild(toastContainer);
+    }
     
-    const notification = document.createElement('div');
-    notification.className = `notification-toast alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        min-width: 300px;
-        max-width: 500px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    // Icon basierend auf Alert-Typ bestimmen
+    let icon = '';
+    let bgColor = '';
+    const alertType = type === 'error' ? 'danger' : type;
+    
+    switch(alertType) {
+        case 'success':
+            icon = '<i class="fas fa-check-circle me-2"></i>';
+            bgColor = 'bg-success';
+            break;
+        case 'danger':
+        case 'error':
+            icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+            bgColor = 'bg-danger';
+            break;
+        case 'warning':
+            icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            bgColor = 'bg-warning';
+            break;
+        case 'info':
+            icon = '<i class="fas fa-info-circle me-2"></i>';
+            bgColor = 'bg-info';
+            break;
+        default:
+            icon = '<i class="fas fa-bell me-2"></i>';
+            bgColor = 'bg-primary';
+    }
+    
+    // Neuen Toast erstellen
+    const toastId = 'toast-' + Date.now();
+    const toastDiv = document.createElement('div');
+    toastDiv.id = toastId;
+    toastDiv.className = 'toast show';
+    toastDiv.setAttribute('role', 'alert');
+    toastDiv.innerHTML = `
+        <div class="toast-header ${bgColor} text-white">
+            ${icon}
+            <strong class="me-auto">${title}</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
     `;
     
-    notification.innerHTML = `
-        <strong>${title}</strong><br>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
+    // Toast zum Container hinzufügen
+    toastContainer.appendChild(toastDiv);
     
-    document.body.appendChild(notification);
+    // Auto-dismiss Zeit basierend auf Alert-Typ
+    let dismissTime = 5000; // Standard: 5 Sekunden
+    if (alertType === 'info') {
+        dismissTime = 4000; // Info-Toasts nur 4 Sekunden
+    } else if (alertType === 'success') {
+        dismissTime = 6000; // Erfolgs-Toasts 6 Sekunden
+    } else if (alertType === 'danger' || alertType === 'error') {
+        dismissTime = 8000; // Fehler-Toasts 8 Sekunden
+    }
     
-    // Automatisch ausblenden nach 5 Sekunden
+    // Toast automatisch ausblenden
     setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
+        if (toastDiv.parentNode) {
+            toastDiv.classList.remove('show');
+            setTimeout(() => {
+                if (toastDiv.parentNode) {
+                    toastDiv.remove();
+                }
+            }, 300); // Fade-out Animation abwarten
         }
-    }, 5000);
+    }, dismissTime);
+    
+    // Bootstrap Toast initialisieren (falls verfügbar)
+    if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+        const toast = new bootstrap.Toast(toastDiv, {
+            autohide: true,
+            delay: dismissTime
+        });
+        toast.show();
+    }
 }

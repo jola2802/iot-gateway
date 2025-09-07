@@ -609,6 +609,26 @@ async function stopProcess(processId) {
 
 // Prozess einmalig ausführen
 async function executeProcess(processId) {
+    // Button finden und in Loading-State versetzen
+    const executeButton = document.querySelector(`[onclick="executeProcess(${processId})"]`);
+    const originalHTML = executeButton.innerHTML;
+    
+    // Zeile in der Tabelle finden um temporären Status zu setzen
+    const tableRow = executeButton.closest('tr');
+    const statusCell = tableRow.querySelector('td:nth-child(4)'); // Status-Spalte
+    const originalStatusHTML = statusCell.innerHTML;
+    
+    // Loading-State aktivieren
+    executeButton.disabled = true;
+    executeButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    executeButton.title = 'Wird ausgeführt...';
+    
+    // Temporären Status in der Tabelle anzeigen
+    statusCell.innerHTML = '<span class="badge bg-warning"><i class="fas fa-spinner fa-spin me-1"></i>Executing...</span>';
+    
+    // Status-Message anzeigen
+    showAlert('📸 Bild-Aufnahme wird ausgeführt... Bitte warten.', 'info');
+    
     try {
         const response = await fetch(`/api/image-capture-processes/${processId}/execute`, {
             method: 'POST'
@@ -619,16 +639,36 @@ async function executeProcess(processId) {
             throw new Error(error.error || 'Error executing');
         }
         
-        showAlert('Image Capture executed', 'success');
+        // Erfolgs-Feedback
+        showAlert('✅ Bild-Aufnahme erfolgreich ausgeführt!', 'success');
+        
+        // Temporär Erfolgs-Status anzeigen
+        statusCell.innerHTML = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Completed</span>';
         
         // Nach kurzer Zeit die Prozesse neu laden, um das neue Bild zu sehen
         setTimeout(() => {
             loadProcesses();
-        }, 4000);
+            loadImagesFiles(); // Auch die Bilder-Galerie aktualisieren
+        }, 2000);
         
     } catch (error) {
         console.error('Error executing:', error);
-        showAlert('Error executing: ' + error.message, 'danger');
+        showAlert('❌ Fehler bei der Ausführung: ' + error.message, 'danger');
+        
+        // Fehler-Status temporär anzeigen
+        statusCell.innerHTML = '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Error</span>';
+        
+        // Status zurücksetzen nach 3 Sekunden
+        setTimeout(() => {
+            statusCell.innerHTML = originalStatusHTML;
+        }, 3000);
+    } finally {
+        // Button-State zurücksetzen
+        setTimeout(() => {
+            executeButton.disabled = false;
+            executeButton.innerHTML = originalHTML;
+            executeButton.title = 'Einmalig ausführen';
+        }, 3000); // Button bleibt 3 Sekunden disabled
     }
 }
 
@@ -823,28 +863,90 @@ function previewImage(base64Image, timestamp) {
 
 // Alert anzeigen
 function showAlert(message, type = 'info') {
-    // Bestehende Alerts entfernen
-    const existingAlerts = document.querySelectorAll('.alert');
-    existingAlerts.forEach(alert => alert.remove());
+    // Toast-Container erstellen, falls er nicht existiert
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '1055';
+        document.body.appendChild(toastContainer);
+    }
     
-    // Neuen Alert erstellen
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    // Icon basierend auf Alert-Typ bestimmen
+    let icon = '';
+    let bgColor = '';
+    switch(type) {
+        case 'success':
+            icon = '<i class="fas fa-check-circle me-2"></i>';
+            bgColor = 'bg-success';
+            break;
+        case 'danger':
+        case 'error':
+            icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+            bgColor = 'bg-danger';
+            break;
+        case 'warning':
+            icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            bgColor = 'bg-warning';
+            break;
+        case 'info':
+            icon = '<i class="fas fa-info-circle me-2"></i>';
+            bgColor = 'bg-info';
+            break;
+        default:
+            icon = '<i class="fas fa-bell me-2"></i>';
+            bgColor = 'bg-primary';
+    }
+    
+    // Neuen Toast erstellen
+    const toastId = 'toast-' + Date.now();
+    const toastDiv = document.createElement('div');
+    toastDiv.id = toastId;
+    toastDiv.className = 'toast show';
+    toastDiv.setAttribute('role', 'alert');
+    toastDiv.innerHTML = `
+        <div class="toast-header ${bgColor} text-white">
+            ${icon}
+            <strong class="me-auto">Image Capture</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
     `;
     
-    // Alert am Anfang des Containers einfügen
-    const container = document.querySelector('.container-fluid');
-    container.insertBefore(alertDiv, container.firstChild);
+    // Toast zum Container hinzufügen
+    toastContainer.appendChild(toastDiv);
     
-    // Alert nach 5 Sekunden automatisch ausblenden
+    // Auto-dismiss Zeit basierend auf Alert-Typ
+    let dismissTime = 5000; // Standard: 5 Sekunden
+    if (type === 'info') {
+        dismissTime = 4000; // Info-Toasts nur 4 Sekunden
+    } else if (type === 'success') {
+        dismissTime = 6000; // Erfolgs-Toasts 6 Sekunden
+    }
+    
+    // Toast automatisch ausblenden
     setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
+        if (toastDiv.parentNode) {
+            toastDiv.classList.remove('show');
+            setTimeout(() => {
+                if (toastDiv.parentNode) {
+                    toastDiv.remove();
+                }
+            }, 300); // Fade-out Animation abwarten
         }
-    }, 5000);
+    }, dismissTime);
+    
+    // Bootstrap Toast initialisieren (falls verfügbar)
+    if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+        const toast = new bootstrap.Toast(toastDiv, {
+            autohide: true,
+            delay: dismissTime
+        });
+        toast.show();
+    }
 }
 
 // Prozess-Statistiken aktualisieren

@@ -15,7 +15,10 @@ function hideAllConfigs() {
 }
 
 // ==================== DEVICE MODAL FUNKTIONEN ====================
-function initializeNewDeviceModal() {
+function initializeNewDeviceModal() {  
+    // Vollständiges Zurücksetzen aller Formularfelder
+    resetNewDeviceModalFields();
+    
     const selectDeviceType = document.getElementById('select-device-type');
 
     function showConfig(selectedType) {
@@ -28,6 +31,8 @@ function initializeNewDeviceModal() {
             if (config) {
                 config.style.display = 'block';
                 if (selectedType === DEVICE_TYPES.OPC_UA) {
+                    // Credential-Felder komplett zurücksetzen
+                    resetOpcUaCredentials('');
                     initializeOpcUaSecuritySettings('');
                 }
             }
@@ -50,6 +55,60 @@ function initializeNewDeviceModal() {
     selectDeviceType.addEventListener('change', handleDeviceTypeChange);
 }
 
+// Neue Funktion zum vollständigen Zurücksetzen des New Device Modals
+function resetNewDeviceModalFields() {
+    console.log('Setze New Device Modal Felder zurück...');
+    
+    // Grundlegende Felder zurücksetzen
+    const deviceNameField = document.getElementById('device-name');
+    if (deviceNameField) deviceNameField.value = '';
+    
+    const deviceTypeField = document.getElementById('select-device-type');
+    if (deviceTypeField) deviceTypeField.value = 'opc-ua';
+    
+    // OPC-UA Felder zurücksetzen
+    const addressField = document.getElementById('address');
+    if (addressField) addressField.value = '';
+    
+    const securityPolicyField = document.getElementById('select-security-policy');
+    if (securityPolicyField) securityPolicyField.value = 'None';
+    
+    const securityModeField = document.getElementById('select-security-mode');
+    if (securityModeField) securityModeField.value = 'None';
+    
+    const authSettingsField = document.getElementById('select-authentication-settings');
+    if (authSettingsField) authSettingsField.value = 'anonymous';
+    
+    const acquisitionTimeOpcField = document.getElementById('acquisition-time-opc-ua');
+    if (acquisitionTimeOpcField) acquisitionTimeOpcField.value = '';
+    
+    // S7 Felder zurücksetzen
+    const s7AddressField = document.querySelector('#s7-config [placeholder="192.168.2.100:102"]');
+    if (s7AddressField) s7AddressField.value = '';
+    
+    const rackField = document.querySelector('#s7-config [placeholder="0"]');
+    if (rackField) rackField.value = '';
+    
+    const slotField = document.querySelector('#s7-config [placeholder="1"]');
+    if (slotField) slotField.value = '';
+    
+    const acquisitionTimeS7Field = document.getElementById('acquisition-time-s7');
+    if (acquisitionTimeS7Field) acquisitionTimeS7Field.value = '';
+    
+    // Credential-Container leeren
+    resetOpcUaCredentials('');
+}
+
+// Neue Funktion zum Zurücksetzen der OPC-UA Credentials
+function resetOpcUaCredentials(prefix = '') {
+    const containerName = 'opc-ua-credentials' + prefix;
+    const container = document.getElementById(containerName);
+    if (container) {
+        container.innerHTML = '';
+        console.log(`OPC-UA Credentials Container ${containerName} geleert`);
+    }
+}
+
 // ==================== OPC UA CREDENTIALS HANDLING ====================
 function handleOpcUaCredentials(prefix = '') {
     const containerName = 'opc-ua-credentials' + prefix;
@@ -67,18 +126,17 @@ function handleOpcUaCredentials(prefix = '') {
         password: 'password' + prefix
     };
 
-    if (!document.getElementById(ids.usernameGroup)) {
-        container.innerHTML = `
-            <div id="${ids.usernameGroup}" class="form-group mb-3" style="display: none;">
-                <label class="form-label" for="${ids.username}"><strong>Username</strong></label>
-                <input type="text" class="form-control" id="${ids.username}" placeholder="Enter username">
-            </div>
-            <div id="${ids.passwordGroup}" class="form-group mb-3" style="display: none;">
-                <label class="form-label" for="${ids.password}"><strong>Password</strong></label>
-                <input type="password" class="form-control" id="${ids.password}" placeholder="Enter password">
-            </div>
-        `;
-    }
+    // Immer die Credential-Felder neu erstellen um saubere States zu gewährleisten
+    container.innerHTML = `
+        <div id="${ids.usernameGroup}" class="form-group mb-3" style="display: none;">
+            <label class="form-label" for="${ids.username}"><strong>Username</strong></label>
+            <input type="text" class="form-control" id="${ids.username}" placeholder="Enter username" value="">
+        </div>
+        <div id="${ids.passwordGroup}" class="form-group mb-3" style="display: none;">
+            <label class="form-label" for="${ids.password}"><strong>Password</strong></label>
+            <input type="password" class="form-control" id="${ids.password}" placeholder="Enter password" value="">
+        </div>
+    `;
 
     const selectAuth = document.getElementById(ids.select);
     if (!selectAuth) {
@@ -89,17 +147,28 @@ function handleOpcUaCredentials(prefix = '') {
     function toggleCredentialsFields() {
         const usernameGroup = document.getElementById(ids.usernameGroup);
         const passwordGroup = document.getElementById(ids.passwordGroup);
+        const usernameInput = document.getElementById(ids.username);
+        const passwordInput = document.getElementById(ids.password);
+        
         const display = selectAuth.value === 'user-pw' ? 'block' : 'none';
         
         if (usernameGroup) usernameGroup.style.display = display;
         if (passwordGroup) passwordGroup.style.display = display;
+        
+        // Wenn auf anonymous gewechselt wird, Felder leeren
+        if (selectAuth.value === 'anonymous') {
+            if (usernameInput) usernameInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+        }
+        
+        console.log(`Auth-Modus geändert zu: ${selectAuth.value}, Felder anzeigen: ${display}`);
     }
 
-    if (!selectAuth.dataset.listenerBound) {
-        selectAuth.addEventListener('change', toggleCredentialsFields);
-        selectAuth.dataset.listenerBound = 'true';
-    }
+    // Event-Listener immer neu hinzufügen für saubere States
+    selectAuth.removeEventListener('change', toggleCredentialsFields);
+    selectAuth.addEventListener('change', toggleCredentialsFields);
 
+    // Initial die Felder korrekt ein-/ausblenden
     toggleCredentialsFields();
     return ids;
 }
@@ -387,27 +456,41 @@ async function initializeEditDeviceModal(device_id) {
             }
 
             if (deviceData.deviceType === 'opc-ua') {
+                // Erst alle Felder zurücksetzen
                 document.getElementById('address-1').value = '';
-                document.getElementById('select-security-policy-1').value = 'none';
-                document.getElementById('select-authentication-settings-1').value = 'anonymous';
+                document.getElementById('select-security-policy-1').value = 'None';
                 document.getElementById('select-security-mode-1').value = 'None';
+                document.getElementById('select-authentication-settings-1').value = 'anonymous';
 
+                // Dann die korrekten Werte setzen
                 document.getElementById('address-1').value = deviceData.address || '';
-                document.getElementById('select-security-policy-1').value = deviceData.securityPolicy.String || 'none';
-                document.getElementById('select-authentication-settings-1').value = deviceData.authentication || 'anonymous';
+                document.getElementById('select-security-policy-1').value = deviceData.securityPolicy.String || 'None';
                 document.getElementById('select-security-mode-1').value = deviceData.securityMode.String || 'None';
 
+                // Credential-Felder zuerst initialisieren
                 const credentialIds = handleOpcUaCredentials('-1');
                 
-                if (deviceData.username.String !== '' && deviceData.password.String !== '') {
-                    document.getElementById(credentialIds.select).value = 'user-pw';
-                    document.getElementById(credentialIds.username).value = deviceData.username.String;
-                    document.getElementById(credentialIds.password).value = deviceData.password.String;
-                } else {
-                    document.getElementById(credentialIds.select).value = 'anonymous';
+                // Auth-Setting basierend auf den tatsächlichen Daten setzen
+                let authMode = 'anonymous';
+                if (deviceData.username && deviceData.username.String && deviceData.username.String.trim() !== '' &&
+                    deviceData.password && deviceData.password.String && deviceData.password.String.trim() !== '') {
+                    authMode = 'user-pw';
                 }
                 
-                document.getElementById(credentialIds.select).dispatchEvent(new Event('change'));
+                console.log(`Setze Auth-Modus für Gerät ${deviceData.deviceName}: ${authMode}`);
+                console.log(`Username: "${deviceData.username?.String || ''}", Password: "${deviceData.password?.String ? '[HIDDEN]' : ''}"`);
+                
+                // Auth-Setting setzen
+                document.getElementById('select-authentication-settings-1').value = authMode;
+                
+                // Credential-Felder basierend auf Auth-Modus behandeln
+                if (authMode === 'user-pw') {
+                    document.getElementById(credentialIds.username).value = deviceData.username.String || '';
+                    document.getElementById(credentialIds.password).value = deviceData.password.String || '';
+                }
+                
+                // Change-Event auslösen um die UI korrekt zu aktualisieren
+                document.getElementById('select-authentication-settings-1').dispatchEvent(new Event('change'));
 
                 document.getElementById('acquisition-time-opc-ua-1').value = deviceData.acquisitionTime;
                 

@@ -574,6 +574,22 @@ document.getElementById('modal-edit-device').addEventListener('hide.bs.modal', f
     }, 50);
 });
 
+// Event-Listener für New Device Modal hinzufügen
+document.getElementById('modal-new-device').addEventListener('hidden.bs.modal', function () {
+    // Modal vollständig zurücksetzen wenn es geschlossen wird
+    console.log('New Device Modal geschlossen - führe Reset durch...');
+    setTimeout(() => {
+        resetNewDeviceModalFields();
+    }, 100);
+});
+
+document.getElementById('modal-new-device').addEventListener('hide.bs.modal', function () {
+    // Entferne das graue Overlay manuell
+    setTimeout(() => {
+        removeModalOverlay();
+    }, 50);
+});
+
 // Event-Listener für das Schließen-Button im Modal
 document.addEventListener('click', function(event) {
     if (event.target.matches('[data-bs-dismiss="modal"]') || 
@@ -663,15 +679,39 @@ function resetEditModal() {
         form.reset();
     }
     
+    // Spezifisches Zurücksetzen der OPC-UA Auth-Felder
+    const authSettingsSelect = document.getElementById('select-authentication-settings-1');
+    if (authSettingsSelect) {
+        authSettingsSelect.value = 'anonymous';
+    }
+    
+    // Credential-Container komplett leeren
+    const credentialContainer = document.getElementById('opc-ua-credentials-1');
+    if (credentialContainer) {
+        credentialContainer.innerHTML = '';
+        console.log('OPC-UA Credentials Container-1 geleert');
+    }
+    
+    // Alle Konfigurationskarten verstecken
+    const configIds = ['opc-ua-config-1', 's7-config-1', 'mqtt-config-1'];
+    configIds.forEach(id => {
+        const config = document.getElementById(id);
+        if (config) {
+            config.style.display = 'none';
+        }
+    });
+    
     // Leere die Datenpunkt-Tabelle
     const datapointsTableBody = document.querySelector('#ipi-table tbody');
     if (datapointsTableBody) {
         datapointsTableBody.innerHTML = '';
     }
     
-    // Entferne alle Event-Listener vom Browse-Button
+    // Browse-Button verstecken
     const browseButton = document.getElementById('browse-nodes-btn');
     if (browseButton) {
+        browseButton.style.display = 'none';
+        // Event-Listener zurücksetzen
         const newButton = browseButton.cloneNode(true);
         browseButton.parentNode.replaceChild(newButton, browseButton);
     }

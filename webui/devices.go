@@ -672,41 +672,171 @@ func deleteDevice(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Device deleted successfully"})
 }
 
-func updateDevice(c *gin.Context) {
-	device_id := c.Param("device_id")
+// DeviceDatapoint-Struktur für bessere Wiederverwendbarkeit
+type DeviceDatapoint struct {
+	DatapointId string `json:"datapointId"`
+	Name        string `json:"name"`
+	Datatype    string `json:"datatype"`
+	Address     string `json:"address"`
+}
 
-	logrus.Infof("Updating device with id: %s", device_id)
+// Device-Struktur für Update-Requests
+type UpdateDeviceRequest struct {
+	DeviceType      string            `json:"deviceType"`
+	DeviceName      string            `json:"deviceName"`
+	Status          string            `json:"status"`
+	Value           string            `json:"value"`
+	Connected       bool              `json:"connected"`
+	Address         string            `json:"address,omitempty"`
+	AcquisitionTime int               `json:"acquisitionTime,omitempty"`
+	SecurityMode    string            `json:"securityMode,omitempty"`
+	SecurityPolicy  string            `json:"securityPolicy,omitempty"`
+	DataPoints      []DeviceDatapoint `json:"datapoints,omitempty"`
+	Rack            string            `json:"rack,omitempty"`
+	Slot            string            `json:"slot,omitempty"`
+	Username        string            `json:"username,omitempty"`
+	Password        string            `json:"password,omitempty"`
+}
 
-	type Device struct {
-		DeviceType      string `json:"deviceType"`
-		DeviceName      string `json:"deviceName"`
-		Status          string `json:"status"`
-		Value           string `json:"value"`
-		Connected       bool   `json:"connected"`
-		Address         string `json:"address,omitempty"`
-		AcquisitionTime int    `json:"acquisitionTime,omitempty"`
-		SecurityMode    string `json:"securityMode,omitempty"`
-		SecurityPolicy  string `json:"securityPolicy,omitempty"`
-		DataPoints      []struct {
-			DatapointId string `json:"datapointId"`
-			Name        string `json:"name"`
-			Datatype    string `json:"datatype"`
-			Address     string `json:"address"`
-		} `json:"datapoints,omitempty"`
-		Rack     string `json:"rack,omitempty"`
-		Slot     string `json:"slot,omitempty"`
-		Username string `json:"username,omitempty"`
-		Password string `json:"password,omitempty"`
+// Hilfsfunktion: Validiert S7-Datenpunkte
+func validateS7Datapoints(datapoints []DeviceDatapoint) []DeviceDatapoint {
+	validDatapoints := make([]DeviceDatapoint, 0)
+	for _, dp := range datapoints {
+		if dp.Name != "" && dp.Address != "" && dp.Datatype != "" {
+			validDatapoints = append(validDatapoints, dp)
+		} else {
+			logrus.Debugf("Skipping invalid S7 datapoint: %+v", dp)
+		}
+	}
+	return validDatapoints
+}
+
+// Hilfsfunktion: Validiert OPC-UA-Datenpunkte
+func validateOpcUaDatapoints(datapoints []DeviceDatapoint) []DeviceDatapoint {
+	validDatapoints := make([]DeviceDatapoint, 0)
+	for _, dp := range datapoints {
+		if dp.Name != "" && dp.Address != "" {
+			validDatapoints = append(validDatapoints, dp)
+		} else {
+			logrus.Debugf("Skipping invalid OPC-UA node: %+v", dp)
+		}
+	}
+	return validDatapoints
+}
+
+// Hilfsfunktion: Generiert DatapointId für S7
+func generateS7DatapointId(db *sql.DB, deviceId int) (string, error) {
+	var nextId int
+	err := db.QueryRow(`SELECT COALESCE(MAX(CAST(id AS INTEGER)), 0) + 1 FROM s7_datapoints WHERE device_id = ?`, deviceId).Scan(&nextId)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("1%.3d%.4d", deviceId, nextId), nil
+}
+
+// Hilfsfunktion: Generiert DatapointId für OPC-UA
+func generateOpcUaDatapointId(db *sql.DB, deviceId int) (string, error) {
+	var nextId int
+	err := db.QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, deviceId).Scan(&nextId)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("1%03d%03d", deviceId, nextId), nil
+}
+
+// Hilfsfunktion: Aktualisiert S7-Datenpunkte
+func updateS7Datapoints(db *sql.DB, deviceId string, datapoints []DeviceDatapoint) error {
+	// IMMER alle alten Datenpunkte löschen (auch wenn keine neuen kommen)
+	_, err := db.Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, deviceId)
+	if err != nil {
+		return fmt.Errorf("error clearing old S7 datapoints: %v", err)
 	}
 
-	var updatedDevice Device
+	// Nur neue Datenpunkte einfügen, wenn welche vorhanden sind
+	if len(datapoints) > 0 {
+		logrus.Infof("Füge %d neue S7-Datenpunkte ein", len(datapoints))
+
+		for _, dp := range datapoints {
+			// Automatische Generierung der DatapointId, falls leer
+			if dp.DatapointId == "" {
+				var deviceIdInt int
+				err := db.QueryRow(`SELECT id FROM devices WHERE id = ?`, deviceId).Scan(&deviceIdInt)
+				if err != nil {
+					return fmt.Errorf("error retrieving device_id: %v", err)
+				}
+
+				dp.DatapointId, err = generateS7DatapointId(db, deviceIdInt)
+				if err != nil {
+					return fmt.Errorf("error generating datapoint ID: %v", err)
+				}
+				logrus.Debugf("Generated S7 DatapointId: %s", dp.DatapointId)
+			}
+
+			_, err = db.Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`,
+				deviceId, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
+			if err != nil {
+				return fmt.Errorf("error inserting S7 datapoint: %v", err)
+			}
+		}
+	} else {
+		logrus.Infof("Keine S7-Datenpunkte vorhanden - alle alten Datenpunkte wurden gelöscht")
+	}
+
+	return nil
+}
+
+// Hilfsfunktion: Aktualisiert OPC-UA-Datenpunkte
+func updateOpcUaDatapoints(db *sql.DB, deviceId string, datapoints []DeviceDatapoint) error {
+	// IMMER alle alten Datenpunkte löschen (auch wenn keine neuen kommen)
+	_, err := db.Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, deviceId)
+	if err != nil {
+		return fmt.Errorf("error clearing old OPC-UA nodes: %v", err)
+	}
+
+	// Nur neue Datenpunkte einfügen, wenn welche vorhanden sind
+	if len(datapoints) > 0 {
+		logrus.Infof("Füge %d neue OPC-UA-Datenpunkte ein", len(datapoints))
+
+		devId, err := strconv.Atoi(deviceId)
+		if err != nil {
+			return fmt.Errorf("error converting device_id to int: %v", err)
+		}
+
+		for _, dp := range datapoints {
+			// Automatische Generierung der DatapointId, falls leer
+			if dp.DatapointId == "" {
+				dp.DatapointId, err = generateOpcUaDatapointId(db, devId)
+				if err != nil {
+					return fmt.Errorf("error generating OPC-UA datapoint ID: %v", err)
+				}
+				logrus.Debugf("Generated OPC-UA DatapointId: %s", dp.DatapointId)
+			}
+
+			_, err = db.Exec(`INSERT INTO opcua_datanodes (device_id, datapointId, name, node_identifier) VALUES (?, ?, ?, ?)`,
+				devId, dp.DatapointId, dp.Name, dp.Address)
+			if err != nil {
+				return fmt.Errorf("error inserting OPC-UA datapoint: %v", err)
+			}
+		}
+	} else {
+		logrus.Infof("Keine OPC-UA-Datenpunkte vorhanden - alle alten Datenpunkte wurden gelöscht")
+	}
+
+	return nil
+}
+
+func updateDevice(c *gin.Context) {
+	device_id := c.Param("device_id")
+	logrus.Infof("Updating device with id: %s", device_id)
+
+	var updatedDevice UpdateDeviceRequest
 	if err := c.ShouldBindJSON(&updatedDevice); err != nil {
 		logrus.Errorf("Error binding JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 
-	logrus.Infof("Recieved data:  %+v", updatedDevice)
+	logrus.Infof("Received data: %+v", updatedDevice)
 
 	// Extrahiere die Datenbankverbindung aus dem Context
 	db, _ := getDBConnection(c)
@@ -722,207 +852,22 @@ func updateDevice(c *gin.Context) {
 
 	logrus.Infof("Device data updated successfully for %s", updatedDevice.DeviceName)
 
-	// Gerätetyp-spezifische Logik für S7
-	if updatedDevice.DeviceType == "s7" {
-		// Aktualisiere die S7-spezifischen Felder
-		query = `UPDATE devices SET rack = ?, slot = ? WHERE id = ?`
-		_, err := db.Exec(query, updatedDevice.Rack, updatedDevice.Slot, device_id)
-		if err != nil {
-			logrus.Errorf("Error updating S7-specific fields: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating S7-specific fields"})
-			return
-		}
-
-		// Filtere gültige Datenpunkte heraus
-		validDatapoints := make([]struct {
-			DatapointId string `json:"datapointId"`
-			Name        string `json:"name"`
-			Datatype    string `json:"datatype"`
-			Address     string `json:"address"`
-		}, 0)
-
-		for _, dp := range updatedDevice.DataPoints {
-			// Prüfe ob der Datenpunkt gültig ist
-			if dp.Name != "" && dp.Address != "" && dp.Datatype != "" {
-				validDatapoints = append(validDatapoints, dp)
-			} else {
-				logrus.Debugf("Skipping invalid S7 datapoint: %+v", dp)
-			}
-		}
-
-		logrus.Infof("Verarbeite %d gültige S7-Datenpunkte von %d gesendeten", len(validDatapoints), len(updatedDevice.DataPoints))
-
-		// Nur wenn wir gültige Datenpunkte haben, lösche die alten und füge neue hinzu
-		if len(validDatapoints) > 0 {
-			// Lösche alte S7-Datapoints
-			_, err = db.Exec(`DELETE FROM s7_datapoints WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
-			if err != nil {
-				logrus.Errorf("Error clearing old datapoints: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old datapoints"})
-				return
-			}
-
-			for _, dp := range validDatapoints {
-				// Automatische Generierung der DatapointId, falls leer
-				if dp.DatapointId == "" {
-					// Hole die device_id
-					var deviceId int
-					err := db.QueryRow(`SELECT id FROM devices WHERE id = ?`, device_id).Scan(&deviceId)
-					if err != nil {
-						logrus.Errorf("Error retrieving device_id: %v", err)
-						c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving device_id"})
-						return
-					}
-					var nextId int
-					err = db.QueryRow(`SELECT COALESCE(MAX(CAST(id AS INTEGER)), 0) + 1 FROM s7_datapoints WHERE device_id = ?`, deviceId).Scan(&nextId)
-					if err != nil {
-						logrus.Errorf("Error finding next datapoint ID: %v", err)
-						c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
-						return
-					}
-					dp.DatapointId = fmt.Sprintf("1%.3d%.4d", deviceId, nextId)
-					logrus.Debugf("Generated DatapointId: %s", dp.DatapointId)
-				}
-
-				_, err = db.Exec(`INSERT INTO s7_datapoints (device_id, datapointId, name, datatype, address) VALUES ((SELECT id FROM devices WHERE id = ?), ?, ?, ?, ?)`, device_id, dp.DatapointId, dp.Name, dp.Datatype, dp.Address)
-				if err != nil {
-					logrus.Errorf("Error inserting new datapoints: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new datapoints"})
-					return
-				}
-			}
-		} else {
-			logrus.Warnf("Keine gültigen S7-Datenpunkte erhalten - bestehende Datenpunkte bleiben erhalten")
-		}
-
-		logrus.Infof("S7 device and datapoints updated successfully for %s", updatedDevice.DeviceName)
+	// Gerätetyp-spezifische Logik
+	switch updatedDevice.DeviceType {
+	case "s7":
+		err = updateS7Device(db, device_id, &updatedDevice)
+	case "opc-ua":
+		err = updateOpcUaDevice(db, device_id, &updatedDevice)
+	case "mqtt":
+		err = updateMqttDevice(db, &updatedDevice)
+	default:
+		logrus.Warnf("Unknown device type: %s", updatedDevice.DeviceType)
 	}
 
-	// Gerätetyp-spezifische Logik für OPC UA
-	if updatedDevice.DeviceType == "opc-ua" {
-		// Aktualisiere die OPC-UA-spezifischen Felder
-		query = `UPDATE devices SET security_mode = ?, security_policy = ?, username = ?, password = ? WHERE id = ?`
-		_, err := db.Exec(query, updatedDevice.SecurityMode, updatedDevice.SecurityPolicy, updatedDevice.Username, updatedDevice.Password, device_id)
-		if err != nil {
-			logrus.Errorf("Error updating OPC-UA-specific fields: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating OPC-UA-specific fields"})
-			return
-		}
-
-		// Filtere gültige OPC-UA Datenpunkte heraus
-		validOpcUaNodes := make([]struct {
-			DatapointId string `json:"datapointId"`
-			Name        string `json:"name"`
-			Datatype    string `json:"datatype"`
-			Address     string `json:"address"`
-		}, 0)
-
-		for _, node := range updatedDevice.DataPoints {
-			// Prüfe ob der OPC-UA Knoten gültig ist (für OPC-UA brauchen wir nur Name und Address)
-			if node.Name != "" && node.Address != "" {
-				validOpcUaNodes = append(validOpcUaNodes, node)
-			} else {
-				logrus.Debugf("Skipping invalid OPC-UA node: %+v", node)
-			}
-		}
-
-		logrus.Infof("Verarbeite %d gültige OPC-UA-Knoten von %d gesendeten", len(validOpcUaNodes), len(updatedDevice.DataPoints))
-
-		// Nur wenn wir gültige Knoten haben, lösche die alten und füge neue hinzu
-		if len(validOpcUaNodes) > 0 {
-			// Lösche alte OPC-UA DataNodes
-			_, err = db.Exec(`DELETE FROM opcua_datanodes WHERE device_id = (SELECT id FROM devices WHERE id = ?)`, device_id)
-			if err != nil {
-				logrus.Errorf("Error clearing old OPC-UA nodes: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error clearing old OPC-UA nodes"})
-				return
-			}
-
-			// Device_id to INT-Value
-			dev_id, _ := strconv.Atoi(device_id)
-
-			// Füge die neuen OPC-UA DataNodes ein
-			for _, node := range validOpcUaNodes {
-				// Automatische Generierung der DatapointId, falls leer
-				if node.DatapointId == "" {
-					var nextId int
-					err = db.QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(datapointId, -3) AS INTEGER)), 0) + 1 FROM opcua_datanodes WHERE device_id = ?`, device_id).Scan(&nextId)
-					if err != nil {
-						logrus.Errorf("Error finding next datapoint ID: %v", err)
-						c.JSON(http.StatusInternalServerError, gin.H{"message": "Error finding next datapoint ID"})
-						return
-					}
-					node.DatapointId = fmt.Sprintf("1%03d%03d", dev_id, nextId)
-					logrus.Debugf("Generated OPC-UA DatapointId: %s", node.DatapointId)
-				}
-
-				query = `
-					INSERT INTO opcua_datanodes (device_id, datapointId, name, node_identifier)
-					VALUES ( ?, ?, ?, ?)`
-				_, err = db.Exec(query, dev_id, node.DatapointId, node.Name, node.Address)
-				if err != nil {
-					logrus.Errorf("Error inserting new OPC-UA nodes: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"message": "Error inserting new OPC-UA nodes"})
-					return
-				}
-			}
-		} else {
-			logrus.Warnf("Keine gültigen OPC-UA-Knoten erhalten - bestehende Knoten bleiben erhalten")
-		}
-
-		logrus.Infof("OPC-UA device and nodes updated successfully for %s", updatedDevice.DeviceName)
-	}
-
-	if updatedDevice.DeviceType == "mqtt" {
-
-		// Schritt 1: Überprüfen, ob der Benutzer bereits existiert
-		var existingUser bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM auth WHERE username = ?)", updatedDevice.DeviceName).Scan(&existingUser)
-		if err != nil {
-			logrus.Errorf("Error checking if user exists: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error checking if user exists"})
-			return
-		}
-
-		if existingUser {
-			// Schritt 2: Benutzer existiert, Passwort aktualisieren
-			_, err = db.Exec("UPDATE auth SET password = ? WHERE username = ?", updatedDevice.Password, updatedDevice.DeviceName)
-			if err != nil {
-				logrus.Errorf("Error updating password: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error updating password"})
-				return
-			}
-		} else {
-			// Schritt 3: Benutzer existiert nicht, neuen Benutzer erstellen
-			_, err = db.Exec("INSERT INTO auth (username, password, allow) VALUES (?, ?, ?)", updatedDevice.DeviceName, updatedDevice.Password, 1)
-			if err != nil {
-				logrus.Errorf("Error adding new MQTT user: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error adding new MQTT user"})
-				return
-			}
-		}
-
-		// Schritt 4: Zugriff auf das MQTT-Topic für diesen Benutzer sicherstellen
-		deviceTopic := fmt.Sprintf("data/mqtt/%s/#", updatedDevice.DeviceName)
-
-		// Lösche vorhandene ACL-Einträge für diesen Benutzer und dieses Topic
-		_, err = db.Exec("DELETE FROM acl WHERE username = ? ", updatedDevice.DeviceName)
-		if err != nil {
-			logrus.Errorf("Error deleting existing ACL entries: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting existing ACL entries"})
-			return
-		}
-
-		// Schritt 5: Füge neuen ACL-Eintrag für diesen Benutzer hinzu
-		_, err1 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, "#", 0)
-		_, err2 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", updatedDevice.DeviceName, deviceTopic, 3)
-		if err1 != nil || err2 != nil {
-			logrus.Errorf("Error adding ACL entry: %v, %v", err1, err2)
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error adding ACL entry"})
-			return
-		}
-
-		logrus.Infof("MQTT device and user updated successfully for %s", updatedDevice.DeviceName)
+	if err != nil {
+		logrus.Errorf("Error updating device-specific data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
 	}
 
 	logrus.Infof("Device updated successfully for %s", updatedDevice.DeviceName)
@@ -937,4 +882,91 @@ func updateDevice(c *gin.Context) {
 		time.Sleep(100 * time.Millisecond)
 		RestartDriver(c)
 	}()
+}
+
+// Hilfsfunktion: Aktualisiert S7-Gerät
+func updateS7Device(db *sql.DB, deviceId string, device *UpdateDeviceRequest) error {
+	// Aktualisiere die S7-spezifischen Felder
+	query := `UPDATE devices SET rack = ?, slot = ? WHERE id = ?`
+	_, err := db.Exec(query, device.Rack, device.Slot, deviceId)
+	if err != nil {
+		return fmt.Errorf("error updating S7-specific fields: %v", err)
+	}
+
+	// Validiere und aktualisiere Datenpunkte
+	validDatapoints := validateS7Datapoints(device.DataPoints)
+	logrus.Infof("Verarbeite %d gültige S7-Datenpunkte von %d gesendeten", len(validDatapoints), len(device.DataPoints))
+
+	// Aktualisiere Datenpunkte (löscht immer alle alten und fügt neue hinzu)
+	if err := updateS7Datapoints(db, deviceId, validDatapoints); err != nil {
+		return err
+	}
+
+	logrus.Infof("S7 device and datapoints updated successfully for %s", device.DeviceName)
+	return nil
+}
+
+// Hilfsfunktion: Aktualisiert OPC-UA-Gerät
+func updateOpcUaDevice(db *sql.DB, deviceId string, device *UpdateDeviceRequest) error {
+	// Aktualisiere die OPC-UA-spezifischen Felder
+	query := `UPDATE devices SET security_mode = ?, security_policy = ?, username = ?, password = ? WHERE id = ?`
+	_, err := db.Exec(query, device.SecurityMode, device.SecurityPolicy, device.Username, device.Password, deviceId)
+	if err != nil {
+		return fmt.Errorf("error updating OPC-UA-specific fields: %v", err)
+	}
+
+	// Validiere und aktualisiere Datenpunkte
+	validDatapoints := validateOpcUaDatapoints(device.DataPoints)
+	logrus.Infof("Verarbeite %d gültige OPC-UA-Knoten von %d gesendeten", len(validDatapoints), len(device.DataPoints))
+
+	// Aktualisiere Datenpunkte (löscht immer alle alten und fügt neue hinzu)
+	if err := updateOpcUaDatapoints(db, deviceId, validDatapoints); err != nil {
+		return err
+	}
+
+	logrus.Infof("OPC-UA device and nodes updated successfully for %s", device.DeviceName)
+	return nil
+}
+
+// Hilfsfunktion: Aktualisiert MQTT-Gerät
+func updateMqttDevice(db *sql.DB, device *UpdateDeviceRequest) error {
+	// Überprüfen, ob der Benutzer bereits existiert
+	var existingUser bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM auth WHERE username = ?)", device.DeviceName).Scan(&existingUser)
+	if err != nil {
+		return fmt.Errorf("error checking if user exists: %v", err)
+	}
+
+	if existingUser {
+		// Benutzer existiert, Passwort aktualisieren
+		_, err = db.Exec("UPDATE auth SET password = ? WHERE username = ?", device.Password, device.DeviceName)
+		if err != nil {
+			return fmt.Errorf("error updating password: %v", err)
+		}
+	} else {
+		// Benutzer existiert nicht, neuen Benutzer erstellen
+		_, err = db.Exec("INSERT INTO auth (username, password, allow) VALUES (?, ?, ?)", device.DeviceName, device.Password, 1)
+		if err != nil {
+			return fmt.Errorf("error adding new MQTT user: %v", err)
+		}
+	}
+
+	// Zugriff auf das MQTT-Topic für diesen Benutzer sicherstellen
+	deviceTopic := fmt.Sprintf("data/mqtt/%s/#", device.DeviceName)
+
+	// Lösche vorhandene ACL-Einträge für diesen Benutzer
+	_, err = db.Exec("DELETE FROM acl WHERE username = ?", device.DeviceName)
+	if err != nil {
+		return fmt.Errorf("error deleting existing ACL entries: %v", err)
+	}
+
+	// Füge neue ACL-Einträge für diesen Benutzer hinzu
+	_, err1 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", device.DeviceName, "#", 0)
+	_, err2 := db.Exec("INSERT INTO acl (username, topic, permission) VALUES (?, ?, ?)", device.DeviceName, deviceTopic, 3)
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("error adding ACL entries: %v, %v", err1, err2)
+	}
+
+	logrus.Infof("MQTT device and user updated successfully for %s", device.DeviceName)
+	return nil
 }

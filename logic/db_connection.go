@@ -3,6 +3,7 @@ package logic
 import (
 	"database/sql"
 	"os"
+	"time"
 
 	_ "github.com/glebarez/go-sqlite"
 )
@@ -121,6 +122,20 @@ const (
 			FOREIGN KEY (device_id) REFERENCES devices(id)
 		);
 	`
+
+	createSystemSettingsTable = `
+		CREATE TABLE IF NOT EXISTS system_settings (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			setting_key VARCHAR(100) NOT NULL UNIQUE,
+			setting_value TEXT,
+			setting_type VARCHAR(50) DEFAULT 'string',
+			description TEXT,
+			category VARCHAR(50) DEFAULT 'general',
+			is_encrypted BOOLEAN DEFAULT 0,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		);
+	`
 )
 
 // InitDB initialisiert die SQLite-Datenbank mit einem übergebenen Pfad
@@ -175,6 +190,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		createOPCUADatanodesTable,
 		createImagesTable,
 		createImageCaptureProcessesTable,
+		createSystemSettingsTable,
 	}
 
 	// Tabellen erstellen
@@ -194,6 +210,29 @@ func InitDB(dbPath string) (*sql.DB, error) {
             INSERT INTO users (username, password, name, address, company, email)
             VALUES (?, ?, ?, ?, ?, ?)
         `, "admin", "password", "Admin", "Admin Street", "Admin Corp.", "admin@admin.com")
+	}
+
+	// Check if there are any system settings in the database
+	var countSettings int
+	db.QueryRow("SELECT COUNT(*) FROM system_settings").Scan(&countSettings)
+
+	// If no settings are found, create default settings
+	if countSettings == 0 {
+		now := time.Now().Format("2006-01-02 15:04:05")
+
+		defaultSettings := []struct {
+			key, value, settingType, description, category string
+		}{
+			{"node_red_url", "http://node-red:1880", "string", "Node-RED Web-Interface URL", "integration"},
+			{"influxdb_url", "http://influxdb:8086", "string", "InfluxDB Server URL", "integration"},
+		}
+
+		for _, setting := range defaultSettings {
+			db.Exec(`
+				INSERT INTO system_settings (setting_key, setting_value, setting_type, description, category, created_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+			`, setting.key, setting.value, setting.settingType, setting.description, setting.category, now, now)
+		}
 	}
 
 	return db, nil

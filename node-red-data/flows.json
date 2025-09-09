@@ -12,14 +12,7 @@
         "type": "tab",
         "label": "Image-Capture",
         "disabled": false,
-        "info": "",
-        "env": []
-    },
-    {
-        "id": "ba5f08246c66f4ff",
-        "type": "tab",
-        "label": "Flow 1",
-        "disabled": false,
+        "locked": true,
         "info": "",
         "env": []
     },
@@ -27,7 +20,7 @@
         "id": "6545402cef5600d9",
         "type": "tab",
         "label": "old bmk",
-        "disabled": false,
+        "disabled": true,
         "info": "",
         "env": []
     },
@@ -282,7 +275,7 @@
         "type": "subflow",
         "name": "Image-Capture-in-Node-RED",
         "info": "# Image Capture Process\r\n\r\nThis subflow implements a complete image capture process using OPC UA and is designed to perform all the steps required for the process in a single, consolidated flow. In detail, the subflow includes:\r\n\r\n## Connection setup and security configuration:\r\nAn OPC UA client is created that connects to an OPC UA server based on passed or environment variables (e.g. endpoint, security mode/policy, username and password).\r\n\r\n## Method call and process control:\r\nThe subflow calls a specified method on the server to initiate the image capture process. It then actively waits for a defined Boolean status (check node) to change in order to determine the right time for image processing.\r\n\r\n## Acknowledgement and optional upload:\r\nAfter successful saving, an acknowledge (Ack) is written back to the server. An HTTP POST upload of the saved file to a defined target endpoint is optional. Finally, the subflow returns a payload object with detailed information about the process, such as success message, security parameters used, storage path and the image string.\r\n\r\n## Important note:\r\nThis subflow is designed as a central component and **only needs to be implemented once in the entire Node-RED instance**. This ensures that all image acquisition processes are controlled consistently and centrally, resulting in optimized resource usage and a clear architecture.\r\n",
-        "category": "IDPM-Data Forwarding",
+        "category": "OLD",
         "in": [
             {
                 "x": 220,
@@ -505,206 +498,6 @@
             "wires": [
                 {
                     "id": "7305073267fb70ed",
-                    "port": 0
-                }
-            ]
-        }
-    },
-    {
-        "id": "a83312e9e2e175ac",
-        "type": "subflow",
-        "name": "Image-Capture",
-        "info": "#### **Beschreibung**  \r\nDer **Img-Cap-Process-Backend**-Subflow sammelt alle für den Bildaufnahmeprozess relevanten Parameter – darunter OPC UA Verbindungsdaten, Methoden- und Node-IDs, Sicherheitskonfigurationen sowie Upload-Einstellungen – und überführt diese in ein strukturiertes JSON-Payload. Dieses Payload wird per HTTP POST an ein dediziertes Go-Backend übermittelt, das den kompletten Bildaufnahme- und Verarbeitungsprozess übernimmt. Das Ergebnis, beispielsweise in Form von Erfolgsmeldungen, Bilddaten und Metainformationen, wird anschließend an den weiteren Flow zurückgegeben.\r\n\r\n#### **Funktionsweise**  \r\n1. **Parameter-Sammlung:**  \r\n   - Der Subflow liest alle notwendigen Konfigurationsparameter entweder aus Umgebungsvariablen.  \r\n   - Hierzu zählen insbesondere der OPC UA Endpoint, die zu verwendenden Methoden- und Node-IDs.\r\n\r\n2. **Payload-Erstellung:**  \r\n   - Alle gesammelten Parameter werden in ein JSON-Objekt überführt, das sämtliche Informationen für den Bildaufnahmeprozess enthält.\r\n\r\n3. **Weiterleitung an das Go-Backend:**  \r\n   - Das JSON-Payload wird mittels HTTP POST an die konfigurierte Backend-URL gesendet.  \r\n   - Das Go-Backend führt den Bildaufnahmeprozess aus und liefert einen Verarbeitungsstatus als Antwort.\r\n\r\n4. **Ergebnisrückgabe:**  \r\n   - Das Resultat (z. B. Erfolgsmeldung, Bilddaten, Metainformationen) wird an den weiteren Flow zurückgereicht.\r\n\r\n#### **Konfigurierbare Umgebungsvariablen**\r\n\r\n| Variable           | Typ   | Standardwert                                    | Beschreibung                                                  |\r\n|--------------------|-------|-------------------------------------------------|---------------------------------------------------------------|\r\n| `OPC Endpoint`     | String| `\"opc.tcp://192.168.0.84:48010\"`                  | OPC UA Server Endpoint                                        |\r\n| `Device ID`        | String| `\"\"`                                            | Geräte-ID; wenn leer, wird diese automatisch aus bestehender Device-Tabelle gesucht oder Default-Wert vergeben (99999)|\r\n| `Object ID`    | String| `\"ns=3;s=Demo.Method\"`                           | Objekt-ID der OPC UA Methode                                  |\r\n| `Method ID`     | String| `\"ns=3;s=Demo.Method.Multiply\"`                  | Methoden-/Node-ID, die den Bildaufnahmeprozess triggert       |\r\n| `Method Args`           | JSON  | `{\"a\":\"5\",\"b\":\"11\"}`                             | Parameter für die Methode (im JSON-Format)                    |\r\n| `Check Node ID`       | String| `\"ns=3;s=Demo.Dynamic.Scalar.Boolean\"`           | Node-ID, die den Boolean-Status überwacht                     |\r\n| `Image Node ID`       | String| `\"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\"`          | Node-ID, von der der Bildstring ausgelesen wird               |\r\n| `Acknowledge Node ID`    | String| `\"ns=3;s=Demo.Dynamic.Scalar.Boolean\"`           | Node-ID, in die das ACK geschrieben wird                      |\r\n| `Upload URL`       | String| `\"https://192.168.0.84/nodered/opc-upload\"`       | URL für den optionalen Upload der Bilddaten, wenn leer dann kein Upload                   |\r\n| `Header`          | JSON  | `{\"Content-Type\":\"application/octet-stream\"}`   | Zusätzliche HTTP-Header für den Upload                        |\r\n\r\n#### **Einsatzmöglichkeiten**  \r\n- **Zentrale Steuerung der Bildaufnahme:**  \r\n  Vereinheitlicht die Steuerung des Bildaufnahmeprozesses durch zentrale Parameterübergabe an ein spezialisiertes Backend.\r\n\r\n- **Entlastung des Node-RED-Systems:**  \r\n  Lagert rechenintensive Bildverarbeitungsprozesse an ein dediziertes Go-Backend aus.\r\n\r\n- **Skalierbare Implementierung:**  \r\n  Ermöglicht eine einheitliche und skalierbare Realisierung von Bildaufnahmeprozessen innerhalb der gesamten Node-RED-Instanz.\r\n\r\n",
-        "category": "IDPM-Data Forwarding",
-        "in": [
-            {
-                "x": 240,
-                "y": 100,
-                "wires": [
-                    {
-                        "id": "92f6fd0436ca3513"
-                    }
-                ]
-            }
-        ],
-        "out": [
-            {
-                "x": 910,
-                "y": 100,
-                "wires": [
-                    {
-                        "id": "92f6fd0436ca3513",
-                        "port": 0
-                    }
-                ]
-            }
-        ],
-        "env": [
-            {
-                "name": "OPC Endpoint",
-                "type": "str",
-                "value": "opc.tcp://192.168.0.84:48010",
-                "ui": {
-                    "icon": "font-awesome/fa-location-arrow",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Device ID",
-                "type": "str",
-                "value": "",
-                "ui": {
-                    "icon": "font-awesome/fa-microchip",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Object ID",
-                "type": "str",
-                "value": "ns=3;s=Demo.Method",
-                "ui": {
-                    "icon": "font-awesome/fa-cube",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Method ID",
-                "type": "str",
-                "value": "ns=3;s=Demo.Method.Multiply",
-                "ui": {
-                    "icon": "font-awesome/fa-camera",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Method Args",
-                "type": "json",
-                "value": "{\"a\":\"5\",\"b\":\"11\"}",
-                "ui": {
-                    "icon": "font-awesome/fa-th-large",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str",
-                            "json"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Check Node ID",
-                "type": "str",
-                "value": "ns=3;s=Demo.Dynamic.Scalar.Boolean",
-                "ui": {
-                    "icon": "font-awesome/fa-check-circle",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Image Node ID",
-                "type": "str",
-                "value": "ns=3;s=Demo.Dynamic.Scalar.ImageGIF",
-                "ui": {
-                    "icon": "font-awesome/fa-image",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Acknowledge Node ID",
-                "type": "str",
-                "value": "ns=3;s=Demo.Dynamic.Scalar.Boolean",
-                "ui": {
-                    "icon": "font-awesome/fa-check",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Upload URL",
-                "type": "str",
-                "value": "https://192.168.0.84/nodered/opc-upload",
-                "ui": {
-                    "icon": "font-awesome/fa-cloud-upload",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "Header",
-                "type": "json",
-                "value": "{\"Content-Type\":\"application/octet-stream\"}",
-                "ui": {
-                    "icon": "font-awesome/fa-cloud-upload",
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "json"
-                        ]
-                    }
-                }
-            }
-        ],
-        "meta": {
-            "module": "opc-image-capture",
-            "type": "opc-image-capture",
-            "version": "0.0.1",
-            "author": "IDPM",
-            "desc": "A node to grab images from an opc-ua server.",
-            "keywords": "opc-ua, gateway",
-            "license": "Apache-2.0"
-        },
-        "color": "#C0C0C0",
-        "inputLabels": [
-            "trigger"
-        ],
-        "outputLabels": [
-            "image"
-        ],
-        "icon": "font-awesome/fa-camera-retro",
-        "status": {
-            "x": 180,
-            "y": 20,
-            "wires": [
-                {
-                    "id": "0b0d19296544b9f8",
                     "port": 0
                 }
             ]
@@ -941,104 +734,103 @@
         }
     },
     {
-        "id": "41184f092bb6b065",
+        "id": "acb6954d7bc4254f",
         "type": "subflow",
-        "name": "Img-Cap-new",
+        "name": "Image-Capture-API",
         "info": "",
         "category": "IDPM-Data Forwarding",
-        "in": [
-            {
-                "x": 80,
-                "y": 80,
-                "wires": [
-                    {
-                        "id": "cde49993d7949b9b"
-                    }
-                ]
-            }
-        ],
+        "in": [],
         "out": [
             {
-                "x": 430,
-                "y": 60,
-                "wires": [
-                    {
-                        "id": "cde49993d7949b9b",
-                        "port": 0
-                    }
-                ]
-            },
-            {
-                "x": 450,
+                "x": 520,
                 "y": 120,
                 "wires": [
                     {
-                        "id": "cde49993d7949b9b",
-                        "port": 1
-                    }
-                ]
-            }
-        ],
-        "env": [
-            {
-                "name": "PORT",
-                "type": "num",
-                "value": "8088"
-            },
-            {
-                "name": "ID",
-                "type": "num",
-                "value": "1"
-            }
-        ],
-        "meta": {
-            "module": "Img-Cap-new"
-        },
-        "color": "#C0C0C0",
-        "inputLabels": [
-            "trigger"
-        ],
-        "outputLabels": [
-            "Full message",
-            "Image-String only"
-        ],
-        "icon": "font-awesome/fa-camera"
-    },
-    {
-        "id": "2790884e913791f8",
-        "type": "subflow",
-        "name": "Image-Capture-in-Node-RED (1)",
-        "info": "# Image Capture Process\r\n\r\nThis subflow implements a complete image capture process using OPC UA and is designed to perform all the steps required for the process in a single, consolidated flow. In detail, the subflow includes:\r\n\r\n## Connection setup and security configuration:\r\nAn OPC UA client is created that connects to an OPC UA server based on passed or environment variables (e.g. endpoint, security mode/policy, username and password).\r\n\r\n## Method call and process control:\r\nThe subflow calls a specified method on the server to initiate the image capture process. It then actively waits for a defined Boolean status (check node) to change in order to determine the right time for image processing.\r\n\r\n## Acknowledgement and optional upload:\r\nAfter successful saving, an acknowledge (Ack) is written back to the server. An HTTP POST upload of the saved file to a defined target endpoint is optional. Finally, the subflow returns a payload object with detailed information about the process, such as success message, security parameters used, storage path and the image string.\r\n\r\n## Important note:\r\nThis subflow is designed as a central component and **only needs to be implemented once in the entire Node-RED instance**. This ensures that all image acquisition processes are controlled consistently and centrally, resulting in optimized resource usage and a clear architecture.\r\n",
-        "category": "IDPM-Data Forwarding",
-        "in": [
-            {
-                "x": 220,
-                "y": 200,
-                "wires": [
-                    {
-                        "id": "5c2ac2a6bd299840"
-                    }
-                ]
-            }
-        ],
-        "out": [
-            {
-                "x": 700,
-                "y": 200,
-                "wires": [
-                    {
-                        "id": "5c2ac2a6bd299840",
+                        "id": "4a78acdb944cb3d8",
                         "port": 0
                     }
                 ]
             }
         ],
+        "env": [],
+        "meta": {},
+        "color": "#C0C0C0",
+        "status": {
+            "x": 660,
+            "y": 40,
+            "wires": [
+                {
+                    "id": "061e48c71685d276",
+                    "port": 0
+                }
+            ]
+        }
+    },
+    {
+        "id": "10d72cae5a6340f6",
+        "type": "subflow",
+        "name": "MQTT to REST",
+        "info": "### **MQTT to REST Node**  \r\n#### **Kategorie:** IDPM-Data Forwarding  \r\n#### **Beschreibung:**  \r\nDer **MQTT to REST**-Subflow sammelt kontinuierlich eintreffende Datenpunkte aus einem MQTT-Stream in einem internen Buffer. Nach Ablauf eines konfigurierbaren Zeitintervalls werden die gesammelten Daten als JSON per HTTP POST an einen definierten REST API Endpoint versendet. Dabei gibt die Node Statusmeldungen (z. B. Buffergröße, Versandstatus) über den zweiten Ausgang zur Prozessüberwachung aus.\r\n\r\n#### **Funktionsweise:**  \r\n1. **Datenaggregation:**  \r\n   - Eingehende MQTT-Nachrichten werden anhand ihres Topics in Datenpunkte umgewandelt, die jeweils eine **DatapointId**, einen **Value** und einen **Zeitstempel** enthalten.  \r\n   - Diese Datenpunkte werden in einem internen Buffer gespeichert.\r\n\r\n2. **Zeitbasierter Versand:**  \r\n   - Ein Timer, konfiguriert über die Umgebungsvariable `INTERVAL (sec)`, steuert den Zeitpunkt des Datenversands.  \r\n   - Nach Ablauf des definierten Intervalls wird der gesamte Buffer als JSON serialisiert und per HTTP POST an den konfigurierten REST API Endpoint gesendet.\r\n\r\n3. **HTTP-Versand:**  \r\n   - Die Node erstellt aus dem Buffer den POST-Datenstring und sendet diesen unter Verwendung der konfigurierten HTTP-Header.  \r\n   - Der REST API Endpoint wird in der Umgebungsvariablen `URL` definiert.\r\n\r\n4. **Statusüberwachung:**  \r\n   - Über den zweiten Ausgang werden Statusmeldungen zur aktuellen Buffergröße und zum Versandstatus ausgegeben.\r\n\r\n#### **Beispiel für den Datenversand:**  \r\nAngenommen, der Buffer enthält zwei Datenpunkte, könnte das an den REST API Endpoint gesendete JSON-Dokument wie folgt aussehen:\r\n\r\n```json\r\n[\r\n  {\r\n    \"DatapointId\": \"temperature\",\r\n    \"Value\": 22.5,\r\n    \"Timestamp\": \"2023-03-01T10:00:00.000Z\"\r\n  },\r\n  {\r\n    \"DatapointId\": \"humidity\",\r\n    \"Value\": 45,\r\n    \"Timestamp\": \"2023-03-01T10:00:00.000Z\"\r\n  }\r\n]\r\n```\r\n\r\nDieses JSON wird mittels HTTP POST an den in `URL` definierten Endpoint versendet. Die HTTP-Header, beispielsweise `{\"Content-Type\": \"application/json\"}`, werden ebenfalls mitgeschickt.\r\n\r\n#### **Konfigurierbare Umgebungsvariablen:**  \r\n| Variable             | Typ        | Standardwert                                              | Beschreibung |\r\n|----------------------|------------|-----------------------------------------------------------|--------------|\r\n| `URL`                | String     | `\"https://url.com\"`                                       | REST API Endpoint für den HTTP POST Versand |\r\n| `HEADER`             | JSON       | `{\"Content-Type\":\"application/json\"}`                     | HTTP-Header, die beim Versand genutzt werden |\r\n| `INTERVAL (sec)`     | Num        | `60`                                                      | Zeitintervall (in Sekunden) nach dem der Buffer versendet wird |\r\n| `BROKER`             | MQTT-Broker| -                                                         | Verknüpfung zum MQTT-Broker |\r\n| `TOPIC`              | String     | `\"data/opc-ua/1/#\"`                                        | MQTT-Topic, über das die Daten empfangen werden |\r\n| `DEVICEID`           | String     | `\"1\"`                                                     | Gerätebezeichnung, die bei der Datenaggregation berücksichtigt wird |\r\n\r\n#### **Einsatzmöglichkeiten:**  \r\n✔ Aggregation und Weiterleitung von MQTT-Daten an REST-basierte Anwendungen  \r\n✔ Integration in IoT-Datenpipelines zur zentralen Verarbeitung und Speicherung von Sensordaten  \r\n✔ Überwachung und Statusprotokollierung der Datenübertragung zur Fehlerdiagnose  \r\n",
+        "category": "IDPM-Data Forwarding",
+        "in": [],
+        "out": [],
         "env": [
             {
-                "name": "OPC_ENDPOINT",
+                "name": "URL",
                 "type": "str",
-                "value": "opc.tcp://xx:48010",
+                "value": "https://url.com",
                 "ui": {
+                    "icon": "font-awesome/fa-plug",
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "str"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "HEADER",
+                "type": "json",
+                "value": "{\"Content-Type\":\"application/json\"}",
+                "ui": {
+                    "icon": "font-awesome/fa-plus-circle",
+                    "type": "input",
+                    "opts": {
+                        "types": [
+                            "json"
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "INTERVAL (sec)",
+                "type": "num",
+                "value": "60",
+                "ui": {
+                    "icon": "font-awesome/fa-clock-o",
+                    "type": "spinner",
+                    "opts": {
+                        "min": 1,
+                        "max": 3600
+                    }
+                }
+            },
+            {
+                "name": "BROKER",
+                "type": "mqtt-broker",
+                "value": "0b7c7515b1c6aa53",
+                "ui": {
+                    "icon": "font-awesome/fa-send",
+                    "type": "conf-types"
+                }
+            },
+            {
+                "name": "TOPIC",
+                "type": "str",
+                "value": "data/opc-ua/1/#",
+                "ui": {
+                    "icon": "font-awesome/fa-external-link-square",
                     "type": "input",
                     "opts": {
                         "types": [
@@ -1049,252 +841,33 @@
             },
             {
                 "name": "DEVICE_ID",
-                "type": "num",
-                "value": "",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str",
-                            "num"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "M_NODE_PARENT",
                 "type": "str",
-                "value": "ns=3;s=Demo.Methods",
+                "value": "1",
                 "ui": {
                     "type": "input",
                     "opts": {
                         "types": [
                             "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "NODE_READ_AVAILABLE",
-                "type": "str",
-                "value": "ns=3;s=Demo.Dynamic.Scalar.Boolean",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "M_NODE_IMAGE",
-                "type": "str",
-                "value": "ns=3;s=Demo.Methods.Multiply",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "M_ARGS",
-                "type": "json",
-                "value": "{\"a\":\"1\",\"b\":\"1\"}",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "json"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "NODE_CHECK",
-                "type": "str",
-                "value": "ns=3;s=Demo.Dynamic.Scalar.Boolean",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "NODE_IMAGE",
-                "type": "str",
-                "value": "ns=3;s=Demo.Dynamic.Scalar.ImageGIF",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "NODE_ACK_READ",
-                "type": "str",
-                "value": "ns=3;s=Demo.Dynamic.Scalar.Boolean",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "ENABLE_UPLOAD",
-                "type": "str",
-                "value": "false",
-                "ui": {
-                    "type": "select",
-                    "opts": {
-                        "opts": [
-                            {
-                                "l": {
-                                    "de": "true"
-                                },
-                                "v": "true"
-                            },
-                            {
-                                "l": {
-                                    "de": "false"
-                                },
-                                "v": "false"
-                            }
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "UPLOAD_URL",
-                "type": "str",
-                "value": "https://demo/demo",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "TIMESTAMP_HEADER_NAME",
-                "type": "str",
-                "value": "BLOB_TIMESTAMP",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "str"
-                        ]
-                    }
-                }
-            },
-            {
-                "name": "HEADERS",
-                "type": "json",
-                "value": "{\"BLOB_TIME\":\"\"}",
-                "ui": {
-                    "type": "input",
-                    "opts": {
-                        "types": [
-                            "json"
                         ]
                     }
                 }
             }
         ],
-        "meta": {},
-        "color": "#C0C0C0",
-        "inputLabels": [
-            "trigger"
-        ],
-        "outputLabels": [
-            "image-base64-string"
-        ],
-        "icon": "font-awesome/fa-exclamation",
-        "status": {
-            "x": 600,
-            "y": 40,
-            "wires": [
-                {
-                    "id": "a0cf33c78d811dc4",
-                    "port": 0
-                }
-            ]
-        }
-    },
-    {
-        "id": "f748bd8e78496824",
-        "type": "subflow",
-        "name": "Image-Capture-API",
-        "info": "",
-        "category": "IDPM-Data Forwarding",
-        "in": [],
-        "out": [
-            {
-                "x": 640,
-                "y": 560,
-                "wires": [
-                    {
-                        "id": "affc2fb7b7670bf3",
-                        "port": 0
-                    }
-                ]
-            },
-            {
-                "x": 420,
-                "y": 140,
-                "wires": [
-                    {
-                        "id": "affc2fb7b7670bf3",
-                        "port": 0
-                    }
-                ]
-            }
-        ],
-        "env": [],
-        "meta": {},
-        "color": "#C0C0C0",
-        "status": {
-            "x": 740,
-            "y": 40,
-            "wires": [
-                {
-                    "id": "eed92d4f949427ac",
-                    "port": 0
-                }
-            ]
-        }
-    },
-    {
-        "id": "b41d61b41a2f4593",
-        "type": "group",
-        "z": "2dc52bb27159c699",
-        "name": "testing",
-        "style": {
-            "label": false
+        "meta": {
+            "module": "Collect Data & Send to REST"
         },
-        "nodes": [
-            "83a0f01a073e9f10",
-            "edb4c67dd58308ad"
-        ],
-        "x": 14,
-        "y": 239,
-        "w": 672,
-        "h": 142
+        "color": "#3FADB5",
+        "icon": "font-awesome/fa-map-signs",
+        "status": {
+            "x": 460,
+            "y": 20,
+            "wires": [
+                {
+                    "id": "05d51a8734299975",
+                    "port": 0
+                }
+            ]
+        }
     },
     {
         "id": "78414965a2b1d621",
@@ -1317,27 +890,6 @@
         "h": 182
     },
     {
-        "id": "e5afdb9332dd508d",
-        "type": "group",
-        "z": "f748bd8e78496824",
-        "name": "BMK Implementierung",
-        "style": {
-            "label": true
-        },
-        "nodes": [
-            "c28915ee6658631a",
-            "affc2fb7b7670bf3",
-            "80d407b18e347159",
-            "c5ab257d790803d3",
-            "d191932097d3ac7d",
-            "d271b9b1845953b5"
-        ],
-        "x": 94,
-        "y": 179,
-        "w": 1318,
-        "h": 308
-    },
-    {
         "id": "fcd49649c8c50934",
         "type": "group",
         "z": "6545402cef5600d9",
@@ -1347,9 +899,7 @@
         },
         "nodes": [
             "47aaba3433aabde4",
-            "77001c104835e0f4",
             "50f18ff36d4fc759",
-            "2a7f882fd80da092",
             "9c63767d0a197c43",
             "f69585bdd817aef4"
         ],
@@ -1368,10 +918,8 @@
         },
         "nodes": [
             "021ca9253c89380c",
-            "2926b01f52802309",
             "f9e30af241b41f39",
             "c67e22f0d0c3b599",
-            "33a77e81873c3c27",
             "63e166e9fbdec505"
         ],
         "x": 254,
@@ -1389,7 +937,6 @@
         },
         "nodes": [
             "2e8b171956c91f5e",
-            "4baf2621dd2a58bf",
             "44886b5aa6be06e6"
         ],
         "x": 254,
@@ -1398,41 +945,88 @@
         "h": 82
     },
     {
-        "id": "d191932097d3ac7d",
+        "id": "3fe1ed64fcf761ad",
         "type": "group",
-        "z": "f748bd8e78496824",
-        "g": "e5afdb9332dd508d",
+        "z": "acb6954d7bc4254f",
+        "name": "BMK Implementierung",
+        "style": {
+            "label": true
+        },
+        "nodes": [
+            "445e86533b09c2a0",
+            "4a78acdb944cb3d8",
+            "55b87dd8a941aea8",
+            "d662cc824562b25b",
+            "fd15d59808abbc1e",
+            "2bf0ffb2de7e1870"
+        ],
+        "x": 14,
+        "y": 179,
+        "w": 998,
+        "h": 528
+    },
+    {
+        "id": "8b293e6375d8bf6f",
+        "type": "group",
+        "z": "8af16c2e18f5774e",
+        "name": "API TESTING - IMAGE & DATAPOINTS",
+        "style": {
+            "label": true
+        },
+        "nodes": [
+            "ba08c4d1eb0e5a49",
+            "570539daecb60425",
+            "93f68922f10a63cb",
+            "4aecb362ba3233ce",
+            "a086c81c44169783",
+            "b84ff69bf3ec4ee9"
+        ],
+        "x": 324,
+        "y": 219,
+        "w": 492,
+        "h": 422
+    },
+    {
+        "id": "fd15d59808abbc1e",
+        "type": "group",
+        "z": "acb6954d7bc4254f",
+        "g": "3fe1ed64fcf761ad",
         "name": "Bild an Backend schicken",
         "style": {
             "label": true
         },
         "nodes": [
-            "08e1e8bcc468944e",
-            "aeb5144918400d14"
+            "ddce54b01f874280",
+            "b9a7313e92123d8d"
         ],
-        "x": 734,
-        "y": 259,
+        "x": 534,
+        "y": 299,
         "w": 452,
         "h": 82
     },
     {
-        "id": "d271b9b1845953b5",
+        "id": "2bf0ffb2de7e1870",
         "type": "group",
-        "z": "f748bd8e78496824",
-        "g": "e5afdb9332dd508d",
+        "z": "acb6954d7bc4254f",
+        "g": "3fe1ed64fcf761ad",
         "name": "Bild weiterleiten: REST oder Lokal Speichern",
         "style": {
             "label": true
         },
         "nodes": [
-            "7af2c4884d41488a",
-            "7a0d02e4a4354fe9",
-            "7a26941a7fab950a"
+            "3502dba94720d721",
+            "b8081502c40f9291",
+            "289ee7041572313b",
+            "3292cba161de8b89",
+            "2c5e65cc7b5c67c6",
+            "cba1a0b3d2a37ad4",
+            "1ccd8789af4f86fd",
+            "2718793c3a462335"
         ],
-        "x": 734,
-        "y": 379,
-        "w": 652,
-        "h": 82
+        "x": 74,
+        "y": 439,
+        "w": 892,
+        "h": 242
     },
     {
         "id": "d1d25278780d0bb3",
@@ -1463,7 +1057,7 @@
         "id": "0b7c7515b1c6aa53",
         "type": "mqtt-broker",
         "name": "",
-        "broker": "localhost",
+        "broker": "gateway-main",
         "port": "${MQTT_LISTENER_LOCAL_TCP_ADDRESS}",
         "tls": "e82a7202f23f3cdd",
         "clientid": "",
@@ -1775,137 +1369,6 @@
         "wires": [
             []
         ]
-    },
-    {
-        "id": "da0584c47df5ed3d",
-        "type": "function",
-        "z": "a83312e9e2e175ac",
-        "d": true,
-        "name": "OPC-Image-Capture-Process",
-        "func": "// ------------------------------------------------------\n// \"Image Capture Process\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen\nconst endpoint    = env.get(\"OPC_ENDPOINT\")         || \"opc.tcp://192.168.0.84:48010\";\nconst objectId    = env.get(\"M_NODE_PARENT\")        || \"ns=3;s=Demo.Method\";\nconst methodId    = env.get(\"M_NODE_IMAGE\")         || \"ns=3;s=Demo.Method.DoSomethingAfter10s\";\nconst methodArgs  = env.get(\"M_ARGS\")               || \"\"\nconst checkNodeId = env.get(\"NODE_CHECK\")           || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst imageNodeId = env.get(\"NODE_IMAGE\")           || \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\";\nconst ackNodeId   = env.get(\"NODE_ACK_READ\")        || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst basePath    = env.get(\"BASEPATH\")             || \"./data/images\";\nconst device      = env.get(\"DEVICE_ID\")            || \"local-1\";\nconst enableUpload= env.get(\"ENABLE_UPLOAD\").toLowerCase();\nconst uploadUrl   = env.get(\"UPLOAD_URL\");\nconst additionalHeaders = typeof env.get(\"HEADERS\") === \"string\" ? JSON.parse(env.get(\"HEADERS\")) : env.get(\"HEADERS\") || { \"Content-Type\": \"application/octet-stream\" };\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar   = String(env.get(\"OPC_SEC_MODE\") || \"NONE\").toUpperCase();\nconst securityPolicyVar = String(env.get(\"OPC_SEC_POLICY\") || \"NONE\").toUpperCase();\nconst username          = env.get(\"OPC_USER\");\nconst password          = env.get(\"OPC_PW\");\n// const certificateFile   = env.get(\"OPCUA_CERTFILE\")  || \"\";\n// const privateKeyFile    = env.get(\"OPCUA_KEYFILE\")   || \"\";\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    let client, session, base64String, savedFilePath, errorOccurred = false;\n    try {\n        const clientName = \"node-red-opc-client_\" + new Date().toISOString().replace(/[:.]/g, \"-\");\n\n        // 4) OPC-UA Client erstellen, inkl. Security-Einstellungen\n        client = opcua.OPCUAClient.create({\n            applicationName: clientName,\n            endpointMustExist: false,\n            securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n            securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n            connectionStrategy: {\n                initialDelay: 1000,\n                maxRetry: 30\n            }\n        });\n\n        // 5) OPC-UA-Server verbinden\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n        await client.connect(endpoint);\n\n        // 6) Session aufbauen:\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n        let userIdentity = null;\n        if (username && password) {\n            userIdentity = { userName: username, password };\n        }\n        session = await client.createSession(userIdentity);\n\n        // 7) Methode aufrufen (z. B. Start Bildaufnahme)\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Call Method...\" });\n        // node.log(`[DEBUG] await method call`);\n        await callMethod(session, objectId, methodId);\n\n        // 8) Warten, bis checkNodeId = true\n        node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for boolean...\" });\n        await waitForBooleanTrue(session, checkNodeId, 20000);\n        // node.log(`[DEBUG] Wait till check node true...`);\n\n        // 9) Bild-String auslesen\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Reading image...\" });\n        base64String = await readImageString(session, imageNodeId);\n        // node.log(`[DEBUG] read image string`);\n\n        // 10) Lokales Speichern\n        node.status({ fill: \"blue\", shape: \"ring\", text: \"Saving file at\" + basePath });\n        // savedFilePath = await saveImage(base64String, basePath, device);\n        // node.log(`[DEBUG] Image saved at: ${savedFilePath}`);\n\n        // 11) Ack Node = true\n        node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n        // node.log(`[DEBUG] Writing ack node...`);\n        await writeBoolean(session, ackNodeId, true);\n        // node.log(`[DEBUG] wrote ack node`);\n\n        // 12) Optionaler Upload\n        if (enableUpload === \"true\" && uploadUrl) {\n            // node.log(`[DEBUG] trying to upload...`);\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Uploading...\" });\n            await uploadFile(base64String, uploadUrl, additionalHeaders);\n            // node.log(\"[DEBUG] Upload done.\");\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Upload done\" });\n        } else {\n            node.warn(\"[DEBUG] No upload requested (enableUpload=false or missing URL).\");\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n        }\n\n        // 13) Disconnect from Server ans Ende verschoben\n\n        // 14) msg.payload für den Flow\n        msg.payload = {\n            success: true,\n            endpoint,\n            securityMode: securityModeVar,\n            securityPolicy: securityPolicyVar,\n            username: username || \"Anonymous\",\n            // savedFilePath,\n            // uploaded: (enableUpload === \"true\"),\n            image: base64String,\n            device_id: device,\n\n        };\n        return msg;\n\n    } catch (err) {\n        errorOccurred = true;\n        node.error(err.message, msg);\n        throw err;\n    } finally {\n        // Sicherstellen, dass die Session geschlossen wird\n        if (session) {\n            try {\n                await session.close();\n            } catch (closeErr) {\n                node.error(\"Fehler beim Schließen der Sitzung: \" + closeErr.message);\n            } finally {\n                session = null; // explizites Freigeben der Session-Referenz\n            }\n        }\n        // Sicherstellen, dass der Client getrennt wird\n        if (client) {\n            try {\n                await client.disconnect();\n            } catch (disconnectErr) {\n                node.error(\"Fehler beim Trennen der Verbindung: \" + disconnectErr.message);\n            }\n        }\n        // Node-Status final aktualisieren\n        if (errorOccurred) {\n            node.status({ fill: \"red\", shape: \"dot\", text: \"Error & Disconnected\" });\n        } else {\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Done & Disconnected\" });\n        }\n    }\n}\n\n// ------------------------------------------------------\n// Hilfsfunktionen\n// ------------------------------------------------------\n\nasync function callMethod(session, objectId, methodId) {\n    const parsedArgs = typeof methodArgs === \"string\" ? JSON.parse(methodArgs) : methodArgs;\n    const inputArguments = Object.entries(parsedArgs).map(([key, value]) => ({\n        dataType: opcua.DataType.String, // Standard: String, falls nicht explizit angegeben\n        value: value\n    }));\n    \n    const methodToCall = {\n        objectId,\n        methodId,\n        inputArguments\n    };\n    const result = await session.call(methodToCall);\n    if (result.statusCode.name !== \"Good\") {\n        throw new Error(\"Method call failed: \" + result.statusCode.description);\n    }\n    // console.log(result);\n    return result;\n}\n\nasync function waitForBooleanTrue(session, nodeId, timeoutMs) {\n    const start = Date.now();\n    while (true) {\n        const dataValue = await session.readVariableValue(nodeId);\n        if (dataValue.statusCode.name === \"Good\" && dataValue.value.value === true) {\n            return;\n        }\n        if (Date.now() - start > timeoutMs) {\n            throw new Error(`Timeout: ${nodeId} did not become true within ${timeoutMs} ms`);\n        }\n        await delay(1000); // 1 Sekunde Pause\n    }\n}\n\nasync function readImageString(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(\"Cannot read image: \" + dataValue.statusCode.description);\n    }\n    return dataValue.value.value;\n}\n\nasync function saveImage(base64String, basePath, device) {\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n    const fileName = `${device}_${timestamp}.png`;\n    const fullPath = `${basePath}/${device}/${fileName}`;\n\n    await fs.ensureDir(`${basePath}/${device}`);\n\n    const buffer = Buffer.from(base64String, \"base64\");\n    await fs.writeFile(fullPath, buffer);\n\n    return fullPath;\n}\n\nasync function writeBoolean(session, nodeId, value) {\n    const opcuaDataType = opcua.DataType.Boolean;\n    const writeValue = {\n        nodeId,\n        attributeId: opcua.AttributeIds.Value,\n        value: {\n            value: {\n                dataType: opcuaDataType,\n                value\n            }\n        }\n    };\n    const statusCode = await session.write(writeValue);\n    if (statusCode.name !== \"Good\") {\n        throw new Error(\"Failed to write boolean: \" + statusCode.description);\n    }\n}\n\nasync function uploadFile(base64String, url, headers = {}) {\n    const fileData = base64String;\n    const parsedHeaders = typeof headers === \"string\" ? JSON.parse(headers) : headers;\n    \n    const defaultHeaders = {\n        \"Content-Type\": \"application/octet-stream\",\n    };\n    const mergedHeaders = { ...defaultHeaders, ...parsedHeaders };\n\n    // node.log(\"Using Headers: \" + JSON.stringify(mergedHeaders, null, 2));\n\n    let axiosConfig = { headers: mergedHeaders };\n\n    if (url.startsWith(\"https\")) {\n        axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });\n    }\n\n    const response = await axios.post(url, fileData, axiosConfig);\n\n    if (response.status < 200 || response.status > 299) {\n        throw new Error(`Upload failed: HTTP ${response.status}`);\n    }\n    return response.data;\n}\n\nfunction delay(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\n// return main().then(\n//     finalMsg => {\n//         node.status({ fill: \"green\", shape: \"dot\", text: \"Done\" });\n//         return finalMsg;\n//     },\n//     err => {\n//         node.error(err.message, msg);\n//         node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n//         node.warn(\"[DEBUG] Caught error: \" + err.message);\n//         return null;\n//     }\n// );\nreturn main().then(\n    finalMsg => finalMsg,\n    err => null\n);",
-        "outputs": 1,
-        "timeout": "30",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "opcua",
-                "module": "node-opcua"
-            },
-            {
-                "var": "axios",
-                "module": "axios"
-            },
-            {
-                "var": "fs",
-                "module": "fs-extra"
-            },
-            {
-                "var": "https",
-                "module": "https"
-            }
-        ],
-        "x": 530,
-        "y": 20,
-        "wires": [
-            [
-                "7a91daf2877a46a5"
-            ]
-        ],
-        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
-    },
-    {
-        "id": "0b0d19296544b9f8",
-        "type": "status",
-        "z": "a83312e9e2e175ac",
-        "name": "",
-        "scope": null,
-        "x": 80,
-        "y": 20,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "18c462c840ed1a77",
-        "type": "http request",
-        "z": "a83312e9e2e175ac",
-        "d": true,
-        "name": "",
-        "method": "POST",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "http://iot-gateway:8088/api/save-image",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 1130,
-        "y": 20,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "7a91daf2877a46a5",
-        "type": "function",
-        "z": "a83312e9e2e175ac",
-        "d": true,
-        "name": "toBase64",
-        "func": "// Extrahiere den Dateinamen aus dem savedFilePath\nconst fileName = msg.savedFilePath || msg.payload.savedFilePath; \n// const fileName = filePath.split(\"/\").pop(); // Letzter Abschnitt nach dem \"/\"\n\n// Konvertiere das Bild in Base64\nmsg.payload.device = msg.payload.device_id;\nmsg.payload.image = msg.payload.image.toString(\"base64\");\n\n// Übergabe des Dateinamens\nmsg.fileName = fileName;\nmsg.url = env.get(\"GATEWAY_UPLOAD_URL\");\n\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 980,
-        "y": 20,
-        "wires": [
-            [
-                "18c462c840ed1a77"
-            ]
-        ]
-    },
-    {
-        "id": "92f6fd0436ca3513",
-        "type": "function",
-        "z": "a83312e9e2e175ac",
-        "name": "OPC-Image-Capture-Process via GO Backend",
-        "func": "// ------------------------------------------------------\n// \"Image Capture Process via Go Backend\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen aus der Umgebung\nconst endpoint = env.get(\"OPC Endpoint\") || \"opc.tcp://192.168.0.84:48010\";\nconst objectId = env.get(\"Object ID\") || \"ns=3;s=Demo.Method\";\nconst methodId = env.get(\"Method ID\") || \"ns=3;s=Demo.Method.DoSomethingAfter10s\";\nconst methodArgs = env.get(\"Method Args\") || \"{}\";\nconst checkNodeId = env.get(\"Check Node ID\") || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst imageNodeId = env.get(\"Image Node ID\") || \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\";\nconst ackNodeId = env.get(\"Acknowledge Node ID\") || \"ns=3;s=Demo.Dynamic.Scalar.Boolean\";\nconst basePath = \"\";\nconst deviceId = env.get(\"Device ID\");\nconst enableUpload = \"true\"; // env.get(\"Upload\").toLowerCase();\nconst uploadUrl = env.get(\"Upload URL\");\n\nconst additionalHeaders = typeof env.get(\"Header\") === \"string\" ? JSON.parse(env.get(\"Header\")) : env.get(\"Header\") || { \"Content-Type\": \"application/json\" };\n\n// 2) Lese Security-Parameter aus der Umgebung\nconst securityModeVar = String(env.get(\"OPC_SEC_MODE\") || \"NONE\").toUpperCase();\nconst securityPolicyVar = String(env.get(\"OPC_SEC_POLICY\") || \"NONE\").toUpperCase();\nconst username = env.get(\"OPC_USER\") || \"\";\nconst password = env.get(\"OPC_PW\") || \"\";\n\n// 3) Backend-URL für die Verarbeitung\nnode.log(env.get(\"WEBUI_HTTP_PORT\"));\nconst port = env.get(\"WEBUI_HTTP_PORT\") || \"8088\";\nconst backendUrl = `http://iot-gateway:${port}/api/img-process`;\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    try {\n        // 4) Payload für das Go-Backend vorbereiten\n        const payload = {\n            endpoint,\n            objectId,\n            methodId,\n            methodArgs,\n            checkNodeId,\n            imageNodeId,\n            ackNodeId,\n            basePath,\n            deviceId,\n            enableUpload,\n            uploadUrl,\n            securityMode: securityModeVar,\n            securityPolicy: securityPolicyVar,\n            username,\n            password,\n            headers: additionalHeaders\n        };\n\n        node.log(payload);\n\n        // 5) Anfrage an das Go-Backend senden\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"Sending request...\" });\n        const response = await axios.post(backendUrl, payload, { headers: additionalHeaders });\n        node.log(\"Request sent.\")\n\n        // 6) Überprüfe die Antwort des Go-Backends\n        if (response.status !== 200 || !response.data.success) {\n            throw new Error(`Backend error: ${response.data.error || \"Unknown error\"}`);\n        }\n\n        // 7) Erfolgreiche Verarbeitung\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n\n        msg.payload = {\n            success: true,\n            endpoint: response.data.endpoint,\n            securityMode: response.data.securityMode,\n            securityPolicy: response.data.securityPolicy,\n            username: response.data.username,\n            image: response.data.image,\n            device_id: response.data.device_id,\n            uploaded: response.data.uploaded || false\n        };\n\n        return msg;\n    } catch (err) {\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.error(err.message, msg);\n        throw err;\n    }\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => finalMsg,\n    err => null\n);\n",
-        "outputs": 1,
-        "timeout": "30",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "opcua",
-                "module": "node-opcua"
-            },
-            {
-                "var": "axios",
-                "module": "axios"
-            },
-            {
-                "var": "fs",
-                "module": "fs-extra"
-            },
-            {
-                "var": "https",
-                "module": "https"
-            }
-        ],
-        "x": 540,
-        "y": 100,
-        "wires": [
-            []
-        ],
-        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
     },
     {
         "id": "498350a0e7d7fa21",
@@ -2282,220 +1745,51 @@
         ]
     },
     {
-        "id": "cde49993d7949b9b",
+        "id": "3502dba94720d721",
         "type": "function",
-        "z": "41184f092bb6b065",
-        "name": "function 1",
-        "func": "const url = `http://iot-gateway:${env.get('PORT')}/api/image-capture-processes/${env.get('ID')}/trigger`;\n\nconst options = {\n    method: 'POST'\n};\n\nconst req = http.request(url, options, (res) => {\n    let buffer = '';\n\n    res.on('data', (chunk) => {\n        buffer += chunk.toString('utf8');\n    });\n\n    res.on('end', () => {\n        node.send([null, { payload: buffer }]);\n    });\n});\n\nreq.on('error', (e) => {\n    node.send([{ payload: e.message }, null]);\n});\n\nreq.write(JSON.stringify(msg.payload));\nreq.end();\n\nreturn null; // Wichtig, da der Code asynchron ist",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "http",
-                "module": "http"
-            }
-        ],
-        "x": 200,
-        "y": 80,
-        "wires": [
-            [],
-            []
-        ]
-    },
-    {
-        "id": "a0cf33c78d811dc4",
-        "type": "status",
-        "z": "2790884e913791f8",
-        "name": "",
-        "scope": [
-            "5c2ac2a6bd299840"
-        ],
-        "x": 420,
-        "y": 40,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "5c2ac2a6bd299840",
-        "type": "function",
-        "z": "2790884e913791f8",
-        "name": "OPC-Image-Capture-Process",
-        "func": "// ------------------------------------------------------\n// \"Image Capture Process\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen\n// Hilfsfunktion für Fallback-Reihenfolge\nfunction getVar(key, def) {\n    if (msg && msg.payload && msg.payload[key] !== undefined) {\n        return msg.payload[key];\n    }\n    if (msg && msg.params && msg.params[key] !== undefined) {\n        return msg.params[key];\n    }\n    return env.get(key) || def;\n}\n\nconst endpoint = getVar(\"OPC_ENDPOINT\", \"opc.tcp://192.168.0.84:48010\");\nconst objectId = getVar(\"M_NODE_PARENT\", \"ns=3;s=Demo.Method\");\nconst methodId = getVar(\"M_NODE_IMAGE\", \"ns=3;s=Demo.Method.DoSomethingAfter10s\");\nconst methodArgs = getVar(\"M_ARGS\", \"\");\nconst checkNodeId = getVar(\"NODE_CHECK\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst imageNodeId = getVar(\"NODE_IMAGE\", \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\");\nconst ackNodeId = getVar(\"NODE_ACK_READ\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst basePath = getVar(\"BASEPATH\", \"./data/images\");\nconst device = getVar(\"DEVICE_ID\", \"local-1\");\nconst enableUpload = String(getVar(\"ENABLE_UPLOAD\", \"false\")).toLowerCase();\nconst uploadUrl = getVar(\"UPLOAD_URL\", null);\nconst timeHeader = getVar(\"TIMESTAMP_HEADER_NAME\", null);\nconst processId = getVar(\"PROCESS_ID\", null);\n\nlet headersRaw = getVar(\"HEADERS\", { \"Content-Type\": \"application/octet-stream\" });\nconst additionalHeaders = typeof headersRaw === \"string\" ? JSON.parse(headersRaw) : headersRaw;\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar   = String(env.get(\"OPC_SEC_MODE\") || \"NONE\").toUpperCase();\nconst securityPolicyVar = String(env.get(\"OPC_SEC_POLICY\") || \"NONE\").toUpperCase();\nconst username          = env.get(\"OPC_USER\");\nconst password          = env.get(\"OPC_PW\");\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    let client, session, base64String, savedFilePath, errorOccurred = false;\n    try {\n        const clientName = \"KIOekoSys_Gateway_\" + new Date().toISOString().replace(/[:.]/g, \"-\");\n\n        // 4) OPC-UA Client erstellen, inkl. Security-Einstellungen\n        client = opcua.OPCUAClient.create({\n            applicationName: clientName,\n            endpointMustExist: false,\n            securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n            securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n            connectionStrategy: {\n                initialDelay: 1000,\n                maxRetry: 10\n            }\n        });\n\n        // 5) OPC-UA-Server verbinden\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n        await client.connect(endpoint);\n\n        // 6) Session aufbauen:\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n        let userIdentity = null;\n        if (username && password) {\n            userIdentity = { userName: username, password };\n        }\n        session = await client.createSession(userIdentity);\n\n        // 7) Methode aufrufen (z. B. Start Bildaufnahme)\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Call Method...\" });\n        node.log(`[DEBUG] await method call`);\n        await callMethod(session, objectId, methodId);\n\n        // 8) Warten, bis checkNodeId = true\n        node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for boolean...\" });\n        await waitForBooleanTrue(session, checkNodeId, 20000);\n        node.log(`[DEBUG] Wait till check node true...`);\n\n        // 9) Bild-String auslesen\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Reading image...\" });\n        base64String = await readImageString(session, imageNodeId);\n        node.log(`[DEBUG] read image string`);\n\n        // 10) Lokales Speichern\n        node.status({ fill: \"blue\", shape: \"ring\", text: \"Saving file at\" + basePath });\n        savedFilePath = await saveImage(base64String, basePath, device);\n        node.log(`[DEBUG] Image saved at: ${savedFilePath}`);\n\n        // 11) Ack Node = true\n        node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n        node.log(`[DEBUG] Writing ack node...`);\n        await writeBoolean(session, ackNodeId, true);\n        node.log(`[DEBUG] wrote ack node`);\n\n        // 12) Optionaler Upload\n        if (enableUpload === \"true\" && uploadUrl) {\n            node.log(`[DEBUG] trying to upload...`);\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Uploading...\" });\n            await uploadFile(base64String, uploadUrl, additionalHeaders, timeHeader);\n            node.log(\"[DEBUG] Upload done.\");\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Upload done\" });\n        } else {\n            node.warn(\"[DEBUG] No upload requested (enableUpload=false or missing URL).\");\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Capture done\" });\n        }\n\n        // 13) Disconnect from Server ans Ende verschoben\n\n        // 14) msg.payload für den Flow\n        msg.payload = {\n            success: true,\n            endpoint,\n            securityMode: securityModeVar,\n            securityPolicy: securityPolicyVar,\n            username: username || \"Anonymous\",\n            // savedFilePath,\n            uploaded: (enableUpload === \"true\"),\n            image: base64String,\n            device_id: device,\n            process_id: processId,\n\n        };\n        return msg;\n\n    } catch (err) {\n        errorOccurred = true;\n        node.error(err.message, msg);\n        throw err;\n    } finally {\n        // Sicherstellen, dass die Session geschlossen wird\n        if (session) {\n            try {\n                await session.close();\n            } catch (closeErr) {\n                node.error(\"Fehler beim Schließen der Sitzung: \" + closeErr.message);\n            } finally {\n                session = null; // explizites Freigeben der Session-Referenz\n            }\n        }\n        // Sicherstellen, dass der Client getrennt wird\n        if (client) {\n            try {\n                await client.disconnect();\n            } catch (disconnectErr) {\n                node.error(\"Fehler beim Trennen der Verbindung: \" + disconnectErr.message);\n            }\n        }\n        // Node-Status final aktualisieren\n        if (errorOccurred) {\n            node.status({ fill: \"red\", shape: \"dot\", text: \"Error & Disconnected\" });\n        } else {\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Done & Disconnected\" });\n        }\n    }\n}\n\n// ------------------------------------------------------\n// Hilfsfunktionen\n// ------------------------------------------------------\n\nasync function callMethod(session, objectId, methodId) {\n    const parsedArgs = typeof methodArgs === \"string\" ? JSON.parse(methodArgs) : methodArgs;\n    const inputArguments = Object.entries(parsedArgs).map(([key, value]) => ({\n        dataType: opcua.DataType.String, // Standard: String, falls nicht explizit angegeben\n        value: value\n    }));\n    \n    const methodToCall = {\n        objectId,\n        methodId,\n        inputArguments\n    };\n    const result = await session.call(methodToCall);\n    if (result.statusCode.name !== \"Good\") {\n        throw new Error(\"Method call failed: \" + result.statusCode.description);\n    }\n    // console.log(result);\n    return result;\n}\n\nasync function waitForBooleanTrue(session, nodeId, timeoutMs) {\n    const start = Date.now();\n    while (true) {\n        const dataValue = await session.readVariableValue(nodeId);\n        if (dataValue.statusCode.name === \"Good\" && dataValue.value.value === true) {\n            return;\n        }\n        if (Date.now() - start > timeoutMs) {\n            throw new Error(`Timeout: ${nodeId} did not become true within ${timeoutMs} ms`);\n        }\n        await delay(1000); // 1 Sekunde Pause\n    }\n}\n\nasync function readImageString(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(\"Cannot read image: \" + dataValue.statusCode.description);\n    }\n    return dataValue.value.value;\n}\n\nasync function saveImage(base64String, basePath, device) {\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n    const fileName = `${device}_${timestamp}.png`;\n    const fullPath = `${basePath}/${device}/${fileName}`;\n\n    await fs.ensureDir(`${basePath}/${device}`);\n\n    const buffer = Buffer.from(base64String, \"base64\");\n    await fs.writeFile(fullPath, buffer);\n\n    return fullPath;\n}\n\nasync function writeBoolean(session, nodeId, value) {\n    const opcuaDataType = opcua.DataType.Boolean;\n    const writeValue = {\n        nodeId,\n        attributeId: opcua.AttributeIds.Value,\n        value: {\n            value: {\n                dataType: opcuaDataType,\n                value\n            }\n        }\n    };\n    const statusCode = await session.write(writeValue);\n    if (statusCode.name !== \"Good\") {\n        throw new Error(\"Failed to write boolean: \" + statusCode.description);\n    }\n}\n\nasync function uploadFile(base64String, url, headers = {}, timerHeader) {\n    const fileData = base64String;\n    const parsedHeaders = typeof headers === \"string\" ? JSON.parse(headers) : headers;\n\n    const defaultHeaders = {\n        \"Content-Type\": \"application/octet-stream\",\n    };\n    const mergedHeaders = { ...defaultHeaders, ...parsedHeaders };\n\n    // Add the timestamp header if a name is specified\n    if (timerHeader && typeof timerHeader === 'string') {\n        const timestampHeaderValue = formatDate(new Date());\n        mergedHeaders[timerHeader] = timestampHeaderValue;\n    }\n\n    let axiosConfig = { headers: mergedHeaders };\n\n    if (url.startsWith(\"https\")) {\n        axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });\n    }\n\n    const response = await axios.post(url, fileData, axiosConfig);\n\n    if (response.status < 200 || response.status > 299) {\n        throw new Error(`Upload failed: HTTP ${response.status}`);\n    }\n    return response.data;\n}\n\n// Hilfsfunktion zur Formatierung des Datums\nfunction formatDate(date, format) {\n    const year = date.getFullYear();\n    const month = String(date.getMonth() + 1).padStart(2, '0');\n    const day = String(date.getDate()).padStart(2, '0');\n    const hours = String(date.getHours()).padStart(2, '0');\n    const minutes = String(date.getMinutes()).padStart(2, '0');\n    const seconds = String(date.getSeconds()).padStart(2, '0');\n\n    if (format === 'ISO') {\n        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;\n    }\n    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;\n}\n\nfunction delay(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Done\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);\n// return main().then(\n//     finalMsg => finalMsg,\n//     err => null\n// );",
-        "outputs": 1,
-        "timeout": "30",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [
-            {
-                "var": "opcua",
-                "module": "node-opcua"
-            },
-            {
-                "var": "axios",
-                "module": "axios"
-            },
-            {
-                "var": "fs",
-                "module": "fs-extra"
-            },
-            {
-                "var": "https",
-                "module": "https"
-            }
-        ],
-        "x": 410,
-        "y": 200,
-        "wires": [
-            [
-                "2e66b9f8029dc790"
-            ]
-        ],
-        "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
-    },
-    {
-        "id": "2e66b9f8029dc790",
-        "type": "function",
-        "z": "2790884e913791f8",
-        "name": "toBase64",
-        "func": "// Extrahiere den Dateinamen aus dem savedFilePath\n// Check for msg.payload.savedFilePath first, as it's more likely to be the correct source.\nconst fileName = msg.payload.savedFilePath || msg.savedFilePath; \nconst device_id = msg.payload.device_id;\n\nmsg.image = msg.payload.image;\n\n// Konvertiere das Bild in Base64\n// The image should be converted to base64, but the payload structure should be kept clean.\n// Overwriting the entire payload with just the image string can lose other useful information.\nmsg.payload.device = device_id;\nif (msg.payload.image && typeof msg.payload.image !== 'string') {\n    msg.payload.image = msg.payload.image.toString(\"base64\");\n}\n\nmsg.payload = msg.payload.image;\n\n// Generate a proper timestamp for the filename\nconst timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n\n// Übergabe des Dateinamens\n// Use template literals to correctly build the filename with a timestamp.\nmsg.filename = `/data/shared/${device_id}_${timestamp}.png`;\n\nreturn msg;",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
+        "name": "save local - no url",
+        "func": "const uploaded = msg.statusCode;\nconst device_id = msg.opcua.device_id;\n\n// Prüfe, ob der Upload fehlgeschlagen ist (statusCode nicht 200 oder 201)\nif (uploaded !== 200 && uploaded !== 201) {\n\n    node.status({ fill: \"red\", shape: \"ring\", text: `Upload failed with status code ${uploaded}. Saving file...` });\n\n    // Bilddaten aus dem ursprünglichen Payload holen\n    let imageData = msg.payload;\n\n    // Optional: Konvertiere das Bild in Base64, falls nötig\n    // Wenn das Bild bereits als Buffer vorliegt, ist eine Konvertierung nicht notwendig.\n    // Ein Dateiknoten speichert Buffer direkt korrekt.\n    // Falls du es als Base64-String benötigst, kannst du es hier konvertieren:\n    const base64Image = imageData.toString(\"base64\");\n\n    // Definiere den Speicherpfad\n    const today = new Date().toISOString().slice(0, 10);\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n\n    // Setze den Dateinamen im msg-Objekt\n    // Der Dateiname sollte den vollständigen Pfad enthalten, damit das 'file'-Node weiß, wohin es speichern soll.\n    msg.filename = `/data/shared/${today}/${device_id}_${timestamp}.png`;\n\n    // Setze den Payload auf die reinen Bilddaten (als Buffer)\n    // msg.payload = imageData;\n\n    // Setze den payload auf die Bilddaten (base64)\n    msg.payload = base64Image \n\n    node.status({ fill: \"green\", shape: \"dot\", text: 'Saved local' });\n\n    // Wichtiger Hinweis: Setze den `msg.filename` und `msg.payload` und gib `msg` zurück.\n    // Das `file`-Node wird diese Eigenschaften verwenden, um die Datei zu speichern.\n    return msg;\n} else {\n    // Erfolgreicher Upload\n    node.status({ fill: \"green\", shape: \"dot\", text: `Upload successful with status code ${uploaded}.` });\n\n    // Gib eine leere Nachricht oder einen Erfolgs-Payload zurück, um den Flow fortzusetzen\n    msg.payload = { success: true, message: `Upload successful for device ${device_id}.` };\n\n    // Optional: Lösche das Bild, um Speicher zu sparen\n    delete msg.payload.image;\n\n    return msg;\n}",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 360,
-        "y": 280,
+        "x": 650,
+        "y": 480,
         "wires": [
             [
-                "0b5077fadf3de95d",
-                "e052af4538e444ad"
+                "b8081502c40f9291"
             ]
         ]
     },
     {
-        "id": "0b5077fadf3de95d",
-        "type": "http request",
-        "z": "2790884e913791f8",
-        "name": "",
-        "method": "POST",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "http://localhost:8088/api/save-image",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 550,
-        "y": 280,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "e052af4538e444ad",
-        "type": "file",
-        "z": "2790884e913791f8",
-        "name": "",
-        "filename": "filename",
-        "filenameType": "msg",
-        "appendNewline": false,
-        "createDir": false,
-        "overwriteFile": "true",
-        "encoding": "base64",
-        "x": 340,
-        "y": 360,
-        "wires": [
-            [
-                "e49985ce05c5bff3"
-            ]
-        ]
-    },
-    {
-        "id": "21fbc1598ee6a589",
-        "type": "http response",
-        "z": "2790884e913791f8",
-        "name": "",
-        "statusCode": "200",
-        "headers": {},
-        "x": 680,
-        "y": 360,
-        "wires": []
-    },
-    {
-        "id": "e49985ce05c5bff3",
-        "type": "function",
-        "z": "2790884e913791f8",
-        "name": "function 2",
-        "func": "const image = msg.payload;\n\nmsg.payload = {\n    \"image\": image\n};\n\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 520,
-        "y": 360,
-        "wires": [
-            [
-                "21fbc1598ee6a589"
-            ]
-        ]
-    },
-    {
-        "id": "7af2c4884d41488a",
-        "type": "function",
-        "z": "f748bd8e78496824",
-        "g": "d271b9b1845953b5",
-        "name": "toBase64",
-        "func": "const uploaded = msg.statusCode;\nconst device_id = msg.opcua.device_id;\n\n// Prüfe, ob der Upload fehlgeschlagen ist (statusCode nicht 200 oder 201)\nif (uploaded !== 200 && uploaded !== 201) {\n\n    node.status({ fill: \"red\", shape: \"ring\", text: `Upload failed with status code ${uploaded}. Saving file...` });\n\n    // Bilddaten aus dem ursprünglichen Payload holen\n    let imageData = msg.payload;\n\n    // Optional: Konvertiere das Bild in Base64, falls nötig\n    // Wenn das Bild bereits als Buffer vorliegt, ist eine Konvertierung nicht notwendig.\n    // Ein Dateiknoten speichert Buffer direkt korrekt.\n    // Falls du es als Base64-String benötigst, kannst du es hier konvertieren:\n    const base64Image = imageData.toString(\"base64\");\n\n    // Definiere den Speicherpfad\n    const today = new Date().toISOString().slice(0, 10);\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n\n    // Setze den Dateinamen im msg-Objekt\n    // Der Dateiname sollte den vollständigen Pfad enthalten, damit das 'file'-Node weiß, wohin es speichern soll.\n    msg.filename = `/data/shared/images/${today}/${device_id}_${timestamp}.png`;\n\n    // Setze den Payload auf die reinen Bilddaten (als Buffer)\n    // msg.payload = imageData;\n\n    // Setze den payload auf die Bilddaten (base64)\n    msg.payload = base64Image \n\n    // Wichtiger Hinweis: Setze den `msg.filename` und `msg.payload` und gib `msg` zurück.\n    // Das `file`-Node wird diese Eigenschaften verwenden, um die Datei zu speichern.\n    return msg;\n} else {\n    // Erfolgreicher Upload\n    node.status({ fill: \"green\", shape: \"dot\", text: `Upload successful with status code ${uploaded}.` });\n\n    // Gib eine leere Nachricht oder einen Erfolgs-Payload zurück, um den Flow fortzusetzen\n    msg.payload = { success: true, message: `Upload successful for device ${device_id}.` };\n\n    // Optional: Lösche das Bild, um Speicher zu sparen\n    delete msg.payload.image;\n\n    return msg;\n}",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1080,
-        "y": 420,
-        "wires": [
-            [
-                "7a0d02e4a4354fe9"
-            ]
-        ]
-    },
-    {
-        "id": "c28915ee6658631a",
+        "id": "445e86533b09c2a0",
         "type": "http in",
-        "z": "f748bd8e78496824",
-        "g": "e5afdb9332dd508d",
+        "z": "acb6954d7bc4254f",
+        "g": "3fe1ed64fcf761ad",
         "name": "",
         "url": "/api/img-capture",
         "method": "post",
         "upload": false,
         "skipBodyParsing": false,
         "swaggerDoc": "",
-        "x": 220,
+        "x": 140,
         "y": 220,
         "wires": [
             [
-                "affc2fb7b7670bf3",
-                "c5ab257d790803d3"
+                "4a78acdb944cb3d8",
+                "d662cc824562b25b"
             ]
         ]
     },
     {
-        "id": "7a0d02e4a4354fe9",
+        "id": "b8081502c40f9291",
         "type": "file",
-        "z": "f748bd8e78496824",
-        "g": "d271b9b1845953b5",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
         "name": "",
         "filename": "filename",
         "filenameType": "msg",
@@ -2503,17 +1797,17 @@
         "createDir": true,
         "overwriteFile": "true",
         "encoding": "base64",
-        "x": 1300,
-        "y": 420,
+        "x": 840,
+        "y": 480,
         "wires": [
             []
         ]
     },
     {
-        "id": "7a26941a7fab950a",
+        "id": "289ee7041572313b",
         "type": "http request",
-        "z": "f748bd8e78496824",
-        "g": "d271b9b1845953b5",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
         "name": "",
         "method": "use",
         "ret": "txt",
@@ -2526,21 +1820,21 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 830,
-        "y": 420,
+        "x": 310,
+        "y": 520,
         "wires": [
             [
-                "7af2c4884d41488a"
+                "2c5e65cc7b5c67c6"
             ]
         ]
     },
     {
-        "id": "affc2fb7b7670bf3",
+        "id": "4a78acdb944cb3d8",
         "type": "function",
-        "z": "f748bd8e78496824",
-        "g": "e5afdb9332dd508d",
+        "z": "acb6954d7bc4254f",
+        "g": "3fe1ed64fcf761ad",
         "name": "OPC-Image-Capture-Process",
-        "func": "// ------------------------------------------------------\n// \"Image Capture Process - Vorbereitung für externen HTTP-Request\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen\n// Hilfsfunktion für Fallback-Reihenfolge\nfunction getVar(key, def) {\n    if (msg && msg.payload && msg.payload[key] !== undefined) {\n        return msg.payload[key];\n    }\n    if (msg && msg.params && msg.params[key] !== undefined) {\n        return msg.params[key];\n    }\n    return env.get(key) || def;\n}\n\nconst endpoint = getVar(\"OPC_ENDPOINT\", \"opc.tcp://192.168.0.84:48010\");\nconst objectId = getVar(\"M_NODE_PARENT\", \"ns=3;s=Demo.Method\");\nconst methodId = getVar(\"M_NODE_IMAGE\", \"ns=3;s=Demo.Method.DoSomethingAfter10s\");\nconst methodArgs = getVar(\"M_ARGS\", \"\");\nconst readAvailableNodeId = getVar(\"NODE_READ_AVAILABLE\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst checkNodeId = getVar(\"NODE_CHECK\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst imageNodeId = getVar(\"NODE_IMAGE\", \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\");\nconst ackNodeId = getVar(\"NODE_ACK_READ\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst basePath = getVar(\"BASEPATH\", \"./data/images\");\nconst device = getVar(\"DEVICE_ID\", \"local-1\");\nconst enableUpload = String(getVar(\"ENABLE_UPLOAD\", \"false\")).toLowerCase();\nconst uploadUrl = getVar(\"UPLOAD_URL\", null);\nconst timeHeader = getVar(\"TIMESTAMP_HEADER_NAME\", null);\nconst processId = getVar(\"PROCESS_ID\", null);\n\nlet headersRaw = getVar(\"HEADERS\", { \"Content-Type\": \"application/octet-stream\" });\nconst additionalHeaders = typeof headersRaw === \"string\" ? JSON.parse(headersRaw) : headersRaw;\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar = String(env.get(\"OPC_SEC_MODE\") || \"NONE\").toUpperCase();\nconst securityPolicyVar = String(env.get(\"OPC_SEC_POLICY\") || \"NONE\").toUpperCase();\nconst username = env.get(\"OPC_USER\");\nconst password = env.get(\"OPC_PW\");\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    let client, session, base64String, savedFilePath, errorOccurred = false;\n    try {\n        const clientName = \"KIOekoSys_Gateway_\" + new Date().toISOString().replace(/[:.]/g, \"-\");\n\n        // 4) OPC-UA Client erstellen, inkl. Security-Einstellungen\n        client = opcua.OPCUAClient.create({\n            applicationName: clientName,\n            endpointMustExist: false,\n            securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n            securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n            connectionStrategy: {\n                initialDelay: 1000,\n                maxRetry: 10\n            }\n        });\n\n        // 5) OPC-UA-Server verbinden\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n        await client.connect(endpoint);\n\n        // 6) Session aufbauen:\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n        let userIdentity = null;\n        if (username && password) {\n            userIdentity = { userName: username, password };\n        }\n        session = await client.createSession(userIdentity);\n\n        // 7) Warten, bis Image_Read_Available_node = true\n        node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for Image Read available ...\" });\n        await waitForBooleanTrue(session, readAvailableNodeId, 30000);\n        node.log(`[DEBUG] Wait till check node true...`);\n\n        // 7.1) Setze ImageWasRead auf True falls noch nicht zuvor\n        node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n        node.log(`[DEBUG] Writing ack node...`);\n        await writeBoolean(session, ackNodeId, true);\n        node.log(`[DEBUG] wrote ack node`);\n\n        // 8) Methode aufrufen (z. B. Start Bildaufnahme)\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Call Method...\" });\n        node.log(`[DEBUG] await method call`);\n        await callMethod(session, objectId, methodId);\n\n        // 9) Warten, bis checkNodeId = true\n        node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for boolean...\" });\n        await waitForBooleanTrue(session, checkNodeId, 20000);\n        node.log(`[DEBUG] Wait till check node true...`);\n\n        // 10) Bild-String auslesen\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Reading image...\" });\n        base64String = await readImageString(session, imageNodeId);\n        node.log(`[DEBUG] read image string`);\n\n        // 11) Ack Node = true\n        node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n        node.log(`[DEBUG] Writing ack node...`);\n        await writeBoolean(session, ackNodeId, true);\n        node.log(`[DEBUG] wrote ack node`);\n\n        // 12) Lokales Speichern falls Upload nicht aktiviert ist\n        if (enableUpload !== \"true\") {\n            node.status({ fill: \"blue\", shape: \"ring\", text: \"Saving file at\" + basePath });\n            savedFilePath = await saveImage(base64String, basePath, device);\n            node.log(`[DEBUG] Image saved at: ${savedFilePath}`);\n        }\n\n        // 13) Finaler Node-Status\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Image capture done\" });\n\n        // 14) msg-Objekt für den nächsten Node vorbereiten\n        const finalMsg = {};\n        finalMsg.payload = Buffer.from(base64String, \"base64\");\n\n        if (enableUpload === \"true\" && uploadUrl) {\n            finalMsg.url = uploadUrl;\n            finalMsg.method = 'POST';\n            finalMsg.image = base64String; \n            finalMsg.headers = {\n                ...additionalHeaders\n            };\n            if (timeHeader) {\n                finalMsg.headers[timeHeader] = formatDate(new Date());\n            }\n        }\n\n        // Zusätzliche Metadaten für Debugging oder weitere Flow-Schritte\n        finalMsg.topic = \"image_capture_complete\";\n        finalMsg.opcua = {\n            success: true,\n            endpoint,\n            uploaded: (enableUpload === \"true\"),\n            device_id: device,\n            processId: processId\n        };\n\n        return finalMsg;\n\n    } catch (err) {\n        errorOccurred = true;\n        node.error(err.message, msg);\n        throw err;\n    } finally {\n        // Sicherstellen, dass die Session geschlossen wird\n        if (session) {\n            try {\n                await session.close();\n            } catch (closeErr) {\n                node.error(\"Fehler beim Schließen der Sitzung: \" + closeErr.message);\n            } finally {\n                session = null; // explizites Freigeben der Session-Referenz\n            }\n        }\n        // Sicherstellen, dass der Client getrennt wird\n        if (client) {\n            try {\n                await client.disconnect();\n            } catch (disconnectErr) {\n                node.error(\"Fehler beim Trennen der Verbindung: \" + disconnectErr.message);\n            }\n        }\n        // Node-Status final aktualisieren\n        if (errorOccurred) {\n            node.status({ fill: \"red\", shape: \"dot\", text: \"Error & Disconnected\" });\n        } else {\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Done & Disconnected\" });\n        }\n    }\n}\n\n// ------------------------------------------------------\n// Hilfsfunktionen\n// ------------------------------------------------------\n// Note: axios and http-related functions have been removed.\n\nasync function callMethod(session, objectId, methodId) {\n    const parsedArgs = typeof methodArgs === \"string\" ? JSON.parse(methodArgs) : methodArgs;\n    const inputArguments = Object.entries(parsedArgs).map(([key, value]) => ({\n        dataType: opcua.DataType.String, // Standard: String, falls nicht explizit angegeben\n        value: value\n    }));\n\n    const methodToCall = {\n        objectId,\n        methodId,\n        inputArguments\n    };\n    const result = await session.call(methodToCall);\n    if (result.statusCode.name !== \"Good\") {\n        throw new Error(\"Method call failed: \" + result.statusCode.description);\n    }\n    return result;\n}\n\nasync function waitForBooleanTrue(session, nodeId, timeoutMs) {\n    const start = Date.now();\n    while (true) {\n        const dataValue = await session.readVariableValue(nodeId);\n        if (dataValue.statusCode.name === \"Good\" && (dataValue.value.value === true || dataValue.value.value === 1)) {\n            return;\n        }\n        if (Date.now() - start > timeoutMs) {\n            throw new Error(`Timeout: ${nodeId} did not become true within ${timeoutMs} ms`);\n        }\n        await delay(1000);\n    }\n}\n\nasync function readImageString(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(\"Cannot read image: \" + dataValue.statusCode.description);\n    }\n    return dataValue.value.value;\n}\n\nasync function saveImage(base64String, basePath, device) {\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n    const fileName = `${device}_${timestamp}.png`;\n    const fullPath = `${basePath}/${device}/${fileName}`;\n    await fs.ensureDir(`${basePath}/${device}`);\n    const buffer = Buffer.from(base64String, \"base64\");\n    await fs.writeFile(fullPath, buffer);\n    return fullPath;\n}\n\nasync function writeBoolean(session, nodeId, value) {\n    const opcuaDataType = opcua.DataType.Boolean;\n    const writeValue = {\n        nodeId,\n        attributeId: opcua.AttributeIds.Value,\n        value: {\n            value: {\n                dataType: opcuaDataType,\n                value\n            }\n        }\n    };\n    const statusCode = await session.write(writeValue);\n    if (statusCode.name !== \"Good\") {\n        throw new Error(\"Failed to write boolean: \" + statusCode.description);\n    }\n}\n\nfunction formatDate(date, format) {\n    const year = date.getFullYear();\n    const month = String(date.getMonth() + 1).padStart(2, '0');\n    const day = String(date.getDate()).padStart(2, '0');\n    const hours = String(date.getHours()).padStart(2, '0');\n    const minutes = String(date.getMinutes()).padStart(2, '0');\n    const seconds = String(date.getSeconds()).padStart(2, '0');\n    if (format === 'ISO') {\n        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;\n    }\n    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;\n}\n\nfunction delay(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Done\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);",
+        "func": "// ------------------------------------------------------\n// \"Image Capture Process - Vorbereitung für externen HTTP-Request\"\n// ------------------------------------------------------\n\n// 1) Lese generelle Variablen\n// Hilfsfunktion für Fallback-Reihenfolge\nfunction getVar(key, def) {\n    if (msg && msg.payload && msg.payload[key] !== undefined) {\n        return msg.payload[key];\n    }\n    if (msg && msg.params && msg.params[key] !== undefined) {\n        return msg.params[key];\n    }\n    return env.get(key) || def;\n}\n\nconst endpoint = getVar(\"OPC_ENDPOINT\", \"opc.tcp://192.168.0.84:48010\");\nconst objectId = getVar(\"M_NODE_PARENT\", \"ns=3;s=Demo.Method\");\nconst methodId = getVar(\"M_NODE_IMAGE\", \"ns=3;s=Demo.Method.DoSomethingAfter10s\");\nconst methodArgs = getVar(\"M_ARGS\", \"\");\nconst readAvailableNodeId = getVar(\"NODE_READ_AVAILABLE\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst checkNodeId = getVar(\"NODE_CHECK\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst imageNodeId = getVar(\"NODE_IMAGE\", \"ns=3;s=Demo.Dynamic.Scalar.ImageGIF\");\nconst ackNodeId = getVar(\"NODE_ACK_READ\", \"ns=3;s=Demo.Dynamic.Scalar.Boolean\");\nconst basePath = getVar(\"BASEPATH\", \"./data/images\");\nconst device = getVar(\"DEVICE_ID\", \"local-1\");\nconst enableUpload = String(getVar(\"ENABLE_UPLOAD\", \"false\")).toLowerCase();\nconst uploadUrl = getVar(\"UPLOAD_URL\", null);\nconst timeHeader = getVar(\"TIMESTAMP_HEADER_NAME\", null);\nconst processId = getVar(\"PROCESS_ID\", null);\n\nlet headersRaw = getVar(\"HEADERS\", { \"Content-Type\": \"application/octet-stream\" });\nconst additionalHeaders = typeof headersRaw === \"string\" ? JSON.parse(headersRaw) : headersRaw;\n\n// 2) Lese Security-spezifische Env Vars\nconst securityModeVar = String(env.get(\"OPC_SEC_MODE\") || \"NONE\").toUpperCase();\nconst securityPolicyVar = String(env.get(\"OPC_SEC_POLICY\") || \"NONE\").toUpperCase();\nconst username = env.get(\"OPC_USER\");\nconst password = env.get(\"OPC_PW\");\n\n// 3) Übersetze die Strings in node-opcua-Konstanten\nconst securityModes = {\n    \"NONE\": opcua.MessageSecurityMode.None,\n    \"SIGN\": opcua.MessageSecurityMode.Sign,\n    \"SIGNANDENCRYPT\": opcua.MessageSecurityMode.SignAndEncrypt\n};\nconst securityPolicies = {\n    \"NONE\": opcua.SecurityPolicy.None,\n    \"BASIC128RSA15\": opcua.SecurityPolicy.Basic128Rsa15,\n    \"BASIC256\": opcua.SecurityPolicy.Basic256,\n    \"BASIC256SHA256\": opcua.SecurityPolicy.Basic256Sha256\n};\n\n// Node-RED UI Feedback\nnode.status({ fill: \"grey\", shape: \"dot\", text: \"Init...\" });\n\n// ------------------------------------------------------\n// Hauptfunktion (asynchron)\n// ------------------------------------------------------\nasync function main() {\n    let client, session, base64String, savedFilePath, errorOccurred = false;\n    try {\n        const clientName = \"KIOekoSys_Gateway_\" + new Date().toISOString().replace(/[:.]/g, \"-\");\n\n        // 4) OPC-UA Client erstellen, inkl. Security-Einstellungen\n        client = opcua.OPCUAClient.create({\n            applicationName: clientName,\n            endpointMustExist: false,\n            securityMode: securityModes[securityModeVar] || opcua.MessageSecurityMode.None,\n            securityPolicy: securityPolicies[securityPolicyVar] || opcua.SecurityPolicy.None,\n            connectionStrategy: {\n                initialDelay: 1000,\n                maxRetry: 10\n            }\n        });\n\n        // 5) OPC-UA-Server verbinden\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"Connecting...\" });\n        await client.connect(endpoint);\n\n        // 6) Session aufbauen:\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Create Session...\" });\n        let userIdentity = null;\n        if (username && password) {\n            userIdentity = { userName: username, password };\n        }\n        session = await client.createSession(userIdentity);\n\n        // 7) Warten, bis Image_Read_Available_node = true\n        node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for Image Read available ...\" });\n        //await waitForBooleanTrue(session, readAvailableNodeId, 10000);\n        node.log(`[DEBUG] Wait till check node true...`);\n\n        // 7.1) Setze ImageWasRead auf True falls noch nicht zuvor\n        node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n        node.log(`[DEBUG] Writing ack node...`);\n        await writeBoolean(session, ackNodeId, true);\n        node.log(`[DEBUG] wrote ack node`);\n\n        // 8) Methode aufrufen (z. B. Start Bildaufnahme)\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Call Method...\" });\n        node.log(`[DEBUG] await method call`);\n        await callMethod(session, objectId, methodId);\n\n        // // 9) Warten, bis checkNodeId = true\n        // node.status({ fill: \"blue\", shape: \"ring\", text: \"Wait for boolean...\" });\n        // await waitForBooleanTrue(session, checkNodeId, 20000);\n        // node.log(`[DEBUG] Wait till check node true...`);\n\n        // 9) Warten, bis checkNodeId = true (jetzt für mehrere Nodes)\n        const checkNodes = checkNodeId.split(',').map(s => s.trim()).filter(Boolean);\n        if (checkNodes.length > 0) {\n            for (const nodeId of checkNodes) {\n                node.status({ fill: \"blue\", shape: \"ring\", text: `Wait for boolean on ${nodeId}...` });\n                await waitForBooleanTrue(session, nodeId, 20000);\n                node.log(`[DEBUG] Wait till check node ${nodeId} true...`);\n            }\n        } else {\n            node.log(\"[WARN] checkNodeId is empty, skipping boolean check.\");\n        }\n\n        // 10) Bild-String auslesen\n        node.status({ fill: \"blue\", shape: \"dot\", text: \"Reading image...\" });\n        base64String = await readImageString(session, imageNodeId);\n        node.log(`[DEBUG] read image string`);\n\n        // 11) Ack Node = true\n        node.status({ fill: \"green\", shape: \"ring\", text: \"Write Ack...\" });\n        node.log(`[DEBUG] Writing ack node...`);\n        await writeBoolean(session, ackNodeId, true);\n        node.log(`[DEBUG] wrote ack node`);\n\n        // 12) Lokales Speichern falls Upload nicht aktiviert ist\n        if (enableUpload !== \"true\") {\n            node.status({ fill: \"blue\", shape: \"ring\", text: \"Saving file at\" + basePath });\n            savedFilePath = await saveImage(base64String, basePath, device);\n            node.log(`[DEBUG] Image saved at: ${savedFilePath}`);\n        }\n\n        // 13) Finaler Node-Status\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Image capture done\" });\n\n        // 14) msg-Objekt für den nächsten Node vorbereiten\n        const finalMsg = {};\n        finalMsg.payload = Buffer.from(base64String, \"base64\");\n\n        if (enableUpload === \"true\" && uploadUrl) {\n            finalMsg.url = uploadUrl;\n            finalMsg.method = 'POST';\n            finalMsg.image = base64String; \n            finalMsg.headers = {\n                ...additionalHeaders\n            };\n            if (timeHeader) {\n                finalMsg.headers[timeHeader] = formatDate(new Date());\n            }\n        }\n\n        // Zusätzliche Metadaten für Debugging oder weitere Flow-Schritte\n        finalMsg.topic = \"image_capture_complete\";\n        finalMsg.opcua = {\n            success: true,\n            endpoint,\n            uploaded: (enableUpload === \"true\"),\n            device_id: device,\n            processId: processId\n        };\n\n        return finalMsg;\n\n    } catch (err) {\n        errorOccurred = true;\n        node.error(err.message, msg);\n        throw err;\n    } finally {\n        // Sicherstellen, dass die Session geschlossen wird\n        if (session) {\n            try {\n                await session.close();\n            } catch (closeErr) {\n                node.error(\"Fehler beim Schließen der Sitzung: \" + closeErr.message);\n            } finally {\n                session = null; // explizites Freigeben der Session-Referenz\n            }\n        }\n        // Sicherstellen, dass der Client getrennt wird\n        if (client) {\n            try {\n                await client.disconnect();\n            } catch (disconnectErr) {\n                node.error(\"Fehler beim Trennen der Verbindung: \" + disconnectErr.message);\n            }\n        }\n        // Node-Status final aktualisieren\n        if (errorOccurred) {\n            node.status({ fill: \"red\", shape: \"dot\", text: \"Error & Disconnected\" });\n        } else {\n            node.status({ fill: \"green\", shape: \"dot\", text: \"Done & Disconnected\" });\n        }\n    }\n}\n\n// ------------------------------------------------------\n// Hilfsfunktionen\n// ------------------------------------------------------\n// Note: axios and http-related functions have been removed.\n\nasync function callMethod(session, objectId, methodId) {\n    const parsedArgs = typeof methodArgs === \"string\" ? JSON.parse(methodArgs) : methodArgs;\n    const inputArguments = Object.entries(parsedArgs).map(([key, value]) => ({\n        dataType: opcua.DataType.String, // Standard: String, falls nicht explizit angegeben\n        value: value\n    }));\n\n    const methodToCall = {\n        objectId,\n        methodId,\n        inputArguments\n    };\n    const result = await session.call(methodToCall);\n    if (result.statusCode.name !== \"Good\") {\n        throw new Error(\"Method call failed: \" + result.statusCode.description);\n    }\n    return result;\n}\n\nasync function waitForBooleanTrue(session, nodeId, timeoutMs) {\n    const start = Date.now();\n    while (true) {\n        const dataValue = await session.readVariableValue(nodeId);\n        if (dataValue.statusCode.name === \"Good\" && (dataValue.value.value === true || dataValue.value.value === 1)) {\n            return;\n        }\n        if (Date.now() - start > timeoutMs) {\n            throw new Error(`Timeout: ${nodeId} did not become true within ${timeoutMs} ms`);\n        }\n        await delay(1000);\n    }\n}\n\nasync function readImageString(session, nodeId) {\n    const dataValue = await session.readVariableValue(nodeId);\n    if (dataValue.statusCode.name !== \"Good\") {\n        throw new Error(\"Cannot read image: \" + dataValue.statusCode.description);\n    }\n    return dataValue.value.value;\n}\n\nasync function saveImage(base64String, basePath, device) {\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n    const fileName = `${device}_${timestamp}.png`;\n    const fullPath = `${basePath}/${device}/${fileName}`;\n    await fs.ensureDir(`${basePath}/${device}`);\n    const buffer = Buffer.from(base64String, \"base64\");\n    await fs.writeFile(fullPath, buffer);\n    return fullPath;\n}\n\nasync function writeBoolean(session, nodeId, value) {\n    const opcuaDataType = opcua.DataType.Boolean;\n    const writeValue = {\n        nodeId,\n        attributeId: opcua.AttributeIds.Value,\n        value: {\n            value: {\n                dataType: opcuaDataType,\n                value\n            }\n        }\n    };\n    const statusCode = await session.write(writeValue);\n    if (statusCode.name !== \"Good\") {\n        throw new Error(\"Failed to write boolean: \" + statusCode.description);\n    }\n}\n\nfunction formatDate(date, format) {\n    const year = date.getFullYear();\n    const month = String(date.getMonth() + 1).padStart(2, '0');\n    const day = String(date.getDate()).padStart(2, '0');\n    const hours = String(date.getHours()).padStart(2, '0');\n    const minutes = String(date.getMinutes()).padStart(2, '0');\n    const seconds = String(date.getSeconds()).padStart(2, '0');\n    if (format === 'ISO') {\n        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;\n    }\n    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;\n}\n\nfunction delay(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}\n\n// ------------------------------------------------------\n// Am Ende: main() aufrufen (asynchron) und Promise zurückgeben\n// ------------------------------------------------------\nreturn main().then(\n    finalMsg => {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Done\" });\n        return finalMsg;\n    },\n    err => {\n        node.error(err.message, msg);\n        node.status({ fill: \"red\", shape: \"dot\", text: \"Error\" });\n        node.warn(\"[DEBUG] Caught error: \" + err.message);\n        return null;\n    }\n);",
         "outputs": 1,
         "timeout": "30",
         "noerr": 0,
@@ -2564,60 +1858,59 @@
                 "module": "https"
             }
         ],
-        "x": 390,
+        "x": 310,
         "y": 320,
         "wires": [
             [
-                "7a26941a7fab950a",
-                "08e1e8bcc468944e",
-                "036f035008e08242"
+                "ddce54b01f874280",
+                "3292cba161de8b89"
             ]
         ],
         "info": "# Image Capture Process (OPC UA)\r\n\r\nDiese Funktion stellt eine Verbindung zu einem OPC UA Server her, um einen „Image Capture“-Prozess anzustoßen und auszuführen. Sie erledigt folgende Schritte:\r\n\r\n## 1. OPC-UA-Client erzeugen und verbinden\r\n\r\nVerbindet sich mit dem Endpoint (z. B. `opc.tcp://localhost:48010`)\r\nUnterstützt optional Security Mode / Policy (z. B. None, Sign, SignAndEncrypt)\r\nOptionaler Benutzername/Passwort, sonst Anonymous\r\n## 2. OPC-UA-Methode aufrufen\r\n\r\nLiest die Node-IDs aus `msg` (oder Environment Variables) aus (z. B. `methodId`, `objectId`)\r\nStartet damit den Bildaufnahme-Prozess am Server\r\n## 3. Warten auf Boolean (Check Node)\r\n\r\nDie Funktion wartet bis ein bestimmtes OPC-UA-Node (z. B. `ns=3;s=Demo.Dynamic.Scalar.Boolean`) auf `true` wechselt\r\nTimeout nach 20 Sekunden\r\n## 4. Bild-Daten (String) lesen\r\n\r\nLiest den Bild-String (Base64 oder ASCII) aus einer OPC UA-Variable (`imageNodeId`)\r\n## 5. Bild lokal speichern\r\n\r\nErzeugt einen Timestamp-basierten Dateinamen im angegebenen `basePath`/\\device`-Ordner (z. B. `C:/.../local-1/...png`)\r\nVerwendet `fs-extra` (ensureDir, writeFile)\r\n## 6. ACK-Flag schreiben\r\n\r\nSchreibt `true` in eine andere Node-ID (`ackNodeId`) als Bestätigung, dass das Bild erfolgreich abgeholt wurde\r\n## 7. (Optional) Upload\r\n\r\nWenn `enableUpload` = „true“ und `uploadUrl` nicht leer sind, lädt die Funktion das gespeicherte Bild als Binärdaten via HTTP POST hoch\r\nRückgabe (msg.payload)\r\n\r\n - `msg.payload.success = true`\r\n - `msg.payload.savedFilePath` zeigt den Speicherort\r\n - `msg.payload.uploaded` = true/false je nach Upload\r\n - Eingangs-Parameter (in msg)\r\n - `msg.endpoint`: OPC UA Endpoint (z. B. \"opc.tcp://localhost:48010\")\r\n - `msg.methodId`, `msg.objectId`: IDs der aufzurufenden OPC UA-Methode\r\n - `msg.checkNodeId`: Node-Id (Boolean), auf die gewartet wird\r\n - `msg.imageNodeId`: Node-Id mit dem Bild-String\r\n - `msg.ackNodeId`: Node-Id, in die `true` geschrieben wird\r\n - `msg.basePath`: Basis-Pfad zum Speichern\r\n - `msg.device`: Geräte-/Unterordner-Name\r\n - `msg.enableUpload`: \"true\"/\"false\", ob hochgeladen werden soll\r\n - `msg.uploadUrl`: Ziel-URL für den Upload\r\n - `msg.securityModeVar`, `msg.securityPolicyVar`: (Optional) Security-Einstellungen\r\n - `msg.username`, `msg.password`: (Optional) Anmeldedaten für OPC UA\r\nFalls im msg etwas nicht belegt ist, greift die Funktion auf Subflow-Umgebungsvariablen oder Default-Werte zurück.\r\n\r\nAchtung: Damit die Funktion läuft, müssen die benötigten Module (node-opcua, fs-extra, axios) entweder im Global Context (settings.js) oder als External Modules in den Function Node-Einstellungen eingebunden sein."
     },
     {
-        "id": "08e1e8bcc468944e",
+        "id": "ddce54b01f874280",
         "type": "function",
-        "z": "f748bd8e78496824",
-        "g": "d191932097d3ac7d",
+        "z": "acb6954d7bc4254f",
+        "g": "fd15d59808abbc1e",
         "name": "Forward Image to Gateway",
-        "func": "const image = msg.payload;\nconst device_id = msg.opcua.device_id;\nconst process_id = msg.opcua.processId;\n\nconst base64image = image.toString(\"base64\");\n\nconst d = new Date();\n\n// Get the local time offset in minutes and convert it to hours and minutes\nconst offsetMinutes = d.getTimezoneOffset();\nconst offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);\nconst offsetRemainingMinutes = Math.abs(offsetMinutes) % 60;\n\n// Format the offset with a leading plus or minus sign\nconst offsetSign = offsetMinutes > 0 ? '-' : '+';\nconst offsetFormatted = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetRemainingMinutes).padStart(2, '0')}`;\n\n// Get the ISO string in UTC (ending with 'Z')\nconst isoStringUTC = d.toISOString();\n\n// Replace the 'Z' with the local timezone offset to get the desired format\nconst timestamp = isoStringUTC.replace('Z', offsetFormatted);\n\nconst newMsg = {};\n\nnewMsg.payload = {\n    \"device_id\": device_id,\n    \"process_id\": process_id,\n    \"last_execution\": timestamp,\n    \"image\": base64image\n};\n\nreturn newMsg;",
+        "func": "const image = msg.payload;\nconst device_id = msg.opcua.device_id;\nconst process_id = msg.opcua.processId;\n\nconst base64image = image.toString(\"base64\");\n\nconst d = new Date();\n\n// Get timezone offset in minutes (inkl. Sommer/Winterzeit)\nconst offsetMinutes = d.getTimezoneOffset();\n\n// Lokale Zeit = UTC-Zeit minus Offset\nconst localTime = new Date(d.getTime() - offsetMinutes * 60000);\n\n// ISO-String der lokalen Zeit (ohne Z am Ende)\nconst isoStringLocal = localTime.toISOString().slice(0, -1);\n\n// Offset-Format (+01:00 oder +02:00 für Deutschland)\nconst offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);\nconst offsetRemainingMinutes = Math.abs(offsetMinutes) % 60;\nconst offsetSign = offsetMinutes > 0 ? \"-\" : \"+\";\nconst offsetFormatted = `${offsetSign}${String(offsetHours).padStart(2, \"0\")}:${String(offsetRemainingMinutes).padStart(2, \"0\")}`;\n\n// Finaler Zeitstempel\nconst timestamp = isoStringLocal + offsetFormatted;\n\nconst newMsg = {};\nnewMsg.payload = {\n    \"device_id\": device_id,\n    \"process_id\": process_id,\n    \"last_execution\": timestamp,\n    \"image\": base64image\n};\n\nreturn newMsg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 880,
-        "y": 300,
+        "x": 680,
+        "y": 340,
         "wires": [
             [
-                "aeb5144918400d14"
+                "b9a7313e92123d8d"
             ]
         ]
     },
     {
-        "id": "80d407b18e347159",
+        "id": "55b87dd8a941aea8",
         "type": "http response",
-        "z": "f748bd8e78496824",
-        "g": "e5afdb9332dd508d",
+        "z": "acb6954d7bc4254f",
+        "g": "3fe1ed64fcf761ad",
         "name": "",
         "statusCode": "200",
         "headers": {},
-        "x": 700,
+        "x": 620,
         "y": 220,
         "wires": []
     },
     {
-        "id": "aeb5144918400d14",
+        "id": "b9a7313e92123d8d",
         "type": "http request",
-        "z": "f748bd8e78496824",
-        "g": "d191932097d3ac7d",
+        "z": "acb6954d7bc4254f",
+        "g": "fd15d59808abbc1e",
         "name": "",
         "method": "POST",
         "ret": "txt",
         "paytoqs": "ignore",
-        "url": "http://localhost:8088/api/save-image",
+        "url": "http://gateway-main:8088/api/save-image",
         "tls": "",
         "persist": false,
         "proxy": "",
@@ -2625,17 +1918,17 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 1090,
-        "y": 300,
+        "x": 890,
+        "y": 340,
         "wires": [
             []
         ]
     },
     {
-        "id": "c5ab257d790803d3",
+        "id": "d662cc824562b25b",
         "type": "delay",
-        "z": "f748bd8e78496824",
-        "g": "e5afdb9332dd508d",
+        "z": "acb6954d7bc4254f",
+        "g": "3fe1ed64fcf761ad",
         "name": "",
         "pauseType": "delay",
         "timeout": "1",
@@ -2649,141 +1942,343 @@
         "drop": false,
         "allowrate": false,
         "outputs": 1,
-        "x": 500,
+        "x": 420,
         "y": 220,
         "wires": [
             [
-                "80d407b18e347159"
+                "55b87dd8a941aea8"
             ]
         ]
     },
     {
-        "id": "eed92d4f949427ac",
+        "id": "061e48c71685d276",
         "type": "status",
-        "z": "f748bd8e78496824",
+        "z": "acb6954d7bc4254f",
         "name": "",
         "scope": [
-            "c28915ee6658631a",
-            "affc2fb7b7670bf3",
-            "aeb5144918400d14",
-            "036f035008e08242"
+            "445e86533b09c2a0",
+            "289ee7041572313b",
+            "4a78acdb944cb3d8",
+            "3292cba161de8b89",
+            "cba1a0b3d2a37ad4",
+            "2718793c3a462335",
+            "3502dba94720d721"
         ],
-        "x": 600,
+        "x": 520,
         "y": 40,
         "wires": [
             []
         ]
     },
     {
-        "id": "036f035008e08242",
-        "type": "debug",
-        "z": "f748bd8e78496824",
-        "name": "debug 4",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1060,
-        "y": 100,
-        "wires": []
-    },
-    {
-        "id": "57459ae9c9ec3118",
-        "type": "subflow:ef4290a715908540",
-        "z": "2dc52bb27159c699",
-        "d": true,
-        "name": "For Device 2 (SEHO-4-mws-2340)",
-        "env": [
-            {
-                "name": "DEVICE_ID",
-                "value": "2",
-                "type": "num"
-            },
-            {
-                "name": "TIMER",
-                "value": "30",
-                "type": "num"
-            },
-            {
-                "name": "URL",
-                "value": "https://hqtn0yha1azsyry-kioekosysdb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/kioekosys/data/readings_blob",
-                "type": "str"
-            },
-            {
-                "name": "HEADER",
-                "value": "{\"Content-Type\": \"application/json\"}",
-                "type": "json"
-            }
-        ],
-        "x": 180,
-        "y": 140,
-        "wires": []
-    },
-    {
-        "id": "7a90dadd49051f69",
-        "type": "subflow:f5c5556a9e4eb0ae",
-        "z": "2dc52bb27159c699",
-        "d": true,
+        "id": "3292cba161de8b89",
+        "type": "switch",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
         "name": "",
-        "env": [
+        "property": "url",
+        "propertyType": "msg",
+        "rules": [
             {
-                "name": "TIMER",
-                "value": "10",
-                "type": "num"
+                "t": "null"
             },
             {
-                "name": "FILENAME",
-                "value": "test1",
-                "type": "str"
+                "t": "empty"
+            },
+            {
+                "t": "else"
             }
         ],
-        "x": 120,
+        "checkall": "true",
+        "repair": false,
+        "outputs": 3,
+        "x": 150,
+        "y": 500,
+        "wires": [
+            [
+                "3502dba94720d721"
+            ],
+            [
+                "3502dba94720d721"
+            ],
+            [
+                "289ee7041572313b"
+            ]
+        ]
+    },
+    {
+        "id": "2c5e65cc7b5c67c6",
+        "type": "switch",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
+        "name": "",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "gte",
+                "v": "300",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 490,
         "y": 600,
-        "wires": []
+        "wires": [
+            [
+                "cba1a0b3d2a37ad4"
+            ],
+            [
+                "2718793c3a462335"
+            ]
+        ]
     },
     {
-        "id": "7c5acbde2febad14",
-        "type": "subflow:ef4290a715908540",
-        "z": "2dc52bb27159c699",
-        "d": true,
-        "name": "For Device 3 (IFM)",
-        "env": [
+        "id": "cba1a0b3d2a37ad4",
+        "type": "function",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
+        "name": "save local - upload failed",
+        "func": "const uploaded = msg.statusCode;\nconst device_id = msg.opcua.device_id;\n\n// Prüfe, ob der Upload fehlgeschlagen ist (statusCode nicht 200 oder 201)\nif (uploaded !== 200 && uploaded !== 201) {\n\n    node.status({ fill: \"red\", shape: \"ring\", text: `Upload failed with status code ${uploaded}. Saving file...` });\n\n    // Bilddaten aus dem ursprünglichen Payload holen\n    let imageData = msg.image;\n\n    // Optional: Konvertiere das Bild in Base64, falls nötig\n    // Wenn das Bild bereits als Buffer vorliegt, ist eine Konvertierung nicht notwendig.\n    // Ein Dateiknoten speichert Buffer direkt korrekt.\n    // Falls du es als Base64-String benötigst, kannst du es hier konvertieren:\n    const base64Image = imageData.toString(\"base64\");\n\n    // Definiere den Speicherpfad\n    const today = new Date().toISOString().slice(0, 10);\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n\n    // Setze den Dateinamen im msg-Objekt\n    // Der Dateiname sollte den vollständigen Pfad enthalten, damit das 'file'-Node weiß, wohin es speichern soll.\n    msg.filename = `/data/shared/${today}/${device_id}_${timestamp}.png`;\n\n    // Setze den Payload auf die reinen Bilddaten (als Buffer)\n    // msg.payload = imageData;\n\n    // Setze den payload auf die Bilddaten (base64)\n    msg.payload = base64Image \n\n    node.status({ fill: \"green\", shape: \"ring\", text: `File saved local` });\n\n\n    // Wichtiger Hinweis: Setze den `msg.filename` und `msg.payload` und gib `msg` zurück.\n    // Das `file`-Node wird diese Eigenschaften verwenden, um die Datei zu speichern.\n    return msg;\n} else {\n    // Erfolgreicher Upload\n    node.status({ fill: \"green\", shape: \"dot\", text: `Upload successful with status code ${uploaded}.` });\n\n    // Gib eine leere Nachricht oder einen Erfolgs-Payload zurück, um den Flow fortzusetzen\n    msg.payload = { success: true, message: `Upload successful for device ${device_id}.` };\n\n    // Optional: Lösche das Bild, um Speicher zu sparen\n    delete msg.payload.image;\n\n    return msg;\n}",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 690,
+        "y": 580,
+        "wires": [
+            [
+                "1ccd8789af4f86fd"
+            ]
+        ]
+    },
+    {
+        "id": "1ccd8789af4f86fd",
+        "type": "file",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
+        "name": "",
+        "filename": "filename",
+        "filenameType": "msg",
+        "appendNewline": false,
+        "createDir": true,
+        "overwriteFile": "true",
+        "encoding": "base64",
+        "x": 880,
+        "y": 580,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2718793c3a462335",
+        "type": "function",
+        "z": "acb6954d7bc4254f",
+        "g": "2bf0ffb2de7e1870",
+        "name": "success",
+        "func": "// Erfolgreicher Upload\nnode.status({ fill: \"green\", shape: \"dot\", text: `Upload successful` });",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 640,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "107022b96f1aab5e",
+        "type": "mqtt in",
+        "z": "10d72cae5a6340f6",
+        "name": "",
+        "topic": "${TOPIC}",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "${BROKER}",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 100,
+        "y": 80,
+        "wires": [
+            [
+                "2f805d2340572b54"
+            ]
+        ]
+    },
+    {
+        "id": "05d51a8734299975",
+        "type": "status",
+        "z": "10d72cae5a6340f6",
+        "name": "",
+        "scope": [
+            "0e88cf4f502b4eef",
+            "2f805d2340572b54",
+            "7e11d1fd34b1bb7c",
+            "68d583883eeab06d",
+            "107022b96f1aab5e"
+        ],
+        "x": 320,
+        "y": 20,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0e88cf4f502b4eef",
+        "type": "http request",
+        "z": "10d72cae5a6340f6",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "${URL}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 450,
+        "y": 320,
+        "wires": [
+            [
+                "8d9a24255f3aa6fa"
+            ]
+        ]
+    },
+    {
+        "id": "2f805d2340572b54",
+        "type": "function",
+        "z": "10d72cae5a6340f6",
+        "name": "collect & send data REST",
+        "func": "// Funktion zur Umwandlung des Zeitformats\nfunction formatTimestamp(isoString) {\n    let date = new Date(isoString);\n    const pad = (num, size = 2) => ('000' + num).slice(-size);\n    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ` +\n        `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;\n}\n\n// Konfiguration\nvar config = {\n    topicSeparator: '/'\n};\n\n// ==============================\n// Datenpunkt erfassen und in den Buffer einfügen\n// ==============================\nvar buffer = context.get('buffer') || [];\n\n// Extrahiere die numerische ID aus msg.topic.\nvar idMatch = msg.topic.match(/\\[(\\d+)\\]/);\nvar datapointId = idMatch ? idMatch[1] : null;\n\n// Wenn keine gültige ID gefunden wurde, verwerfe die Nachricht.\nif (!datapointId) {\n    node.warn(\"Invalid DatapointID in topic: \" + msg.topic);\n    return null;\n}\n\n// Erstelle einen neuen Datenpunkt-Eintrag\nvar datapoint = {\n    DatapointId: datapointId,\n    Value: msg.payload,\n    // Verwende die formatTimestamp-Funktion, um den Zeitstempel zu formatieren\n    Timestamp: formatTimestamp(new Date().toISOString())\n};\n\n// Füge den Datenpunkt dem Buffer hinzu\nbuffer.push(datapoint);\ncontext.set('buffer', buffer);\n\n// Status: Sammeln\nnode.status({ fill: \"blue\", shape: \"dot\", text: \"Collect (\" + buffer.length + \" items)\" });\n\n// ==============================\n// Timer-Logik: Versand des Buffers nach Zeit, falls nicht bereits gesetzt\n// ==============================\nvar timerDelay = msg.timerDelay || (env.get(\"INTERVAL (sec)\") * 1000);\nvar timerSet = context.get('timerSet') || false;\n\nif (!timerSet) {\n    context.set('timerSet', true);\n    setTimeout(function () {\n        // Status: Sende Daten...\n        node.status({ fill: \"yellow\", shape: \"ring\", text: \"Send Data...\" });\n\n        // Lese den aktuell gespeicherten Buffer\n        var bufferToSend = context.get('buffer') || [];\n\n        // Erstelle eine neue Nachricht mit dem Buffer als Payload\n        var newMsg = {\n            payload: bufferToSend\n        };\n\n        // Gib die Nachricht an den nächsten Node weiter\n        node.send(newMsg);\n\n        // Buffer und Timer-Flag zurücksetzen\n        context.set('buffer', []);\n        context.set('timerSet', false);\n\n        // Status: Versand abgeschlossen\n        node.status({ fill: \"green\", shape: \"dot\", text: \"Success (\" + bufferToSend.length + \" entries)\" });\n\n    }, timerDelay);\n}\n\n// Diese Funktion gibt keine reguläre Nachricht weiter.\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
             {
-                "name": "DEVICE_ID",
-                "value": "3",
-                "type": "num"
+                "var": "url",
+                "module": "url"
             },
             {
-                "name": "TIMER",
-                "value": "30",
-                "type": "num"
-            },
-            {
-                "name": "URL",
-                "value": "https://hqtn0yha1azsyry-kioekosysdb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/kioekosys/data/readings_blob",
-                "type": "str"
-            },
-            {
-                "name": "HEADER",
-                "value": "{\"Content-Type\": \"application/json\"}",
-                "type": "json"
+                "var": "http",
+                "module": "http"
             }
         ],
-        "x": 130,
-        "y": 200,
-        "wires": []
+        "x": 430,
+        "y": 80,
+        "wires": [
+            [
+                "0e88cf4f502b4eef"
+            ]
+        ]
     },
     {
-        "id": "83a0f01a073e9f10",
-        "type": "subflow:ef4290a715908540",
+        "id": "8d9a24255f3aa6fa",
+        "type": "switch",
+        "z": "10d72cae5a6340f6",
+        "name": "",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "gte",
+                "v": "300",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 670,
+        "y": 320,
+        "wires": [
+            [
+                "a7fdb1fd6c1216f1"
+            ],
+            [
+                "68d583883eeab06d"
+            ]
+        ]
+    },
+    {
+        "id": "7e11d1fd34b1bb7c",
+        "type": "file",
+        "z": "10d72cae5a6340f6",
+        "name": "",
+        "filename": "filename",
+        "filenameType": "msg",
+        "appendNewline": false,
+        "createDir": true,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 1020,
+        "y": 260,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a7fdb1fd6c1216f1",
+        "type": "function",
+        "z": "10d72cae5a6340f6",
+        "name": "define file save",
+        "func": "const uploaded = msg.statusCode;\nconst device_id = env.get(\"DEVICE_ID\");\n// Prüfe, ob der Upload fehlgeschlagen ist (statusCode nicht 200 oder 201)\nif (uploaded !== 200 && uploaded !== 201) {\n\n    node.status({ fill: \"red\", shape: \"ring\", text: `Upload failed with status code ${uploaded}. Saving file...` });\n\n    // Bilddaten aus dem ursprünglichen Payload holen\n    let imageData = msg.payload;\n\n    // Definiere den Speicherpfad\n    const today = new Date().toISOString().slice(0, 10);\n    const timestamp = new Date().toISOString().replace(/[:.]/g, \"-\");\n\n    // Setze den Dateinamen im msg-Objekt\n    // Der Dateiname sollte den vollständigen Pfad enthalten, damit das 'file'-Node weiß, wohin es speichern soll.\n    msg.filename = `/data/shared/${today}/device_${device_id}.csv`;\n\n    msg.payload = imageData;\n\n    node.status({ fill: \"green\", shape: \"ring\", text: `File saved local` });\n\n\n    // Wichtiger Hinweis: Setze den `msg.filename` und `msg.payload` und gib `msg` zurück.\n    // Das `file`-Node wird diese Eigenschaften verwenden, um die Datei zu speichern.\n    return msg;\n} else {\n    // Erfolgreicher Upload\n    node.status({ fill: \"green\", shape: \"dot\", text: `Upload successful with status code ${uploaded}.` });\n\n    // Gib eine leere Nachricht oder einen Erfolgs-Payload zurück, um den Flow fortzusetzen\n    msg.payload = { success: true, message: `Upload successful.` };\n\n    // Optional: Lösche das Bild, um Speicher zu sparen\n    delete msg.payload.image;\n\n    return msg;\n}",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 840,
+        "y": 260,
+        "wires": [
+            [
+                "7e11d1fd34b1bb7c"
+            ]
+        ]
+    },
+    {
+        "id": "68d583883eeab06d",
+        "type": "function",
+        "z": "10d72cae5a6340f6",
+        "name": "success",
+        "func": "// Erfolgreicher Upload\nnode.status({ fill: \"green\", shape: \"dot\", text: `Upload successful` });",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f305719f9ecbbc1f",
+        "type": "subflow:10d72cae5a6340f6",
         "z": "2dc52bb27159c699",
-        "d": true,
-        "g": "b41d61b41a2f4593",
-        "name": "For Device 2 (SEHO-4-mws-2340)",
+        "name": "Device 1 to REST",
         "env": [
             {
                 "name": "URL",
@@ -2791,61 +2286,53 @@
                 "type": "str"
             },
             {
-                "name": "HEADER",
-                "value": "{\"Content-Type\": \"application/json\"}",
-                "type": "json"
-            }
-        ],
-        "x": 520,
-        "y": 280,
-        "wires": []
-    },
-    {
-        "id": "edb4c67dd58308ad",
-        "type": "subflow:ef4290a715908540",
-        "z": "2dc52bb27159c699",
-        "d": true,
-        "g": "b41d61b41a2f4593",
-        "name": "For Device 3 (IFM)",
-        "env": [
-            {
-                "name": "DEVICE_ID",
-                "value": "3",
+                "name": "INTERVAL (sec)",
+                "value": "20",
                 "type": "num"
             },
             {
-                "name": "URL",
-                "value": "https://hqtn0yha1azsyry-kioekosysdb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/kioekosys/data/readings_blob",
-                "type": "str"
-            },
-            {
-                "name": "HEADER",
-                "value": "{\"Content-Type\": \"application/json\"}",
-                "type": "json"
+                "name": "BROKER",
+                "value": "0b7c7515b1c6aa53",
+                "type": "conf-type"
             }
         ],
-        "x": 130,
-        "y": 340,
+        "x": 290,
+        "y": 220,
         "wires": []
     },
     {
-        "id": "1ebd05527ac2b3c8",
-        "type": "subflow:f748bd8e78496824",
+        "id": "6cda9bbaf9dbda7e",
+        "type": "subflow:acb6954d7bc4254f",
         "z": "8af16c2e18f5774e",
         "name": "Image-Capture-API",
-        "x": 310,
-        "y": 660,
+        "x": 290,
+        "y": 120,
         "wires": [
             [
-                "3fd754dc24a60a47"
-            ],
-            [
-                "42b80a7c7f4a755a"
+                "a8360f6f32460a5d",
+                "07ee8cf14cc6a127"
             ]
         ]
     },
     {
-        "id": "3fd754dc24a60a47",
+        "id": "07ee8cf14cc6a127",
+        "type": "debug",
+        "z": "8af16c2e18f5774e",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": false,
+        "console": false,
+        "tostatus": true,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 540,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "a8360f6f32460a5d",
         "type": "image",
         "z": "8af16c2e18f5774e",
         "name": "",
@@ -2856,119 +2343,108 @@
         "active": true,
         "pass": false,
         "outputs": 0,
-        "x": 570,
-        "y": 660,
+        "x": 850,
+        "y": 120,
         "wires": []
     },
     {
-        "id": "42b80a7c7f4a755a",
-        "type": "debug",
-        "z": "8af16c2e18f5774e",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 590,
-        "y": 740,
-        "wires": []
-    },
-    {
-        "id": "4ab411a6aea77a7f",
+        "id": "ba08c4d1eb0e5a49",
         "type": "http in",
-        "z": "ba5f08246c66f4ff",
+        "z": "8af16c2e18f5774e",
+        "g": "8b293e6375d8bf6f",
         "name": "",
         "url": "/opc-upload",
         "method": "post",
         "upload": false,
         "skipBodyParsing": false,
         "swaggerDoc": "",
-        "x": 330,
-        "y": 100,
+        "x": 440,
+        "y": 260,
         "wires": [
             [
-                "32914448bf504117",
-                "04c621348c5ce05c"
+                "570539daecb60425",
+                "93f68922f10a63cb"
             ]
         ]
     },
     {
-        "id": "32914448bf504117",
+        "id": "570539daecb60425",
         "type": "http response",
-        "z": "ba5f08246c66f4ff",
+        "z": "8af16c2e18f5774e",
+        "g": "8b293e6375d8bf6f",
         "name": "",
-        "statusCode": "",
+        "statusCode": "201",
         "headers": {},
-        "x": 590,
-        "y": 180,
+        "x": 710,
+        "y": 340,
         "wires": []
     },
     {
-        "id": "04c621348c5ce05c",
+        "id": "93f68922f10a63cb",
         "type": "debug",
-        "z": "ba5f08246c66f4ff",
-        "name": "debug 1",
+        "z": "8af16c2e18f5774e",
+        "g": "8b293e6375d8bf6f",
+        "name": "debug 2",
         "active": true,
-        "tosidebar": true,
+        "tosidebar": false,
         "console": false,
-        "tostatus": false,
+        "tostatus": true,
         "complete": "true",
         "targetType": "full",
-        "statusVal": "",
+        "statusVal": "payload",
         "statusType": "auto",
-        "x": 550,
-        "y": 100,
+        "x": 660,
+        "y": 260,
         "wires": []
     },
     {
-        "id": "ef430ea99abd4066",
+        "id": "4aecb362ba3233ce",
         "type": "http in",
-        "z": "ba5f08246c66f4ff",
+        "z": "8af16c2e18f5774e",
+        "g": "8b293e6375d8bf6f",
         "name": "",
         "url": "/data/readingsarray",
         "method": "post",
         "upload": false,
         "skipBodyParsing": false,
         "swaggerDoc": "",
-        "x": 350,
-        "y": 360,
+        "x": 460,
+        "y": 520,
         "wires": [
             [
-                "2b914513c717e436",
-                "59f642d9b3a835d1"
+                "a086c81c44169783",
+                "b84ff69bf3ec4ee9"
             ]
         ]
     },
     {
-        "id": "2b914513c717e436",
+        "id": "a086c81c44169783",
         "type": "http response",
-        "z": "ba5f08246c66f4ff",
+        "z": "8af16c2e18f5774e",
+        "g": "8b293e6375d8bf6f",
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 570,
-        "y": 440,
+        "x": 680,
+        "y": 600,
         "wires": []
     },
     {
-        "id": "59f642d9b3a835d1",
+        "id": "b84ff69bf3ec4ee9",
         "type": "debug",
-        "z": "ba5f08246c66f4ff",
+        "z": "8af16c2e18f5774e",
+        "g": "8b293e6375d8bf6f",
         "name": "debug 3",
         "active": true,
-        "tosidebar": true,
+        "tosidebar": false,
         "console": false,
-        "tostatus": false,
+        "tostatus": true,
         "complete": "payload",
         "targetType": "msg",
-        "statusVal": "",
+        "statusVal": "payload",
         "statusType": "auto",
-        "x": 600,
-        "y": 360,
+        "x": 710,
+        "y": 520,
         "wires": []
     },
     {
@@ -2996,75 +2472,7 @@
         "x": 360,
         "y": 140,
         "wires": [
-            [
-                "77001c104835e0f4"
-            ]
-        ]
-    },
-    {
-        "id": "77001c104835e0f4",
-        "type": "subflow:2790884e913791f8",
-        "z": "6545402cef5600d9",
-        "g": "fcd49649c8c50934",
-        "name": "LB_1",
-        "env": [
-            {
-                "name": "OPC_ENDPOINT",
-                "value": "opc.tcp://172.16.87.13:4840",
-                "type": "str"
-            },
-            {
-                "name": "DEVICE_ID",
-                "value": "1",
-                "type": "num"
-            },
-            {
-                "name": "M_NODE_PARENT",
-                "value": "ns=1;s=Methods",
-                "type": "str"
-            },
-            {
-                "name": "M_NODE_IMAGE",
-                "value": "ns=1;s=methodGrabCameraImage",
-                "type": "str"
-            },
-            {
-                "name": "M_ARGS",
-                "value": "{\"arg_0\":\"McServer 1297623\",\"arg1\":\"LB_1\"}",
-                "type": "json"
-            },
-            {
-                "name": "NODE_CHECK",
-                "value": "ns=1;s=McServer1297623_LB_1_0_pngImageValid",
-                "type": "str"
-            },
-            {
-                "name": "NODE_IMAGE",
-                "value": "ns=1;s=McServer1297623_LB_1_0_pngImage",
-                "type": "str"
-            },
-            {
-                "name": "NODE_ACK_READ",
-                "value": "ns=1;s=McServer1297623_LB_1_0_pngImageWasRead",
-                "type": "str"
-            },
-            {
-                "name": "UPLOAD_URL",
-                "value": "https://hqtn0yha1azsyry-kioekosysdb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/kioekosys/data/readings_blob",
-                "type": "str"
-            },
-            {
-                "name": "HEADERS",
-                "value": "{\"READ_BLOB_DATAPOINT_ID\": \"999LB_1\"}",
-                "type": "json"
-            }
-        ],
-        "x": 570,
-        "y": 140,
-        "wires": [
-            [
-                "50f18ff36d4fc759"
-            ]
+            []
         ]
     },
     {
@@ -3083,72 +2491,6 @@
         "x": 730,
         "y": 140,
         "wires": []
-    },
-    {
-        "id": "2a7f882fd80da092",
-        "type": "subflow:2790884e913791f8",
-        "z": "6545402cef5600d9",
-        "g": "fcd49649c8c50934",
-        "name": "LB_2",
-        "env": [
-            {
-                "name": "OPC_ENDPOINT",
-                "value": "opc.tcp://172.16.87.13:4840",
-                "type": "str"
-            },
-            {
-                "name": "DEVICE_ID",
-                "value": "1",
-                "type": "num"
-            },
-            {
-                "name": "M_NODE_PARENT",
-                "value": "ns=1;s=Methods",
-                "type": "str"
-            },
-            {
-                "name": "M_NODE_IMAGE",
-                "value": "ns=1;s=methodGrabCameraImage",
-                "type": "str"
-            },
-            {
-                "name": "M_ARGS",
-                "value": "{\"arg_0\":\"McServer 1297623\",\"arg1\":\"LB_2\"}",
-                "type": "json"
-            },
-            {
-                "name": "NODE_CHECK",
-                "value": "ns=1;s=McServer1297623_LB_2_1_pngImageValid",
-                "type": "str"
-            },
-            {
-                "name": "NODE_IMAGE",
-                "value": "ns=1;s=McServer1297623_LB_2_1_pngImage",
-                "type": "str"
-            },
-            {
-                "name": "NODE_ACK_READ",
-                "value": "ns=1;s=McServer1297623_LB_2_1_pngImageWasRead",
-                "type": "str"
-            },
-            {
-                "name": "UPLOAD_URL",
-                "value": "https://hqtn0yha1azsyry-kioekosysdb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/kioekosys/data/readings_blob",
-                "type": "str"
-            },
-            {
-                "name": "HEADERS",
-                "value": "{\"READ_BLOB_DATAPOINT_ID\": \"999LB_2\"}",
-                "type": "json"
-            }
-        ],
-        "x": 570,
-        "y": 240,
-        "wires": [
-            [
-                "9c63767d0a197c43"
-            ]
-        ]
     },
     {
         "id": "9c63767d0a197c43",
@@ -3192,9 +2534,7 @@
         "x": 360,
         "y": 240,
         "wires": [
-            [
-                "2a7f882fd80da092"
-            ]
+            []
         ]
     },
     {
@@ -3222,75 +2562,7 @@
         "x": 360,
         "y": 360,
         "wires": [
-            [
-                "2926b01f52802309"
-            ]
-        ]
-    },
-    {
-        "id": "2926b01f52802309",
-        "type": "subflow:2790884e913791f8",
-        "z": "6545402cef5600d9",
-        "g": "5730eccb186f4ed7",
-        "name": "SOLD1",
-        "env": [
-            {
-                "name": "OPC_ENDPOINT",
-                "value": "opc.tcp://172.16.87.12:4842",
-                "type": "str"
-            },
-            {
-                "name": "DEVICE_ID",
-                "value": "999",
-                "type": "num"
-            },
-            {
-                "name": "M_NODE_PARENT",
-                "value": "ns=1;s=Methods",
-                "type": "str"
-            },
-            {
-                "name": "M_NODE_IMAGE",
-                "value": "ns=1;s=methodGrabCameraImage",
-                "type": "str"
-            },
-            {
-                "name": "M_ARGS",
-                "value": "{\"arg_0\":\"McServer 1296537\",\"arg1\":\"SOLD1\"}",
-                "type": "json"
-            },
-            {
-                "name": "NODE_CHECK",
-                "value": "ns=1;s=1296537_SOLD1_0_pngImageValid",
-                "type": "str"
-            },
-            {
-                "name": "NODE_IMAGE",
-                "value": "ns=1;s=1296537_SOLD1_0_pngImage",
-                "type": "str"
-            },
-            {
-                "name": "NODE_ACK_READ",
-                "value": "ns=1;s=1296537_SOLD1_0_pngImageWasRead",
-                "type": "str"
-            },
-            {
-                "name": "UPLOAD_URL",
-                "value": "https://hqtn0yha1azsyry-kioekosysdb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/kioekosys/data/readings_blob",
-                "type": "str"
-            },
-            {
-                "name": "HEADERS",
-                "value": "{\"READ_BLOB_DATAPOINT_ID\": \"999SOLD_1\"}",
-                "type": "json"
-            }
-        ],
-        "x": 580,
-        "y": 360,
-        "wires": [
-            [
-                "f9e30af241b41f39"
-            ]
+            []
         ]
     },
     {
@@ -3328,72 +2600,6 @@
         "wires": []
     },
     {
-        "id": "33a77e81873c3c27",
-        "type": "subflow:2790884e913791f8",
-        "z": "6545402cef5600d9",
-        "g": "5730eccb186f4ed7",
-        "name": "SOLD2",
-        "env": [
-            {
-                "name": "OPC_ENDPOINT",
-                "value": "opc.tcp://172.16.87.12:4842",
-                "type": "str"
-            },
-            {
-                "name": "DEVICE_ID",
-                "value": "999",
-                "type": "num"
-            },
-            {
-                "name": "M_NODE_PARENT",
-                "value": "ns=1;s=Methods",
-                "type": "str"
-            },
-            {
-                "name": "M_NODE_IMAGE",
-                "value": "ns=1;s=methodGrabCameraImage",
-                "type": "str"
-            },
-            {
-                "name": "M_ARGS",
-                "value": "{\"arg_0\":\"McServer 1296537\",\"arg1\":\"SOLD2\"}",
-                "type": "json"
-            },
-            {
-                "name": "NODE_CHECK",
-                "value": "ns=1;s=1296537_SOLD2_2_pngImageValid",
-                "type": "str"
-            },
-            {
-                "name": "NODE_IMAGE",
-                "value": "ns=1;s=1296537_SOLD2_2_pngImage",
-                "type": "str"
-            },
-            {
-                "name": "NODE_ACK_READ",
-                "value": "ns=1;s=1296537_SOLD2_2_pngImageWasRead",
-                "type": "str"
-            },
-            {
-                "name": "UPLOAD_URL",
-                "value": "https://hqtn0yha1azsyry-kioekosysdb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/kioekosys/data/readings_blob",
-                "type": "str"
-            },
-            {
-                "name": "HEADERS",
-                "value": "{\"READ_BLOB_DATAPOINT_ID\": \"999SOLD_2\"}",
-                "type": "json"
-            }
-        ],
-        "x": 580,
-        "y": 460,
-        "wires": [
-            [
-                "c67e22f0d0c3b599"
-            ]
-        ]
-    },
-    {
         "id": "63e166e9fbdec505",
         "type": "inject",
         "z": "6545402cef5600d9",
@@ -3418,9 +2624,7 @@
         "x": 360,
         "y": 460,
         "wires": [
-            [
-                "33a77e81873c3c27"
-            ]
+            []
         ]
     },
     {
@@ -3448,80 +2652,7 @@
         "x": 360,
         "y": 580,
         "wires": [
-            [
-                "4baf2621dd2a58bf"
-            ]
-        ]
-    },
-    {
-        "id": "4baf2621dd2a58bf",
-        "type": "subflow:2790884e913791f8",
-        "z": "6545402cef5600d9",
-        "g": "a611b8f39c586140",
-        "name": "opc.tcp://172.16.87.13:4840",
-        "env": [
-            {
-                "name": "OPC_ENDPOINT",
-                "value": "opc.tcp://172.16.87.13:4840",
-                "type": "str"
-            },
-            {
-                "name": "DEVICE_ID",
-                "value": "1",
-                "type": "num"
-            },
-            {
-                "name": "M_NODE_PARENT",
-                "value": "ns=1;s=Methods",
-                "type": "str"
-            },
-            {
-                "name": "M_NODE_IMAGE",
-                "value": "ns=1;s=methodGrabCameraImage",
-                "type": "str"
-            },
-            {
-                "name": "M_ARGS",
-                "value": "{\"arg_0\":\"McServer 1297623\",\"arg1\":\"LB_2\"}",
-                "type": "json"
-            },
-            {
-                "name": "NODE_CHECK",
-                "value": "ns=1;s=McServer1297623_LB_2_1_pngImageValid",
-                "type": "str"
-            },
-            {
-                "name": "NODE_IMAGE",
-                "value": "ns=1;s=McServer1297623_LB_2_1_pngImage",
-                "type": "str"
-            },
-            {
-                "name": "NODE_ACK_READ",
-                "value": "ns=1;s=McServer1297623_LB_2_1_pngImageWasRead",
-                "type": "str"
-            },
-            {
-                "name": "ENABLE_UPLOAD",
-                "value": "true",
-                "type": "str"
-            },
-            {
-                "name": "UPLOAD_URL",
-                "value": "http://localhost:1880/opc-upload",
-                "type": "str"
-            },
-            {
-                "name": "HEADERS",
-                "value": "{\"READ_BLOB_DATAPOINT_ID\": \"999LB_2\"}",
-                "type": "json"
-            }
-        ],
-        "x": 640,
-        "y": 580,
-        "wires": [
-            [
-                "44886b5aa6be06e6"
-            ]
+            []
         ]
     },
     {

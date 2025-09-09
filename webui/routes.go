@@ -101,6 +101,10 @@ func setupRoutes(r *gin.Engine) {
 
 		// Settings Routes
 		authorized.POST("/api/restart", restartGatewayHandler)
+		authorized.GET("/api/settings", getSystemSettings)
+		authorized.GET("/api/settings/:key", getSystemSetting)
+		authorized.PUT("/api/settings", updateSystemSetting)
+		authorized.POST("/api/settings/reset", resetSystemSettings)
 
 		// Show pages Routes
 		authorized.GET("/", showDashboard)

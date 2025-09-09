@@ -6,9 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
-
-	"net/http/pprof"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -77,7 +74,6 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 		HttpOnly: true,
 		Secure:   isSecure, // Automatisch basierend auf HTTPS-Konfiguration
 		SameSite: http.SameSiteLaxMode,
-		// Domain wird absichtlich NICHT gesetzt, damit es mit localhost UND IP funktioniert
 	})
 
 	sessionName := "idpm-gateway-session"
@@ -92,25 +88,6 @@ func Main(db *sql.DB, serverF *MQTT.Server) {
 
 	// Define routes
 	setupRoutes(r)
-
-	// Starte zuerst den pprof Server
-	go func() {
-		mux := http.NewServeMux()
-		// Registriere alle pprof-Endpunkte
-		mux.HandleFunc("/debug/pprof/", pprof.Index)
-		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
-		logrus.Info("Starting pprof server on port 6060")
-		if err := http.ListenAndServe(":6060", mux); err != nil {
-			logrus.Error("pprof server failed: ", err)
-		}
-	}()
-
-	// Warte kurz, damit der pprof-Server Zeit hat zu starten
-	time.Sleep(time.Second)
 
 	// Starte dann den Hauptserver
 	if config.WebUI.UseHTTPS {

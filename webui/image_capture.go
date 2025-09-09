@@ -763,7 +763,7 @@ func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess, isManua
 	}
 
 	// HTTP Request an Node-RED API senden
-	err = callNodeRedImageCaptureAPI(payload)
+	err = callNodeRedImageCaptureAPI(db, payload)
 	if err != nil {
 		return nil, fmt.Errorf("fehler beim Aufruf der Node-RED API: %v", err)
 	}
@@ -778,9 +778,16 @@ func executeSingleImageCapture(db *sql.DB, process *ImageCaptureProcess, isManua
 }
 
 // callNodeRedImageCaptureAPI führt einen HTTP POST Request zur Node-RED Image Capture API aus
-func callNodeRedImageCaptureAPI(payload map[string]interface{}) error {
+func callNodeRedImageCaptureAPI(db *sql.DB, payload map[string]interface{}) error {
 	// Node-RED läuft standardmäßig auf Port 1880
-	nodeRedURL := "http://node-red:1880/api/img-capture"
+	// nodeRedURL := "http://node-red:1880/api/img-capture"
+
+	nodeRedURL, err := GetSystemSetting(db, "node_red_url")
+	if err != nil {
+		return fmt.Errorf("fehler beim Laden der Node-RED URL: %v", err)
+	}
+
+	nodeRedURL = nodeRedURL + "/api/img-capture"
 
 	// JSON Payload erstellen
 	jsonData, err := json.Marshal(payload)

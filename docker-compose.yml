@@ -1,3 +1,4 @@
+name: gateway-test
 services:
   ## IoT-Gateway
   iot-gateway:

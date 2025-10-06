@@ -12,7 +12,6 @@
         "type": "tab",
         "label": "Image-Capture",
         "disabled": false,
-        "locked": true,
         "info": "",
         "env": []
     },
@@ -963,28 +962,7 @@
         "x": 14,
         "y": 179,
         "w": 998,
-        "h": 528
-    },
-    {
-        "id": "8b293e6375d8bf6f",
-        "type": "group",
-        "z": "8af16c2e18f5774e",
-        "name": "API TESTING - IMAGE & DATAPOINTS",
-        "style": {
-            "label": true
-        },
-        "nodes": [
-            "ba08c4d1eb0e5a49",
-            "570539daecb60425",
-            "93f68922f10a63cb",
-            "4aecb362ba3233ce",
-            "a086c81c44169783",
-            "b84ff69bf3ec4ee9"
-        ],
-        "x": 324,
-        "y": 219,
-        "w": 492,
-        "h": 422
+        "h": 468
     },
     {
         "id": "fd15d59808abbc1e",
@@ -1000,7 +978,7 @@
             "b9a7313e92123d8d"
         ],
         "x": 534,
-        "y": 299,
+        "y": 279,
         "w": 452,
         "h": 82
     },
@@ -1023,8 +1001,8 @@
             "1ccd8789af4f86fd",
             "2718793c3a462335"
         ],
-        "x": 74,
-        "y": 439,
+        "x": 94,
+        "y": 379,
         "w": 892,
         "h": 242
     },
@@ -1757,8 +1735,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 650,
-        "y": 480,
+        "x": 670,
+        "y": 420,
         "wires": [
             [
                 "b8081502c40f9291"
@@ -1797,8 +1775,8 @@
         "createDir": true,
         "overwriteFile": "true",
         "encoding": "base64",
-        "x": 840,
-        "y": 480,
+        "x": 860,
+        "y": 420,
         "wires": [
             []
         ]
@@ -1820,8 +1798,8 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 310,
-        "y": 520,
+        "x": 330,
+        "y": 460,
         "wires": [
             [
                 "2c5e65cc7b5c67c6"
@@ -1882,7 +1860,7 @@
         "finalize": "",
         "libs": [],
         "x": 680,
-        "y": 340,
+        "y": 320,
         "wires": [
             [
                 "b9a7313e92123d8d"
@@ -1910,7 +1888,7 @@
         "method": "POST",
         "ret": "txt",
         "paytoqs": "ignore",
-        "url": "http://gateway-main:8088/api/save-image",
+        "url": "http://iot-gateway:8088/api/save-image",
         "tls": "",
         "persist": false,
         "proxy": "",
@@ -1919,7 +1897,7 @@
         "senderr": false,
         "headers": [],
         "x": 890,
-        "y": 340,
+        "y": 320,
         "wires": [
             []
         ]
@@ -1930,19 +1908,19 @@
         "z": "acb6954d7bc4254f",
         "g": "3fe1ed64fcf761ad",
         "name": "",
-        "pauseType": "delay",
+        "pauseType": "random",
         "timeout": "1",
         "timeoutUnits": "seconds",
         "rate": "1",
         "nbRateUnits": "1",
         "rateUnits": "second",
-        "randomFirst": "1",
-        "randomLast": "5",
+        "randomFirst": "2",
+        "randomLast": "3",
         "randomUnits": "seconds",
         "drop": false,
         "allowrate": false,
         "outputs": 1,
-        "x": 420,
+        "x": 390,
         "y": 220,
         "wires": [
             [
@@ -1992,8 +1970,8 @@
         "checkall": "true",
         "repair": false,
         "outputs": 3,
-        "x": 150,
-        "y": 500,
+        "x": 170,
+        "y": 440,
         "wires": [
             [
                 "3502dba94720d721"
@@ -2027,8 +2005,8 @@
         "checkall": "true",
         "repair": false,
         "outputs": 2,
-        "x": 490,
-        "y": 600,
+        "x": 510,
+        "y": 540,
         "wires": [
             [
                 "cba1a0b3d2a37ad4"
@@ -2051,8 +2029,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 690,
-        "y": 580,
+        "x": 710,
+        "y": 520,
         "wires": [
             [
                 "1ccd8789af4f86fd"
@@ -2071,8 +2049,8 @@
         "createDir": true,
         "overwriteFile": "true",
         "encoding": "base64",
-        "x": 880,
-        "y": 580,
+        "x": 900,
+        "y": 520,
         "wires": [
             []
         ]
@@ -2090,8 +2068,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 640,
-        "y": 640,
+        "x": 660,
+        "y": 580,
         "wires": [
             []
         ]
@@ -2345,106 +2323,6 @@
         "outputs": 0,
         "x": 850,
         "y": 120,
-        "wires": []
-    },
-    {
-        "id": "ba08c4d1eb0e5a49",
-        "type": "http in",
-        "z": "8af16c2e18f5774e",
-        "g": "8b293e6375d8bf6f",
-        "name": "",
-        "url": "/opc-upload",
-        "method": "post",
-        "upload": false,
-        "skipBodyParsing": false,
-        "swaggerDoc": "",
-        "x": 440,
-        "y": 260,
-        "wires": [
-            [
-                "570539daecb60425",
-                "93f68922f10a63cb"
-            ]
-        ]
-    },
-    {
-        "id": "570539daecb60425",
-        "type": "http response",
-        "z": "8af16c2e18f5774e",
-        "g": "8b293e6375d8bf6f",
-        "name": "",
-        "statusCode": "201",
-        "headers": {},
-        "x": 710,
-        "y": 340,
-        "wires": []
-    },
-    {
-        "id": "93f68922f10a63cb",
-        "type": "debug",
-        "z": "8af16c2e18f5774e",
-        "g": "8b293e6375d8bf6f",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": false,
-        "console": false,
-        "tostatus": true,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "payload",
-        "statusType": "auto",
-        "x": 660,
-        "y": 260,
-        "wires": []
-    },
-    {
-        "id": "4aecb362ba3233ce",
-        "type": "http in",
-        "z": "8af16c2e18f5774e",
-        "g": "8b293e6375d8bf6f",
-        "name": "",
-        "url": "/data/readingsarray",
-        "method": "post",
-        "upload": false,
-        "skipBodyParsing": false,
-        "swaggerDoc": "",
-        "x": 460,
-        "y": 520,
-        "wires": [
-            [
-                "a086c81c44169783",
-                "b84ff69bf3ec4ee9"
-            ]
-        ]
-    },
-    {
-        "id": "a086c81c44169783",
-        "type": "http response",
-        "z": "8af16c2e18f5774e",
-        "g": "8b293e6375d8bf6f",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 680,
-        "y": 600,
-        "wires": []
-    },
-    {
-        "id": "b84ff69bf3ec4ee9",
-        "type": "debug",
-        "z": "8af16c2e18f5774e",
-        "g": "8b293e6375d8bf6f",
-        "name": "debug 3",
-        "active": true,
-        "tosidebar": false,
-        "console": false,
-        "tostatus": true,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "payload",
-        "statusType": "auto",
-        "x": 710,
-        "y": 520,
         "wires": []
     },
     {

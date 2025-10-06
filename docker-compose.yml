@@ -1,7 +1,7 @@
 services:
   ## IoT-Gateway
   iot-gateway:
-    container_name: gateway-main
+    container_name: gateway-test-main
     build:
       context: .
       dockerfile: dockerfile_main
@@ -23,15 +23,15 @@ services:
       - WEBUI_HTTP_PORT=${WEBUI_HTTP_PORT}
       - NODE_RED_HTTP_PORT=${NODE_RED_HTTP_PORT}
       - TZ=Europe/Berlin
-    # volumes:
-      # - ./iot_gateway.db:/app/iot_gateway.db
+    volumes:
+      - ./iot_gateway.db:/app/iot_gateway.db
     networks:
       - iot-network
     restart: unless-stopped
 
   ## Node-RED
   node-red:
-    container_name: gateway-node-red
+    container_name: gateway-test-node-red
     build:
       context: .
       dockerfile: dockerfile_nodered
@@ -57,7 +57,7 @@ services:
 
   ## InfluxDB
   influxdb:
-    container_name: gateway-influxdb
+    container_name: gateway-test-influxdb
     image: influxdb:2.7
     ports:
       - "${INFLUXDB_HTTP_PORT}:${INFLUXDB_HTTP_PORT}"

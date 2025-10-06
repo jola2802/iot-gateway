@@ -26,6 +26,7 @@ services:
       - TZ=Europe/Berlin
     volumes:
       - ./iot_gateway.db:/app/iot_gateway.db
+      # - ./db_gateway.db:/app/db_gateway.db
     networks:
       - iot-network
     restart: unless-stopped

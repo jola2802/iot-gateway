@@ -165,13 +165,13 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	// Busy-Timeout setzen (30 Sekunden)
-	if _, err := db.Exec("PRAGMA busy_timeout=30000"); err != nil {
+	// Busy-Timeout setzen (5 Sekunden)
+	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
 		return nil, err
 	}
 
 	// Synchronous-Mode für bessere Performance
-	if _, err := db.Exec("PRAGMA synchronous=NORMAL"); err != nil {
+	if _, err := db.Exec("PRAGMA synchronous=FULL"); err != nil {
 		return nil, err
 	}
 

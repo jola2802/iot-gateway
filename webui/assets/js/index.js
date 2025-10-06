@@ -41,8 +41,15 @@
                     
                     // Check if there is already a value in nodeRedAddressElement
                     if (nodeRedAddressElement.href === undefined || nodeRedAddressElement.href === "" || nodeRedAddressElement.href === null) {
+                        // Extrahiere IP-Adresse aus der aktuellen URL
+                        let nodeRedHost = "127.0.0.1"; // Fallback
+                        
+                        if (hostname && hostname !== "localhost") {
+                            nodeRedHost = hostname;
+                        }
+                        
                         nodeRedAddressElement.style.color = 'black';
-                        nodeRedAddressElement.href = `http://127.0.0.1:1880`;
+                        nodeRedAddressElement.href = `http://${nodeRedHost}:1880`;
                     }
                 }
 

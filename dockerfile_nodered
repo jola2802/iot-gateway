@@ -1,12 +1,9 @@
-FROM nodered/node-red:latest
+FROM nodered/node-red:latest-minimal
 
 # Kopiere package.json und installiere die Abhängigkeiten
 WORKDIR /data
 COPY node-red-data/package.json .
 COPY node-red-data/package-lock.json .
-
-USER root
-RUN npm install --unsafe-perm --no-update-notifier --no-fund --only=production 
 
 # Kopiere die Node-RED Konfigurationsdateien
 COPY node-red-data/settings.js .
@@ -15,3 +12,14 @@ COPY node-red-data/flows_cred.json .
 
 # Setze Arbeitsverzeichnis zurück
 WORKDIR /usr/src/node-red
+
+# Installiere Abhängigkeiten als root
+USER root
+RUN npm install --unsafe-perm --no-update-notifier --no-fund --only=production 
+
+# Installiere spezielle Node-RED-Contribs
+RUN npm install node-red-contrib-opcua 
+RUN npm install node-opcua
+RUN npm install node-red-contrib-influxdb
+RUN npm install node-red-contrib-image-output
+RUN npm install node-red-contrib-s7

@@ -538,6 +538,9 @@ function updateSetting(key, value) {
         
         // Log die Änderung
         console.log(`Setting ${key} updated to: ${value}`);
+        
+        // Aktualisiere die UI mit dem neuen Wert
+        updateSettingInUI(key, value);
     })
     .catch(error => {
         console.error('Fehler beim Aktualisieren der Einstellung:', error);
@@ -638,6 +641,39 @@ function togglePasswordVisibility(fieldId) {
         field.type = 'password';
         button.className = 'fas fa-eye';
     }
+}
+
+/**
+ * Aktualisiert ein Setting in der UI ohne die gesamte Seite neu zu laden
+ * @param {string} key - Der Setting-Key
+ * @param {string} value - Der neue Wert
+ */
+function updateSettingInUI(key, value) {
+    const fieldId = `setting_${key}`;
+    const field = document.getElementById(fieldId);
+    
+    if (!field) {
+        console.warn(`Setting field with ID ${fieldId} not found`);
+        return;
+    }
+    
+    // Aktualisiere den Wert basierend auf dem Feldtyp
+    if (field.type === 'checkbox') {
+        field.checked = value === 'true';
+        // Aktualisiere auch das Label
+        const label = field.nextElementSibling;
+        if (label) {
+            label.textContent = value === 'true' ? 'Enabled' : 'Disabled';
+        }
+    } else if (field.type === 'number') {
+        field.value = value;
+    } else if (field.tagName === 'SELECT') {
+        field.value = value;
+    } else {
+        field.value = value;
+    }
+    
+    console.log(`UI updated for setting ${key}: ${value}`);
 }
 
 

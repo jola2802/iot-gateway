@@ -100,7 +100,7 @@ func getSystemSettings(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query settings"})
 		return
 	}
-	defer rows.Close()
+	// defer rows.Close()
 
 	var settings []SystemSetting
 	for rows.Next() {
@@ -155,8 +155,8 @@ func updateSystemSetting(c *gin.Context) {
 
 	now := time.Now().Format("2006-01-02 15:04:05")
 
-	// Update oder Insert der Einstellung
-	_, err = db.Exec(`
+	// Update der Einstellung
+	result, err := db.Exec(`
 		UPDATE system_settings 
 		SET setting_value = ?, updated_at = ?
 		WHERE setting_key = ?
@@ -168,7 +168,21 @@ func updateSystemSetting(c *gin.Context) {
 		return
 	}
 
-	logrus.Infof("Setting %s updated to: %s", request.Key, request.Value)
+	// Prüfe, ob eine Zeile aktualisiert wurde
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logrus.Errorf("Error getting rows affected for setting %s: %v", request.Key, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update setting"})
+		return
+	}
+
+	if rowsAffected == 0 {
+		logrus.Errorf("Setting %s not found in database", request.Key)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Setting not found"})
+		return
+	}
+
+	logrus.Infof("Setting \"%s\" updated to: \"%s\"", request.Key, request.Value)
 	c.JSON(http.StatusOK, gin.H{"message": "Setting updated successfully"})
 }
 
@@ -315,14 +329,4 @@ func GetSystemSetting(db *sql.DB, key string) (string, error) {
 		return "", err
 	}
 	return value, nil
-}
-
-// GetSystemSettingWithDefault holt eine Einstellung mit einem Standardwert
-func GetSystemSettingWithDefault(db *sql.DB, key, defaultValue string) string {
-	value, err := GetSystemSetting(db, key)
-	if err != nil {
-		logrus.Warnf("Could not get setting %s, using default: %s", key, defaultValue)
-		return defaultValue
-	}
-	return value
 }

@@ -46,6 +46,7 @@ RUN mkdir -p /app/certificate-opcua
 
 # Copy the iot_gateway.db
 COPY --from=builder /app/iot_gateway.db /app/iot_gateway.db
+# COPY --from=builder /app/db_gateway.db /app/db_gateway.db
 
 RUN chmod +x /app/iot-gateway
 

@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	dbPath = "./iot_gateway.db"
+	dbPath = "./db_gateway.db"
 )
 
 // initializeOPCUACertificates stellt sicher, dass OPC-UA Zertifikate beim Gateway-Start verfügbar sind

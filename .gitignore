@@ -19,12 +19,5 @@ node-red-data/images
 *.sessions.json
 package-lock.json
 DOCKER_DNS_SOLUTION.md
-iot_gateway.db-shm
-
-iot_gateway_old.db
-iot_gateway.db
-iot_gateway.db-wal
-iot_gateway.db
 main.exe
-iot_gateway.db
 influxdb-data

@@ -2277,7 +2277,7 @@
         "method": "POST",
         "ret": "txt",
         "paytoqs": "ignore",
-        "url": "http://192.168.0.166:8087/process-image",
+        "url": "http://onnx-runtime:8087/process-image",
         "tls": "",
         "persist": false,
         "proxy": "",

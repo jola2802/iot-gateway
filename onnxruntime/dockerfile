@@ -1,0 +1,63 @@
+# ----------------------------------------------------------------------------------
+# STAGE 1: Build-Stage
+# Baut das Python-Environment und installiert alle benötigten Pakete (z.B. OpenCV)
+# ----------------------------------------------------------------------------------
+    FROM python:3.11-slim as builder
+
+    # Setzt das Arbeitsverzeichnis im Container
+    WORKDIR /app
+    
+    # Installiert notwendige System-Abhängigkeiten für OpenCV, ONNX und rembg.
+    # libgl1 wird für die cv2 (OpenCV) Initialisierung benötigt (behebt libGL.so.1 Fehler).
+    RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
+        libgomp1 \
+        libgl1 \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # Kopiert die Anforderungen und installiert die Python-Abhängigkeiten
+    COPY requirements.txt .
+    RUN pip install -r requirements.txt
+    
+    # ----------------------------------------------------------------------------------
+    # STAGE 2: Runtime-Stage
+    # Erstellt das finale, kleinere Image
+    # ----------------------------------------------------------------------------------
+    FROM python:3.11-slim
+    
+    # Setzt das Arbeitsverzeichnis
+    WORKDIR /app
+    
+    # Installiert die minimalen Laufzeit-Abhängigkeiten (libgl1 für cv2, libgomp1 für ONNX)
+    RUN apt-get update && apt-get install -y --no-install-recommends \
+        libglib2.0-0 \
+        libsm6 \
+        libxrender1 \
+        libgomp1 \
+        libgl1 \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # Kopiert die installierten Python-Pakete von der Build-Stufe
+    COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+    
+    # Kopiert den Quellcode der API
+    COPY process_img.py .
+    
+    # Kopiert das ONNX-Modell und die Ordnerstruktur (models/model.onnx)
+    # Dies stellt sicher, dass der Pfad MODEL_PATH = "./models/model.onnx" funktioniert.
+    COPY models ./models
+    
+    # Der Standard-Port, den Flask in der App verwendet, wird freigegeben
+    EXPOSE 8087
+    
+    # Definiert Umgebungsvariablen für Flask
+    ENV FLASK_APP=process_img.py
+    ENV FLASK_RUN_HOST=0.0.0.0
+    
+    # Startbefehl für die API
+    CMD ["python3", "process_img.py"]
+    

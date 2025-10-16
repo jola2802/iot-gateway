@@ -26,7 +26,6 @@ services:
       - TZ=Europe/Berlin
     volumes:
       - ./iot_gateway.db:/app/iot_gateway.db
-      # - ./db_gateway.db:/app/db_gateway.db
     networks:
       - iot-network
     restart: unless-stopped
@@ -74,6 +73,18 @@ services:
       - TZ=Europe/Berlin
     volumes:
       - ./influxdb-data:/var/lib/influxdb2
+    networks:
+      - iot-network
+    restart: unless-stopped
+
+  ## ONNX Runtime
+  onnx-runtime:
+    container_name: gateway-test-onnxruntime
+    build:
+      context: .
+      dockerfile: dockerfile_onnx
+    ports:
+      - "8087:8087"
     networks:
       - iot-network
     restart: unless-stopped

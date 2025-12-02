@@ -8,11 +8,11 @@
   - MQTT
 
 - **Datenverarbeitung und -weiterleitung**:
-  - Speicherung in InfluxDB für Zeitreihendaten
+  - Speicherung in InfluxDB für Zeitreihendaten (zeitlich begrenzt)
   - Integration mit Node-RED für benutzerdefinierte Datenflüsse
-  - Bildverarbeitung und -speicherung
+  - OPC-UA Bildverarbeitung und -speicherung
 
-- **Benutzerfreundliche Weboberfläche**:
+- **Weboberfläche**:
   - Konfiguration von Geräten und Datenpunkten
   - Visualisierung von Daten
   - Verwaltung von Verbindungen
@@ -29,6 +29,7 @@ Das Gateway besteht aus mehreren Komponenten, die in Docker-Containern laufen:
 2. **Node-RED**: Für benutzerdefinierte Datenflüsse und -verarbeitung
 3. **InfluxDB**: Zeitreihendatenbank für die Speicherung von Prozessdaten
 4. **NGINX**: Reverse-Proxy für die sichere Kommunikation und Zugriffsverwaltung
+5. **ONNX-RUNTIME**: Vorverarbeitung von Rohbildern und Rekonstruktion mittels ONNX-Modell
 
 ## Schnellstart mit Docker Compose
 
@@ -60,14 +61,11 @@ Das Gateway besteht aus mehreren Komponenten, die in Docker-Containern laufen:
    - Node-RED: https://localhost/nodered/
 
 ### Ports (default)
-- **443**: HTTPS-Zugriff auf alle Dienste (über NGINX)
+- **8088**: HTTPS-Zugriff auf Gateway und damit alle Dienste (über NGINX)
 - **5000**: MQTT via TCP (without TLS)
 - **5001**: MQTT via Websocket (without TLS)
 - **5100**: MQTT via Websocket (with TLS)
-- **5100**: MQTT via TCP (with TLS) 
-
-### Ports internal (default)
-- **8088**: Zugriff auf das Gateway
+- **5100**: MQTT via TCP (with TLS)
 - **1880**: Zugriff auf Node-RED
 - **8086**: Zugriff auf InfluxDB
 
@@ -82,7 +80,7 @@ Die Hauptkonfiguration erfolgt über die Weboberfläche. Dort können Sie:
 
 ## Entwicklung
 
-Das Gateway ist in Go geschrieben und verwendet Webtechnologien für die Benutzeroberfläche.
+Das Gateway ist in Go/Py geschrieben und verwendet Webtechnologien für die Benutzeroberfläche.
 
 
 ![image](https://github.com/user-attachments/assets/56c040b5-9369-4436-b30b-a19908585609)

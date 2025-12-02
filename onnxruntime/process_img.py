@@ -6,14 +6,11 @@ Empfängt Bilder über HTTP und gibt verarbeitete Bilder zurück
 
 import cv2
 import numpy as np
-from PIL import Image
-import os
-from rembg import remove
+from rembg import remove, new_session
 import onnxruntime as ort
 from flask import Flask, request, jsonify
 import base64
-import io
-from datetime import datetime
+import time
 
 # Pfad zum ONNX-Modell
 MODEL_PATH = "./models/model.onnx"
@@ -21,105 +18,128 @@ MODEL_PATH = "./models/model.onnx"
 # Flask-App initialisieren
 app = Flask(__name__)
 
+# Globale Variablen für wiederverwendbare Sessions (werden beim Start geladen)
+onnx_session = None
+onnx_input_name = None
+rembg_session = None
+
+
 def process_image_from_bytes(image_bytes: bytes) -> dict:
-    try:        
-        # Konvertiere Bytes zu OpenCV-Image
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        
-        # Dekodiere zuerst das Bild
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        img_original = img
-
-        if img is None:
+    try:
+        # Decode
+        img_cv = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+        if img_cv is None:
             return {"error": "Fehler beim Dekodieren des Bildes"}
-        
-        img = cv2.cvtColor(
-            remove(img, bgcolor=(255, 255, 255, 255)), cv2.COLOR_BGR2GRAY
-        )
 
-        # Schneide das Bild entsprechend zu (512x512)
-        img = crop_image(img)
+        # Feature + Model Input: exakt dieselbe Pipeline
+        feature = preprocess_image(img_cv)
+        onnx_out = run_onnx_model_in_memory(feature)
 
-        # Speichere das Bild auf der Festplatte
-        # cv2.imwrite("0_resized.png", img)
+        if onnx_out is None:
+            return {"error": "ONNX fehler"}
 
-        # Führe ONNX-Modell-Inferenz durch
-        onnx_result = run_onnx_model_in_memory(img)
+        # Falls Größen nicht passen → resized reconstruct
+        if feature.shape != onnx_out.shape:
+            onnx_out = cv2.resize(onnx_out, (feature.shape[1], feature.shape[0]))
 
-        # Speichere das Bild auf der Festplatte
-        # cv2.imwrite("0_onnx_result.png", onnx_result)
+        # Distanz berechnen (optimiert mit np.linalg.norm)
+        # Direkt float32 konvertieren für präzise Berechnung
+        diff = feature.astype(np.float32) - onnx_out.astype(np.float32)
+        euclidean_distance = float(np.linalg.norm(diff))
 
-        if onnx_result is None:
-            return {"error": "ONNX-Modell-Inferenz fehlgeschlagen"}
-        
-        # Konvertiere Bilder zu Base64
-        processed_base64 = image_to_base64(img)
-        onnx_result_base64 = image_to_base64(onnx_result)
+        print("Euclidean Distance:", euclidean_distance)
 
-        # Speichere die Bilder auf der Festplatte (verwende die numpy arrays, nicht die Base64-Strings)
-        # cv2.imwrite("0_processed_image.png", img)
+        # Beide sind bereits uint8 (0-255), keine unnötige Konvertierung nötig
+        feature_img = feature
+        reconstruct_img = onnx_out
 
-        # Rotiere das onnx_result numpy array um 90 grad nach rechts und speichere es
-        # onnx_result_rotated = np.rot90(onnx_result, 1)
-        
         return {
-            "processed_image": processed_base64,
-            "image": onnx_result_base64,
-            "original_shape": tuple(img_original.shape),
-            "processed_shape": tuple(onnx_result.shape) if isinstance(onnx_result, np.ndarray) else "N/A",
+            "processed_image": image_to_base64(reconstruct_img),
+            "feature_image": image_to_base64(feature_img),
+            "euclidean_distance": euclidean_distance,
         }
-        
+
     except Exception as e:
-        print(f"❌ Fehler bei der Bildverarbeitung: {e}")
-        return {"error": f"Fehler bei der Bildverarbeitung: {str(e)}"}
+        return {"error": str(e)}
+
+
+def preprocess_image(img: np.ndarray) -> np.ndarray:
+    """
+    Wendet genau das Preprocessing an, das sowohl für das Feature
+    als auch für das ONNX-Modell genutzt wird.
+    """
+    global rembg_session
+
+    # Hintergrund entfernen (falls Modell es erwartet)
+    # Verwende globale Session für bessere Performance
+    if rembg_session is None:
+        img = remove(img, bgcolor=(255, 255, 255, 255))
+    else:
+        img = remove(img, session=rembg_session, bgcolor=(255, 255, 255, 255))
+
+    # Graustufe
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Crop auf 512x512
+    img = crop_image(img)
+
+    return img
+
 
 def image_to_base64(image_array: np.ndarray) -> str:
-    # Konvertiere zu PNG-Bytes
-    _, buffer = cv2.imencode('.png', image_array)
-    # Konvertiere zu Base64
-    img_base64 = base64.b64encode(buffer).decode('utf-8')
-    return img_base64
+    """Konvertiert NumPy-Array zu Base64-String (optimiert)"""
+    # PNG mit optimierten Parametern für bessere Performance
+    success, buffer = cv2.imencode('.png', image_array, [cv2.IMWRITE_PNG_COMPRESSION, 1])
+    if not success:
+        raise ValueError("Fehler beim Kodieren des Bildes")
+    # Direktes base64-Encoding ohne Zwischenschritt
+    return base64.b64encode(buffer.tobytes()).decode('utf-8')
+
 
 def crop_image(image_array: np.ndarray) -> np.ndarray:
+    """
+    Cropt das Bild auf 512x512.
+    Falls das Bild zu klein ist oder der Crop außerhalb liegt, wird es auf 512x512 resized.
+    """
+    height, width = image_array.shape[:2]
+
     # Berechne die Mitte der x-Achse und nimm 256 Pixel auf beiden Seiten
-    x_center = image_array.shape[1] // 2
-    x_start = x_center - 256
-    x_end = x_center + 256
-        
-    # Nimm die unteren 512 Pixel von der y-Achse
-    y_start = image_array.shape[0] - 512
-    y_end = image_array.shape[0]
-        
+    x_center = width // 2
+    x_start = max(0, x_center - 256)
+    x_end = min(width, x_center + 256)
+
+    # # Nimm die unteren 512 Pixel von der y-Achse
+    y_start = max(0, height - 512)
+    y_end = height
+
+    # Nimm die oberen 512 Pixel von der y-Achse
+    # y_start = 0
+    # y_end = 512
+
     # Schneide das Bild entsprechend zu
-    resized = image_array[y_start:y_end, x_start:x_end]
-    return resized
+    cropped = image_array[y_start:y_end, x_start:x_end]
+
+    # Stelle sicher, dass das Ergebnis genau 512x512 ist
+    # Falls der Crop kleiner ist, resize es auf 512x512
+    if cropped.shape[0] != 512 or cropped.shape[1] != 512:
+        cropped = cv2.resize(cropped, (512, 512), interpolation=cv2.INTER_LINEAR)
+
+    return cropped
+
 
 def run_onnx_model_in_memory(image_array: np.ndarray) -> np.ndarray:
-    try:            
-        session = ort.InferenceSession(MODEL_PATH)
-        
-        # Normalisiere das Bild (0-1) und konvertiere zu float32
-        img_normalized = image_array.astype(np.float32) / 255.0
+    global onnx_session, onnx_input_name
 
-        # Transformiere das Bild (x und y um -90 Grad) VOR dem Reshape
-        # img_normalized = np.rot90(img_normalized, -1)
-        
-        # Reshape für ONNX-Input: [1, 1, 512, 512]
-        input_tensor = img_normalized.reshape(1, 1, 512, 512)
+    try:
+        # Verwende globale Session (wird nur einmal geladen)
+        if onnx_session is None:
+            raise RuntimeError("ONNX-Session wurde nicht initialisiert!")
 
-        # Führe Inferenz durch
-        input_name = session.get_inputs()[0].name
-        label_name = session.get_outputs()[0].name
-        
-        # ONNX-Inferenz
-        outputs = session.run(
-            # [label_name], 
-            # {input_name: input_tensor}
-            None,
-            {input_name: input_tensor}
-        )
+        # Normalisiere das Bild (-1, 1) anstatt (0, 1)
+        input_tensor = (image_array.astype(np.float32) / 127.5 - 1.0).reshape(1, 1, 512, 512)
+        outputs = onnx_session.run(None, {onnx_input_name: input_tensor})
         result = outputs[0]
-        
+
         # Verarbeite das ONNX-Ergebnis
         if len(result.shape) == 4 and result.shape[1] == 1:
             # Reshape von [1, 1, 512, 512] zu [512, 512]
@@ -130,38 +150,84 @@ def run_onnx_model_in_memory(image_array: np.ndarray) -> np.ndarray:
         else:
             output_img = result
 
-        # Normalisiere für Bildspeicherung (0-255)
-        output_img = (output_img * 255).astype(np.uint8)
+        # Denormalisiere für Bildspeicherung (0-255)
+        output_img = (output_img + 1.0) / 2.0
+        output_img = (output_img * 255).clip(0, 255).astype(np.uint8)
 
-        # Rotiere das Ergebnis um 90 grad nach rechts
-        # output_img = np.rot90(output_img, 1)
-        
         return output_img
-        
+
     except Exception as e:
         print(f"❌ Fehler bei ONNX-Inferenz: {e}")
         return None
 
+
 @app.route('/process-image', methods=['POST'])
 def process_image_endpoint():
+    # Zeitmessung starten
+    start_time = time.perf_counter()
+
     try:
-        # print("Request: ", request.data)
+        # Base64 dekodieren und direkt verarbeiten
         image_bytes = base64.b64decode(request.data)
-        file = io.BytesIO(image_bytes)
-        
         # Verarbeite das Bild
         result = process_image_from_bytes(image_bytes)
-        
+        # Zeitmessung beenden
+        end_time = time.perf_counter()
+        processing_time = end_time - start_time
+
         if "error" in result:
+            # Auch bei Fehlern die Zeit zurückgeben
+            result["processing_time_seconds"] = processing_time
+            print(f"⏱️ Verarbeitungszeit: {processing_time:.2f} Sekunden (Fehler)")
             return result
-        
+
+        # Verarbeitungszeit zur Antwort hinzufügen
+        result["processing_time_seconds"] = processing_time
+        print(f"⏱️ Verarbeitungszeit: {processing_time:.2f} Sekunden")
         return jsonify(result)
-        
+
     except Exception as e:
-        return jsonify({"error": f"Server-Fehler: {str(e)}"}), 500
+        # Auch bei Exceptions die Zeit messen
+        end_time = time.perf_counter()
+        processing_time = end_time - start_time
+        print(f"⏱️ Verarbeitungszeit: {processing_time:.4f} Sekunden (Exception)")
+        return jsonify({"error": f"Server-Fehler: {str(e)}", "processing_time_seconds": processing_time}), 500
+
+
+def initialize_models():
+    """Lädt alle Modelle beim Start der Anwendung"""
+    global onnx_session, onnx_input_name, rembg_session
+
+    print("📦 Lade ONNX-Modell...")
+    try:
+        # ONNX-Session mit CPU-Provider laden
+        onnx_session = ort.InferenceSession(MODEL_PATH, providers=['CPUExecutionProvider'])
+        onnx_input_name = onnx_session.get_inputs()[0].name
+        print(f"✅ ONNX-Modell geladen (Input: {onnx_input_name})")
+    except Exception as e:
+        print(f"❌ Fehler beim Laden des ONNX-Modells: {e}")
+        raise
+
+    print("📦 Initialisiere rembg Session...")
+    try:
+        # rembg Session initialisieren (optional, aber beschleunigt die Verarbeitung)
+        rembg_session = new_session()
+        print("✅ rembg Session initialisiert")
+    except Exception as e:
+        print(f"⚠️ rembg Session konnte nicht initialisiert werden: {e}")
+        print(" (Verwende Standard-Modus, kann etwas langsamer sein)")
+        rembg_session = None
+
 
 if __name__ == "__main__":
     print("🚀 Starte Bildverarbeitungs-API...")
     print("=" * 50)
-    
+
+    # Modelle beim Start laden
+    initialize_models()
+
+    print("=" * 50)
+    print("🌐 Server startet auf http://0.0.0.0:8087")
+    print("=" * 50)
+
     app.run(host='0.0.0.0', port=8087, debug=True)

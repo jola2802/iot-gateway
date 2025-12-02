@@ -22,5 +22,5 @@ DOCKER_DNS_SOLUTION.md
 main.exe
 influxdb-data
 onnxruntime/martin
-onnxruntime/models
+onnxruntime/martin - Kopie
 onnxruntime/.venv

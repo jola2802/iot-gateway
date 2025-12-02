@@ -1,63 +1,73 @@
 # ----------------------------------------------------------------------------------
 # STAGE 1: Build-Stage
-# Baut das Python-Environment und installiert alle benötigten Pakete (z.B. OpenCV)
+# Baut das Python-Environment und installiert alle benötigten Pakete
 # ----------------------------------------------------------------------------------
-    FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
-    # Setzt das Arbeitsverzeichnis im Container
-    WORKDIR /app
-    
-    # Installiert notwendige System-Abhängigkeiten für OpenCV, ONNX und rembg.
-    # libgl1 wird für die cv2 (OpenCV) Initialisierung benötigt (behebt libGL.so.1 Fehler).
-    RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        libglib2.0-0 \
-        libsm6 \
-        libxext6 \
-        libxrender-dev \
-        libgomp1 \
-        libgl1 \
-        && rm -rf /var/lib/apt/lists/*
-    
-    # Kopiert die Anforderungen und installiert die Python-Abhängigkeiten
-    COPY requirements.txt .
-    RUN pip install -r requirements.txt
-    
-    # ----------------------------------------------------------------------------------
-    # STAGE 2: Runtime-Stage
-    # Erstellt das finale, kleinere Image
-    # ----------------------------------------------------------------------------------
-    FROM python:3.11-slim
-    
-    # Setzt das Arbeitsverzeichnis
-    WORKDIR /app
-    
-    # Installiert die minimalen Laufzeit-Abhängigkeiten (libgl1 für cv2, libgomp1 für ONNX)
-    RUN apt-get update && apt-get install -y --no-install-recommends \
-        libglib2.0-0 \
-        libsm6 \
-        libxrender1 \
-        libgomp1 \
-        libgl1 \
-        && rm -rf /var/lib/apt/lists/*
-    
-    # Kopiert die installierten Python-Pakete von der Build-Stufe
-    COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-    
-    # Kopiert den Quellcode der API
-    COPY process_img.py .
-    
-    # Kopiert das ONNX-Modell und die Ordnerstruktur (models/model.onnx)
-    # Dies stellt sicher, dass der Pfad MODEL_PATH = "./models/model.onnx" funktioniert.
-    COPY models ./models
-    
-    # Der Standard-Port, den Flask in der App verwendet, wird freigegeben
-    EXPOSE 8087
-    
-    # Definiert Umgebungsvariablen für Flask
-    ENV FLASK_APP=process_img.py
-    ENV FLASK_RUN_HOST=0.0.0.0
-    
-    # Startbefehl für die API
-    CMD ["python3", "process_img.py"]
+WORKDIR /app
+
+# Installiert nur minimale System-Abhängigkeiten für Python-Pakete
+# build-essential entfernt, da die meisten Pakete vorgefertigte Wheels haben
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Kopiert requirements.txt zuerst (besseres Layer-Caching)
+# Änderungen am Code triggern nicht die Paket-Installation neu
+COPY requirements.txt .
+
+# Installiert Python-Abhängigkeiten mit optimierten Flags
+# --no-cache-dir reduziert Image-Größe, --upgrade stellt sicher, dass neueste Versionen verwendet werden
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ----------------------------------------------------------------------------------
+# STAGE 2: Runtime-Stage
+# Erstellt das finale, kleinere Image
+# ----------------------------------------------------------------------------------
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Installiert nur die minimalen Laufzeit-Abhängigkeiten
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libgomp1 \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Python-Optimierungen für bessere Performance
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Kopiert die installierten Python-Pakete von der Build-Stufe
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Kopiert den Quellcode der API (nach den Paketen für besseres Caching)
+COPY process_img.py .
+
+# Kopiert die ONNX-Modelle
+COPY models ./models
+
+# Port freigeben
+EXPOSE 8087
+
+# Flask-Umgebungsvariablen
+ENV FLASK_APP=process_img.py \
+    FLASK_RUN_HOST=0.0.0.0
+
+# Startbefehl für die API
+# -u Flag stellt sicher, dass stdout/stderr unbuffered sind
+CMD ["python3", "-u", "process_img.py"]
     
